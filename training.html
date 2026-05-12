@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Base64 Layout Debugger</title>
+<link rel="stylesheet" href="training.css">
+</head>
+<body>
+
+<div id="toolbar">
+  <label id="upload-label">
+    Upload Image
+    <input type="file" id="file-input" accept="image/*">
+  </label>
+
+  <button class="btn" id="templates-btn">Load Templates</button>
+  <button class="btn" id="confidence-btn">Confidence: Off</button>
+
+  <div class="legend">
+    <div class="legend-item">
+      <span class="swatch swatch-red"></span> col bounds
+    </div>
+    <div class="legend-item">
+      <span class="swatch swatch-blue"></span> text rows
+    </div>
+    <div class="legend-item conf-legend hidden">
+      <span class="swatch swatch-green"></span> high
+    </div>
+    <div class="legend-item conf-legend hidden">
+      <span class="swatch swatch-yellow"></span> mid
+    </div>
+    <div class="legend-item conf-legend hidden">
+      <span class="swatch swatch-orange"></span> low
+    </div>
+  </div>
+
+  <div id="info">No image loaded &nbsp;·&nbsp; Scroll = zoom &nbsp;·&nbsp; Drag = pan &nbsp;·&nbsp; Dbl-click = reset</div>
+</div>
+
+<div id="label-modal" class="hidden">
+  <div id="label-modal-inner">
+    <canvas id="label-preview"></canvas>
+    <input id="label-input" type="text" spellcheck="false" autocomplete="off" maxlength="64" placeholder="label…" />
+    <div id="label-hint">Enter &nbsp;=&nbsp; save &nbsp;·&nbsp; Esc &nbsp;=&nbsp; cancel</div>
+  </div>
+</div>
+
+<div id="main-content">
+  <div id="canvas-wrap">
+    <canvas id="canvas"></canvas>
+  </div>
+</div>
+
+<script src="training.js"></script>
+</body>
+</html>

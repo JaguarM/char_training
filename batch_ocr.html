@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Batch OCR</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #1a1a1a; color: #ccc; font-family: monospace; font-size: 13px;
+       display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+#toolbar { display: flex; align-items: center; gap: 10px; padding: 8px 14px;
+           background: #222; border-bottom: 1px solid #333; flex-shrink: 0; flex-wrap: wrap; }
+.btn { cursor: pointer; background: #2e2e2e; border: 1px solid #555; padding: 5px 12px;
+       border-radius: 4px; color: #ccc; font-family: monospace; font-size: 13px; }
+.btn:hover { background: #3a3a3a; }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn.active { background: #3a5a3a; border-color: #4a8a4a; color: #7fdf7f; }
+#status { margin-left: auto; font-size: 11px; color: #666; }
+#progress-wrap { width: 200px; background: #333; border-radius: 3px; height: 6px; display: none; }
+#progress-bar  { height: 6px; background: #4a8a4a; border-radius: 3px; width: 0%; transition: width 0.1s; }
+#output { flex: 1; overflow-y: auto; padding: 14px; white-space: pre-wrap; word-break: break-all;
+          font-size: 12px; line-height: 1.6; color: #8f8; background: #111; }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <button class="btn" id="tmpl-btn">Load Templates</button>
+  <button class="btn" id="pages-btn" disabled>Pick Pages Folder</button>
+  <button class="btn" id="run-btn"   disabled>Run OCR</button>
+  <button class="btn" id="save-btn"  disabled>Save base64.txt</button>
+  <div id="progress-wrap"><div id="progress-bar"></div></div>
+  <div id="status">No templates loaded</div>
+</div>
+
+<div id="output">Results will appear here…</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// TemplateEngine (inline copy from training.js)
+// ---------------------------------------------------------------------------
+const STEM_TO_CHAR = { eq: '=', slash: '/', plus: '+', minus: '-' };
+const CHAR_TO_STEM = Object.fromEntries(Object.entries(STEM_TO_CHAR).map(([k, v]) => [v, k]));
+
+class TemplateEngine {
+  constructor() { this.templates = []; this._canvas = null; this._ctx = null; }
+
+  stemToChar(stem) {
+    const base = stem.split('_')[0];
+    return STEM_TO_CHAR[base] ?? (stem.includes('_UPPER') ? stem.split('_UPPER')[0] : base);
+  }
+
+  _dataToGray(data) {
+    const pixels = new Float32Array(77);
+    for (let i = 0; i < 77; i++)
+      pixels[i] = (data[i * 4] + data[i * 4 + 1] + data[i * 4 + 2]) / 3;
+    return pixels;
+  }
+
+  _pixelStats(pixels) {
+    let sum = 0;
+    for (let i = 0; i < 77; i++) sum += pixels[i];
+    const mean = sum / 77;
+    let sq = 0;
+    for (let i = 0; i < 77; i++) { const v = pixels[i] - mean; sq += v * v; }
+    return { mean, l2: Math.sqrt(sq) };
+  }
+
+  async loadFromDir(dirHandle) {
+    this.templates = [];
+    const tasks = [];
+    for await (const [name, handle] of dirHandle.entries()) {
+      if (handle.kind !== 'file' || !name.endsWith('.png') || name.includes('unmatched')) continue;
+      const stem = name.slice(0, -4);
+      const char = this.stemToChar(stem);
+      if (!char || char.length !== 1) continue;
+      tasks.push(handle.getFile().then(async file => {
+        const url = URL.createObjectURL(file);
+        try { return await this._loadGray(url, char); } finally { URL.revokeObjectURL(url); }
+      }));
+    }
+    const results = await Promise.all(tasks);
+    this.templates = results.filter(Boolean);
+    return this.templates.length;
+  }
+
+  async loadFromHTTP(manifest) {
+    const tasks = manifest.map(({ filename, char }) => this._loadGray(`/templates/${filename}`, char));
+    const results = await Promise.all(tasks);
+    this.templates = results.filter(Boolean);
+    return this.templates.length;
+  }
+
+  _loadGray(url, char) {
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = 7; c.height = 11;
+        const ctx = c.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, 0, 0, 7, 11);
+        const pixels = this._dataToGray(ctx.getImageData(0, 0, 7, 11).data);
+        const { mean, l2 } = this._pixelStats(pixels);
+        resolve({ char, pixels, mean, den: l2 });
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  }
+
+  _cropCtx() {
+    if (!this._canvas) {
+      this._canvas = document.createElement('canvas');
+      this._canvas.width = 7; this._canvas.height = 11;
+      this._ctx = this._canvas.getContext('2d', { willReadFrequently: true });
+    }
+    return this._ctx;
+  }
+
+  extractCrop(imgEl, sx, sy) {
+    const ctx = this._cropCtx();
+    ctx.clearRect(0, 0, 7, 11);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(imgEl, Math.ceil(sx), sy, 7, 11, 0, 0, 7, 11);
+    return this._dataToGray(ctx.getImageData(0, 0, 7, 11).data);
+  }
+
+  ncc(a, aMean, aL2, t) {
+    let num = 0;
+    for (let i = 0; i < 77; i++) num += (a[i] - aMean) * (t.pixels[i] - t.mean);
+    const den = aL2 * t.den;
+    return den < 1e-8 ? 0 : num / den;
+  }
+
+  matchPixels(pixels) {
+    const { mean, l2 } = this._pixelStats(pixels);
+    if (l2 / Math.sqrt(77) < 5) return { char: ' ', score: 1, blank: true };
+    let bestChar = '?', bestScore = -Infinity;
+    for (const t of this.templates) {
+      const score = this.ncc(pixels, mean, l2, t);
+      if (score > bestScore) { bestScore = score; bestChar = t.char; }
+    }
+    return { char: bestChar, score: bestScore, blank: false };
+  }
+
+  ocrImage(imgEl, rowBands, config) {
+    const pitch = config.charPitch;
+    return rowBands.map(({ y0 }) =>
+      Array.from({ length: config.nCols }, (_, col) => {
+        const pixels = this.extractCrop(imgEl, config.xStart + col * pitch, y0);
+        return this.matchPixels(pixels);
+      })
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Config (same geometry as training.js)
+// ---------------------------------------------------------------------------
+class Config {
+  constructor() {
+    this.xStart = 60; this.xEnd = 653; this.nCols = 76;
+    this.rowBands = Array.from({ length: 65 }, (_, i) => ({ y0: 40 + i * 15, y1: 51 + i * 15 }));
+  }
+  get charPitch() { return (this.xEnd - this.xStart) / this.nCols; }
+}
+
+// ---------------------------------------------------------------------------
+// App
+// ---------------------------------------------------------------------------
+const config  = new Config();
+const engine  = new TemplateEngine();
+
+const tmplBtn  = document.getElementById('tmpl-btn');
+const pagesBtn = document.getElementById('pages-btn');
+const runBtn   = document.getElementById('run-btn');
+const saveBtn  = document.getElementById('save-btn');
+const statusEl = document.getElementById('status');
+const outputEl = document.getElementById('output');
+const progWrap = document.getElementById('progress-wrap');
+const progBar  = document.getElementById('progress-bar');
+
+let pagesDir  = null;
+let resultText = '';
+
+function setStatus(msg) { statusEl.textContent = msg; }
+function setProgress(n, total) {
+  progWrap.style.display = 'block';
+  progBar.style.width = `${Math.round(n / total * 100)}%`;
+  if (n >= total) setTimeout(() => { progWrap.style.display = 'none'; }, 600);
+}
+
+// Load templates
+tmplBtn.addEventListener('click', async () => {
+  if (!window.showDirectoryPicker) {
+    // Try HTTP manifest (launch.py)
+    try {
+      const res = await fetch('/api/templates');
+      if (res.ok) {
+        const manifest = await res.json();
+        if (manifest.length) {
+          setStatus('Loading templates…');
+          const n = await engine.loadFromHTTP(manifest);
+          setStatus(`${n} templates loaded`);
+          tmplBtn.classList.add('active');
+          pagesBtn.disabled = false;
+          return;
+        }
+      }
+    } catch {}
+    setStatus('showDirectoryPicker not available — use Chrome/Edge');
+    return;
+  }
+  let dir;
+  try { dir = await window.showDirectoryPicker({ mode: 'read' }); } catch { return; }
+  setStatus('Loading templates…');
+  const n = await engine.loadFromDir(dir);
+  if (n === 0) { setStatus('No valid templates found.'); return; }
+  setStatus(`${n} templates loaded`);
+  tmplBtn.classList.add('active');
+  pagesBtn.disabled = false;
+});
+
+// Pick pages folder
+pagesBtn.addEventListener('click', async () => {
+  try { pagesDir = await window.showDirectoryPicker({ mode: 'read' }); } catch { return; }
+  // Count PNGs
+  let count = 0;
+  for await (const [name, h] of pagesDir.entries())
+    if (h.kind === 'file' && name.endsWith('.png')) count++;
+  setStatus(`Pages folder: ${pagesDir.name}  (${count} PNGs)`);
+  runBtn.disabled = false;
+});
+
+// Load an Image from a File object
+function loadImage(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(); };
+    img.src = url;
+  });
+}
+
+// Run OCR over all pages
+runBtn.addEventListener('click', async () => {
+  if (!pagesDir) return;
+  runBtn.disabled = true;
+  saveBtn.disabled = true;
+  outputEl.textContent = '';
+  resultText = '';
+
+  // Collect and sort PNG file handles by name
+  const files = [];
+  for await (const [name, handle] of pagesDir.entries())
+    if (handle.kind === 'file' && name.endsWith('.png'))
+      files.push({ name, handle });
+  files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+
+  const lines = [];
+  for (let i = 0; i < files.length; i++) {
+    const { name, handle } = files[i];
+    setStatus(`Processing ${name}  (${i + 1} / ${files.length})`);
+    setProgress(i, files.length);
+    // yield to browser so the UI updates
+    await new Promise(r => setTimeout(r, 0));
+
+    let img;
+    try { img = await loadImage(await handle.getFile()); } catch { continue; }
+
+    const rows = engine.ocrImage(img, config.rowBands, config);
+    for (const row of rows) {
+      if (row.every(r => r.blank)) continue;       // skip blank rows
+      const text = row.map(r => r.blank ? ' ' : r.char).join('').trimEnd();
+      lines.push(text);
+      outputEl.textContent += text + '\n';
+      outputEl.scrollTop = outputEl.scrollHeight;
+    }
+  }
+
+  setProgress(files.length, files.length);
+  resultText = lines.join('\n');
+  setStatus(`Done — ${files.length} pages, ${lines.length} rows`);
+  runBtn.disabled = false;
+  saveBtn.disabled = false;
+});
+
+// Save base64.txt
+saveBtn.addEventListener('click', () => {
+  const blob = new Blob([resultText], { type: 'text/plain' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'base64.txt'; a.click();
+  URL.revokeObjectURL(url);
+});
+
+// Auto-load templates from launch.py if available
+fetch('/api/templates')
+  .then(r => r.ok ? r.json() : Promise.reject())
+  .then(async manifest => {
+    if (!manifest.length) return;
+    const n = await engine.loadFromHTTP(manifest);
+    if (n) {
+      setStatus(`Auto-loaded ${n} templates`);
+      tmplBtn.classList.add('active');
+      pagesBtn.disabled = false;
+    }
+  })
+  .catch(() => {});
+</script>
+</body>
+</html>
