@@ -338,12 +338,21 @@ class CanvasViewer {
       this.ctx.stroke();
     }
 
-    // Horizontal row bands (blue)
-    this.ctx.strokeStyle = 'rgba(80, 150, 255, 0.80)';
+    // Horizontal row bands (blue) and line numbers
     this.ctx.lineWidth = hairline;
-    for (const { y0, y1 } of this.rowBands) {
+    this.ctx.textAlign = 'right';
+    this.ctx.textBaseline = 'middle';
+
+    for (let i = 0; i < this.rowBands.length; i++) {
+      const { y0, y1 } = this.rowBands[i];
+      
+      this.ctx.strokeStyle = 'rgba(80, 150, 255, 0.80)';
       this.ctx.beginPath(); this.ctx.moveTo(this.config.xStart, y0); this.ctx.lineTo(this.config.xEnd, y0); this.ctx.stroke();
       this.ctx.beginPath(); this.ctx.moveTo(this.config.xStart, y1); this.ctx.lineTo(this.config.xEnd, y1); this.ctx.stroke();
+      
+      this.ctx.fillStyle = 'rgba(255, 80, 80, 0.9)';
+      this.ctx.font = 'bold 8px monospace';
+      this.ctx.fillText((i + 1).toString(), this.config.xStart - 4, (y0 + y1) / 2);
     }
 
     this.renderConfidence();
@@ -607,10 +616,38 @@ document.addEventListener('DOMContentLoaded', () => {
     viewer.render();
   });
 
-  fetch('page_002.png')
-    .then(r => { if (!r.ok) throw new Error(r.status); return r.blob(); })
-    .then(blob => viewer.loadURL(URL.createObjectURL(blob), 'page_002.png', true))
-    .catch(() => { /* silent fail on file:// */ });
+  const pages = Array.from({ length: 76 }, (_, i) => `EFTA00400459_pages/page_${String(i + 1).padStart(3, '0')}.png`);
+  let currentPageIndex = 0;
+
+  const pageSelect = document.getElementById('page-select');
+  const prevBtn = document.getElementById('prev-page-btn');
+  const nextBtn = document.getElementById('next-page-btn');
+
+  pages.forEach((page, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = `Page ${i + 1}`;
+    pageSelect.appendChild(opt);
+  });
+
+  function loadPage(index) {
+    if (index < 0 || index >= pages.length) return;
+    currentPageIndex = index;
+    pageSelect.value = index;
+    prevBtn.disabled = index === 0;
+    nextBtn.disabled = index === pages.length - 1;
+    
+    fetch(pages[index])
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.blob(); })
+      .then(blob => viewer.loadURL(URL.createObjectURL(blob), pages[index].split('/').pop(), true))
+      .catch(() => { viewer.infoEl.textContent = `Could not load ${pages[index]}`; });
+  }
+
+  prevBtn.addEventListener('click', () => loadPage(currentPageIndex - 1));
+  nextBtn.addEventListener('click', () => loadPage(currentPageIndex + 1));
+  pageSelect.addEventListener('change', e => loadPage(parseInt(e.target.value, 10)));
+
+  loadPage(0);
 
   viewer.autoLoadTemplatesFromHTTP().catch(() => { /* silent fail on file:// */ });
 });
