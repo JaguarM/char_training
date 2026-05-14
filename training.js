@@ -345,11 +345,11 @@ class CanvasViewer {
 
     for (let i = 0; i < this.rowBands.length; i++) {
       const { y0, y1 } = this.rowBands[i];
-      
+
       this.ctx.strokeStyle = 'rgba(80, 150, 255, 0.80)';
       this.ctx.beginPath(); this.ctx.moveTo(this.config.xStart, y0); this.ctx.lineTo(this.config.xEnd, y0); this.ctx.stroke();
       this.ctx.beginPath(); this.ctx.moveTo(this.config.xStart, y1); this.ctx.lineTo(this.config.xEnd, y1); this.ctx.stroke();
-      
+
       this.ctx.fillStyle = 'rgba(255, 80, 80, 0.9)';
       this.ctx.font = 'bold 8px monospace';
       this.ctx.fillText((i + 1).toString(), this.config.xStart - 4, (y0 + y1) / 2);
@@ -386,14 +386,15 @@ class CanvasViewer {
         this.ctx.fillStyle = `rgba(${rgb},0.28)`;
         this.ctx.fillRect(x, y0, 7, 11);
 
-        this.ctx.font = `bold ${cellH * (showScore ? 0.6 : 0.9)}px monospace`;
+        this.ctx.font = `bold ${cellH * (showScore ? 0.5 : 0.9)}px monospace`;
         this.ctx.fillStyle = `rgba(${rgb},1)`;
-        this.ctx.fillText(char, x + 3.5, cy - (showScore ? cellH * 0.1 : 0));
+        this.ctx.fillText(char, x + 3.5, cy);
 
         if (showScore) {
-          this.ctx.font = `${cellH * 0.35}px monospace`;
+          this.ctx.font = `${cellH * 0.17}px monospace`;
           this.ctx.fillStyle = 'rgba(210,210,210,0.85)';
-          this.ctx.fillText(score.toFixed(2), x + 3.5, cy + cellH * 0.35);
+          this.ctx.fillText(`r${ri + 1},c${ci + 1}`, x + 3.5, cy - cellH * 0.38);
+          this.ctx.fillText(score.toFixed(2), x + 3.5, cy + cellH * 0.38);
         }
       }
     }
@@ -636,7 +637,7 @@ document.addEventListener('DOMContentLoaded', () => {
     pageSelect.value = index;
     prevBtn.disabled = index === 0;
     nextBtn.disabled = index === pages.length - 1;
-    
+
     fetch(pages[index])
       .then(r => { if (!r.ok) throw new Error(r.status); return r.blob(); })
       .then(blob => viewer.loadURL(URL.createObjectURL(blob), pages[index].split('/').pop(), true))
