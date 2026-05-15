@@ -38,8 +38,7 @@ with open('batch_ocr.html', 'r', encoding='utf-8') as f:
     html = f.read()
 
 # Create the replacement block
-block = f"""
-// --- BAKED-IN TEMPLATES ---
+block = f"""// --- BAKED-IN TEMPLATES ---
 const HARDCODED_TEMPLATES = {json.dumps(encoded_templates)};
 
 (async () => {{
@@ -53,16 +52,13 @@ const HARDCODED_TEMPLATES = {json.dumps(encoded_templates)};
 }})();
 """
 
+# Replace exactly from the marker up to the closing </script> tag
 new_html = re.sub(
-    r'// Auto-load templates from launch\.py if available.*?catch\(\(\) => \{\}\);',
-    block.strip().replace('\\', '\\\\'), # escape backslashes for regex sub if any
+    r'// --- BAKED-IN TEMPLATES ---.*?(?=</script>)',
+    block.replace('\\', '\\\\'), 
     html,
     flags=re.DOTALL
 )
-
-# the above re.sub with string block can have issues with group references if there are \1 etc
-# a safer way:
-new_html = html.split('// Auto-load templates from launch.py if available')[0] + block.strip() + '\n'
 
 with open('batch_ocr.html', 'w', encoding='utf-8') as f:
     f.write(new_html)
