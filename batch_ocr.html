@@ -27,15 +27,14 @@ label.btn { display: inline-block; }
 <body>
 
 <div id="toolbar">
-  <button class="btn" id="tmpl-btn">Load Templates</button>
   <label class="btn" id="pdf-label">
     Pick PDF
     <input type="file" id="pdf-input" accept="application/pdf">
   </label>
-  <button class="btn" id="run-btn"  disabled>Run OCR</button>
-  <button class="btn" id="save-btn" disabled>Save base64.txt</button>
+  <button class="btn" id="save-btn"   disabled>Save base64.txt</button>
+  <button class="btn" id="decode-btn" disabled>Decode PDF</button>
   <div id="progress-wrap"><div id="progress-bar"></div></div>
-  <div id="status">No templates loaded</div>
+  <div id="status">Pick a PDF to start</div>
 </div>
 
 <div id="output">Results will appear here…</div>
@@ -256,10 +255,9 @@ async function extractEmbeddedImages(page) {
 const config  = new Config();
 const engine  = new TemplateEngine();
 
-const tmplBtn  = document.getElementById('tmpl-btn');
 const pdfInput = document.getElementById('pdf-input');
-const runBtn   = document.getElementById('run-btn');
-const saveBtn  = document.getElementById('save-btn');
+const saveBtn   = document.getElementById('save-btn');
+const decodeBtn = document.getElementById('decode-btn');
 const statusEl = document.getElementById('status');
 const outputEl = document.getElementById('output');
 const progWrap = document.getElementById('progress-wrap');
@@ -275,35 +273,6 @@ function setProgress(n, total) {
   if (n >= total) setTimeout(() => { progWrap.style.display = 'none'; }, 600);
 }
 
-// Load templates
-tmplBtn.addEventListener('click', async () => {
-  if (!window.showDirectoryPicker) {
-    try {
-      const res = await fetch('/api/templates');
-      if (res.ok) {
-        const manifest = await res.json();
-        if (manifest.length) {
-          setStatus('Loading templates…');
-          const n = await engine.loadFromHTTP(manifest);
-          setStatus(`${n} templates loaded`);
-          tmplBtn.classList.add('active');
-          return;
-        }
-      }
-    } catch {}
-    setStatus('showDirectoryPicker not available — use Chrome/Edge');
-    return;
-  }
-  let dir;
-  try { dir = await window.showDirectoryPicker({ mode: 'read' }); } catch { return; }
-  setStatus('Loading templates…');
-  const n = await engine.loadFromDir(dir);
-  if (n === 0) { setStatus('No valid templates found.'); return; }
-  setStatus(`${n} templates loaded`);
-  tmplBtn.classList.add('active');
-  if (pdfDoc) runBtn.disabled = false;
-});
-
 // PDF picked
 pdfInput.addEventListener('change', async e => {
   const file = e.target.files[0];
@@ -313,14 +282,14 @@ pdfInput.addEventListener('change', async e => {
   pdfDoc = await pdfjsLib.getDocument({ data: ab }).promise;
   setStatus(`${file.name}  ·  ${pdfDoc.numPages} pages`);
   document.getElementById('pdf-label').classList.add('active');
-  if (engine.templates.length > 0) runBtn.disabled = false;
+  await runOCR();
 });
 
 // Run OCR over all PDF pages
-runBtn.addEventListener('click', async () => {
+async function runOCR() {
   if (!pdfDoc) return;
-  runBtn.disabled = true;
   saveBtn.disabled = true;
+  decodeBtn.disabled = true;
   outputEl.textContent = '';
   resultText = '';
 
@@ -369,8 +338,20 @@ runBtn.addEventListener('click', async () => {
     outputEl.textContent = '(base64 marker "JVBERi0xLj" not found — check templates or grid)';
     setStatus(`Done — ${total} pages  ·  base64 marker not found`);
   }
-  runBtn.disabled = false;
   saveBtn.disabled = false;
+  decodeBtn.disabled = false;
+}
+
+// Decode base64 → PDF download
+decodeBtn.addEventListener('click', () => {
+  const binary = atob(resultText);
+  const bytes  = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const blob = new Blob([bytes], { type: 'application/pdf' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'decoded.pdf'; a.click();
+  URL.revokeObjectURL(url);
 });
 
 // Save base64.txt
