@@ -21,7 +21,7 @@ body {
   flex-wrap: wrap;
 }
 
-#upload-label, .btn {
+#pdf-label, .btn {
   cursor: pointer;
   background: #2e2e2e;
   border: 1px solid #555;
@@ -32,8 +32,8 @@ body {
   font-family: monospace;
   font-size: 13px;
 }
-#upload-label:hover, .btn:hover { background: #3a3a3a; }
-#file-input { display: none; }
+#pdf-label:hover, .btn:hover { background: #3a3a3a; }
+#pdf-input { display: none; }
 
 .legend {
   display: flex;

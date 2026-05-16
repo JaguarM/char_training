@@ -1,3 +1,6 @@
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
 // ---------------------------------------------------------------------------
 // TemplateEngine — loads Base64 glyph PNGs and runs NCC matching
 // ---------------------------------------------------------------------------
@@ -146,14 +149,70 @@ class Config {
     this.xStart = 60;
     this.xEnd = 653;
     this.nCols = 76;
-    this.rowBands = Array.from({ length: 65 }, (_, i) => ({ y0: 40 + i * 15, y1: 51 + i * 15 }));
   }
 
   get charPitch() { return (this.xEnd - this.xStart) / this.nCols; }
-  get nGridLines() { return this.nCols + 1; } // column edges: one per col + right edge of last
+  get nGridLines() { return this.nCols + 1; }
+}
+
+function makeRowBands(base) {
+  return Array.from({ length: 65 }, (_, i) => ({ y0: base + i * 15, y1: base + 11 + i * 15 }));
+}
+
+function autoDetectBase(imgEl, engine, config) {
+  const MIN_BASE = 28, MAX_BASE = 52, PROBE_ROWS = 10, THRESHOLD = 0.40;
+  let bestBase = 40, bestAvg = -Infinity;
+  for (let base = MIN_BASE; base <= MAX_BASE; base++) {
+    const probeBands = makeRowBands(base).slice(-PROBE_ROWS);
+    let sum = 0, count = 0;
+    for (const { y0 } of probeBands) {
+      for (let col = 0; col < config.nCols; col++) {
+        const pixels = engine.extractCrop(imgEl, config.xStart + col * config.charPitch, y0);
+        const r = engine.matchPixels(pixels);
+        if (!r.blank) { sum += r.score; count++; }
+      }
+    }
+    const avg = count > 0 ? sum / count : 0;
+    if (avg > bestAvg) { bestAvg = avg; bestBase = base; }
+  }
+  return bestAvg >= THRESHOLD ? bestBase : 40;
 }
 
 
+
+// ---------------------------------------------------------------------------
+// PDF embedded-image extraction
+// ---------------------------------------------------------------------------
+async function extractEmbeddedImages(page) {
+  const ops = await page.getOperatorList();
+  const canvases = [];
+  const seen = new Set();
+  for (let i = 0; i < ops.fnArray.length; i++) {
+    if (ops.fnArray[i] !== pdfjsLib.OPS.paintImageXObject &&
+        ops.fnArray[i] !== pdfjsLib.OPS.paintImageXObjectRepeat &&
+        ops.fnArray[i] !== pdfjsLib.OPS.paintJpegXObject) continue;
+    const imageName = ops.argsArray[i][0];
+    if (seen.has(imageName)) continue;
+    seen.add(imageName);
+    const img = await new Promise(resolve => page.objs.get(imageName, resolve));
+    if (!img) continue;
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (img.bitmap) {
+      ctx.drawImage(img.bitmap, 0, 0);
+    } else if (img.data) {
+      const imageData = new ImageData(
+        new Uint8ClampedArray(img.data.buffer ?? img.data),
+        img.width, img.height
+      );
+      ctx.putImageData(imageData, 0, 0);
+    } else continue;
+    canvases.push(canvas);
+  }
+  return canvases;
+}
 // ---------------------------------------------------------------------------
 // CanvasViewer
 // ---------------------------------------------------------------------------
@@ -166,7 +225,7 @@ class CanvasViewer {
     this.config = config;
 
     this.img = null;
-    this.rowBands = this.config.rowBands;
+    this.rowBands = makeRowBands(40);
     this.filename = '';
 
     this.tx = 0; this.ty = 0; this.scale = 1;
@@ -192,10 +251,7 @@ class CanvasViewer {
     window.addEventListener('mouseup', () => this.onMouseUp());
     this.canvas.addEventListener('dblclick', e => this._extractAtEvent(e));
 
-    this.wrap.addEventListener('dragenter', e => { e.preventDefault(); this.wrap.classList.add('drop-over'); });
-    this.wrap.addEventListener('dragover', e => { e.preventDefault(); });
-    this.wrap.addEventListener('dragleave', e => { if (!this.wrap.contains(e.relatedTarget)) this.wrap.classList.remove('drop-over'); });
-    this.wrap.addEventListener('drop', e => this.onDrop(e));
+
   }
 
   resize() {
@@ -224,12 +280,13 @@ class CanvasViewer {
     image.src = url;
   }
 
-  onDrop(e) {
-    e.preventDefault();
-    this.wrap.classList.remove('drop-over');
-    const file = e.dataTransfer.files[0];
-    if (!file || !file.type.startsWith('image/')) return;
-    this.loadURL(URL.createObjectURL(file), file.name, true);
+  loadCanvas(canvas, label) {
+    this.img = canvas;
+    this.filename = label;
+    this.matchResults = null;
+    this.updateInfo();
+    this.resetFit();
+    if (this.engine.templates.length > 0) this.runMatching();
   }
 
   // ------------------------------------------------------------------
@@ -577,6 +634,21 @@ class CanvasViewer {
   }
 
   onMouseUp() { this.dragging = false; this.wrap.classList.remove('dragging'); }
+
+  async autoDetectGrid() {
+    if (!this.img || this.engine.templates.length === 0) {
+      this.infoEl.textContent = 'Load a PDF and templates first.';
+      return null;
+    }
+    this.infoEl.textContent = 'Auto-detecting grid for current page…';
+    await new Promise(r => setTimeout(r, 0));
+    const base  = autoDetectBase(this.img, this.engine, this.config);
+    const delta = base - 40;
+    this.rowBands = makeRowBands(base);
+    this.infoEl.textContent = `Grid base: ${base} (${delta >= 0 ? '+' : ''}${delta}px) — re-running match…`;
+    await this.runMatching();
+    return base;
+  }
 }
 
 
@@ -592,14 +664,95 @@ document.addEventListener('DOMContentLoaded', () => {
     config
   );
 
-  document.getElementById('file-input').addEventListener('change', e => {
+  let pdfDoc = null;
+  const pdfPageCanvases = [];
+  const pageGridBases = [];
+  let currentPageIndex = 0;
+  let autoGridRunning = false;
+
+  async function getPageCanvas(index) {
+    if (pdfPageCanvases[index]) return pdfPageCanvases[index];
+    const page = await pdfDoc.getPage(index + 1);
+    const images = await extractEmbeddedImages(page);
+    pdfPageCanvases[index] = images[0] ?? null;
+    return pdfPageCanvases[index];
+  }
+
+  const pageSelect = document.getElementById('page-select');
+  const prevBtn = document.getElementById('prev-page-btn');
+  const nextBtn = document.getElementById('next-page-btn');
+
+  async function loadPage(index) {
+    if (!pdfDoc || index < 0 || index >= pdfDoc.numPages) return;
+    currentPageIndex = index;
+    pageSelect.value = index;
+    prevBtn.disabled = index === 0;
+    nextBtn.disabled = index === pdfDoc.numPages - 1;
+
+    viewer.infoEl.textContent = `Loading page ${index + 1}…`;
+    const canvas = await getPageCanvas(index);
+    if (!canvas) {
+      viewer.infoEl.textContent = `Page ${index + 1}: no embedded image found`;
+      return;
+    }
+
+    viewer.rowBands = makeRowBands(pageGridBases[index] ?? 40);
+    viewer.loadCanvas(canvas, `Page ${index + 1}`);
+  }
+
+  document.getElementById('pdf-input').addEventListener('change', async e => {
     const file = e.target.files[0];
     if (!file) return;
-    viewer.loadURL(URL.createObjectURL(file), file.name, true);
+    viewer.infoEl.textContent = 'Loading PDF…';
+    const ab = await file.arrayBuffer();
+    pdfDoc = await pdfjsLib.getDocument({ data: ab }).promise;
+
+    pdfPageCanvases.length = 0;
+    pageGridBases.length = 0;
+    pdfPageCanvases.length = pdfDoc.numPages;
+    pageGridBases.length = pdfDoc.numPages;
+    pageGridBases.fill(null);
+
+    pageSelect.innerHTML = '';
+    for (let i = 0; i < pdfDoc.numPages; i++) {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = `Page ${i + 1}`;
+      pageSelect.appendChild(opt);
+    }
+
+    document.getElementById('pdf-label').classList.add('active');
+    await loadPage(0);
   });
+
+  prevBtn.addEventListener('click', () => loadPage(currentPageIndex - 1));
+  nextBtn.addEventListener('click', () => loadPage(currentPageIndex + 1));
+  pageSelect.addEventListener('change', e => loadPage(parseInt(e.target.value, 10)));
 
   document.getElementById('templates-btn').addEventListener('click', () => {
     viewer.loadTemplates();
+  });
+
+  document.getElementById('auto-grid-btn').addEventListener('click', async () => {
+    if (autoGridRunning) return;
+    autoGridRunning = true;
+
+    const base = await viewer.autoDetectGrid();
+    if (base !== null) {
+      pageGridBases[currentPageIndex] = base;
+
+      const total = pdfDoc ? pdfDoc.numPages : 0;
+      for (let i = 0; i < total; i++) {
+        if (i === currentPageIndex) continue;
+        viewer.infoEl.textContent = `Auto-detecting grid: page ${i + 1} / ${total}…`;
+        await new Promise(r => setTimeout(r, 0));
+        const canvas = await getPageCanvas(i);
+        if (!canvas) continue;
+        pageGridBases[i] = autoDetectBase(canvas, viewer.engine, config);
+      }
+      viewer.infoEl.textContent = `Auto-grid done — ${total} pages.`;
+    }
+    autoGridRunning = false;
   });
 
   const confBtn = document.getElementById('confidence-btn');
@@ -617,38 +770,5 @@ document.addEventListener('DOMContentLoaded', () => {
     viewer.render();
   });
 
-  const pages = Array.from({ length: 76 }, (_, i) => `EFTA00400459_pages/page_${String(i + 1).padStart(3, '0')}.png`);
-  let currentPageIndex = 0;
-
-  const pageSelect = document.getElementById('page-select');
-  const prevBtn = document.getElementById('prev-page-btn');
-  const nextBtn = document.getElementById('next-page-btn');
-
-  pages.forEach((page, i) => {
-    const opt = document.createElement('option');
-    opt.value = i;
-    opt.textContent = `Page ${i + 1}`;
-    pageSelect.appendChild(opt);
-  });
-
-  function loadPage(index) {
-    if (index < 0 || index >= pages.length) return;
-    currentPageIndex = index;
-    pageSelect.value = index;
-    prevBtn.disabled = index === 0;
-    nextBtn.disabled = index === pages.length - 1;
-
-    fetch(pages[index])
-      .then(r => { if (!r.ok) throw new Error(r.status); return r.blob(); })
-      .then(blob => viewer.loadURL(URL.createObjectURL(blob), pages[index].split('/').pop(), true))
-      .catch(() => { viewer.infoEl.textContent = `Could not load ${pages[index]}`; });
-  }
-
-  prevBtn.addEventListener('click', () => loadPage(currentPageIndex - 1));
-  nextBtn.addEventListener('click', () => loadPage(currentPageIndex + 1));
-  pageSelect.addEventListener('change', e => loadPage(parseInt(e.target.value, 10)));
-
-  loadPage(0);
-
-  viewer.autoLoadTemplatesFromHTTP().catch(() => { /* silent fail on file:// */ });
+  viewer.autoLoadTemplatesFromHTTP().catch(() => {});
 });

@@ -4,16 +4,18 @@
 <meta charset="UTF-8">
 <title>Base64 Layout Debugger</title>
 <link rel="stylesheet" href="training.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
 
 <div id="toolbar">
-  <label id="upload-label">
-    Upload Image
-    <input type="file" id="file-input" accept="image/*">
+  <label id="pdf-label">
+    Pick PDF
+    <input type="file" id="pdf-input" accept="application/pdf">
   </label>
 
   <button class="btn" id="templates-btn">Load Templates</button>
+  <button class="btn" id="auto-grid-btn">Auto Grid</button>
   <button class="btn" id="confidence-btn">Confidence: Off</button>
 
   <div class="page-controls" style="display: flex; gap: 8px; align-items: center; margin-left: 16px;">
