@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PDF → PNG Extractor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #1a1a1a; color: #ccc; font-family: monospace; font-size: 13px;
+       display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+#toolbar { display: flex; align-items: center; gap: 10px; padding: 8px 14px;
+           background: #222; border-bottom: 1px solid #333; flex-shrink: 0; flex-wrap: wrap; }
+.btn { cursor: pointer; background: #2e2e2e; border: 1px solid #555; padding: 5px 12px;
+       border-radius: 4px; color: #ccc; font-family: monospace; font-size: 13px; }
+.btn:hover:not(:disabled) { background: #3a3a3a; }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn.active { background: #3a5a3a; border-color: #4a8a4a; color: #7fdf7f; }
+label.btn { display: inline-block; }
+#file-input { display: none; }
+#status { margin-left: auto; font-size: 11px; color: #666; }
+#progress-wrap { width: 200px; background: #333; border-radius: 3px; height: 6px; display: none; }
+#progress-bar  { height: 6px; background: #4a8a4a; border-radius: 3px; width: 0%;
+                 transition: width 0.15s; }
+#main { flex: 1; display: flex; overflow: hidden; }
+#log  { flex: 1; overflow-y: auto; padding: 14px; font-size: 12px; line-height: 1.7;
+        color: #888; background: #111; }
+#preview-wrap { width: 340px; border-left: 1px solid #333; background: #161616;
+                display: flex; align-items: center; justify-content: center; overflow: hidden; }
+#preview { max-width: 100%; max-height: 100%; image-rendering: pixelated; display: none; }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <label class="btn" id="pick-pdf-label">
+    Pick PDF
+    <input type="file" id="file-input" accept="application/pdf">
+  </label>
+  <button class="btn" id="folder-btn" disabled>Pick Output Folder</button>
+  <button class="btn" id="run-btn" disabled>Extract PNGs</button>
+  <div id="progress-wrap"><div id="progress-bar"></div></div>
+  <div id="status">No PDF loaded</div>
+</div>
+
+<div id="main">
+  <div id="log">Select a PDF and an output folder, then click Extract PNGs.</div>
+  <div id="preview-wrap"><canvas id="preview"></canvas></div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const fileInput = document.getElementById('file-input');
+const folderBtn = document.getElementById('folder-btn');
+const runBtn    = document.getElementById('run-btn');
+const statusEl  = document.getElementById('status');
+const logEl     = document.getElementById('log');
+const preview   = document.getElementById('preview');
+const progWrap  = document.getElementById('progress-wrap');
+const progBar   = document.getElementById('progress-bar');
+
+let pdfFile   = null;
+let outDir    = null;
+let pdfDoc    = null;
+
+function log(msg) { logEl.textContent += msg + '\n'; logEl.scrollTop = logEl.scrollHeight; }
+function setStatus(msg) { statusEl.textContent = msg; }
+function setProgress(n, total) {
+  progWrap.style.display = 'block';
+  progBar.style.width = `${Math.round(n / total * 100)}%`;
+  if (n >= total) setTimeout(() => { progWrap.style.display = 'none'; }, 600);
+}
+
+// PDF picked via file input
+fileInput.addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  pdfFile = file;
+  logEl.textContent = '';
+  log(`PDF: ${file.name}`);
+  const ab = await file.arrayBuffer();
+  pdfDoc = await pdfjsLib.getDocument({ data: ab }).promise;
+  log(`Pages: ${pdfDoc.numPages}`);
+  setStatus(`${file.name}  ·  ${pdfDoc.numPages} pages`);
+  folderBtn.disabled = false;
+  if (outDir) runBtn.disabled = false;
+});
+
+// Output folder
+folderBtn.addEventListener('click', async () => {
+  try { outDir = await window.showDirectoryPicker({ mode: 'readwrite' }); }
+  catch { return; }
+  log(`Output folder: ${outDir.name}`);
+  if (pdfDoc) runBtn.disabled = false;
+});
+
+async function extractEmbeddedImages(page) {
+  const ops = await page.getOperatorList();
+  const canvases = [];
+  const seen = new Set();
+
+  for (let i = 0; i < ops.fnArray.length; i++) {
+    if (ops.fnArray[i] !== pdfjsLib.OPS.paintImageXObject &&
+        ops.fnArray[i] !== pdfjsLib.OPS.paintImageXObjectRepeat &&
+        ops.fnArray[i] !== pdfjsLib.OPS.paintJpegXObject) continue;
+
+    const imageName = ops.argsArray[i][0];
+    if (seen.has(imageName)) continue;
+    seen.add(imageName);
+
+    // objs.get() is callback-based, not Promise-returning
+    const img = await new Promise(resolve => page.objs.get(imageName, resolve));
+    if (!img) continue;
+
+    const canvas = document.createElement('canvas');
+    canvas.width  = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+
+    if (img.bitmap) {
+      // Newer PDF.js builds resolve images as ImageBitmap
+      ctx.drawImage(img.bitmap, 0, 0);
+    } else if (img.data) {
+      const imageData = new ImageData(
+        new Uint8ClampedArray(img.data.buffer ?? img.data),
+        img.width,
+        img.height
+      );
+      ctx.putImageData(imageData, 0, 0);
+    } else {
+      continue;
+    }
+
+    canvases.push(canvas);
+  }
+  return canvases;
+}
+
+// Extract
+runBtn.addEventListener('click', async () => {
+  if (!pdfDoc || !outDir) return;
+  runBtn.disabled = true;
+  logEl.textContent = '';
+
+  const total  = pdfDoc.numPages;
+  const padLen = Math.max(3, String(total).length);
+
+  log(`Extracting embedded images from ${total} pages…\n`);
+
+  for (let i = 1; i <= total; i++) {
+    setStatus(`Processing page ${i} / ${total}…`);
+    setProgress(i - 1, total);
+    await new Promise(r => setTimeout(r, 0));
+
+    const page   = await pdfDoc.getPage(i);
+    const images = await extractEmbeddedImages(page);
+
+    for (let j = 0; j < images.length; j++) {
+      const c        = images[j];
+      const suffix   = images.length > 1 ? `_img${j + 1}` : '';
+      const filename = `page_${String(i).padStart(padLen, '0')}${suffix}.png`;
+
+      preview.style.display = 'block';
+      preview.width  = c.width;
+      preview.height = c.height;
+      preview.getContext('2d').drawImage(c, 0, 0);
+
+      const blob = await new Promise(resolve => c.toBlob(resolve, 'image/png'));
+      const fh   = await outDir.getFileHandle(filename, { create: true });
+      const w    = await fh.createWritable();
+      await w.write(blob);
+      await w.close();
+
+      log(`  ✓ ${filename}  (${c.width}×${c.height})`);
+    }
+
+    if (images.length === 0) log(`  — page ${i}: no embedded images found`);
+
+    setProgress(i, total);
+  }
+
+  setStatus(`Done — ${total} pages saved to "${outDir.name}"`);
+  log(`\nAll done.`);
+  runBtn.disabled = false;
+});
+</script>
+</body>
+</html>
