@@ -13,7 +13,9 @@ def stem_to_char(stem):
         return stem.split('_UPPER')[0]
     return base
 
-templates_dir = 'templates'
+HERE = os.path.dirname(os.path.abspath(__file__))
+templates_dir = os.path.join(HERE, 'templates')
+HTML_PATH = os.path.join(HERE, '..', 'batch_ocr.html')
 encoded_templates = []
 
 for filename in sorted(os.listdir(templates_dir)):
@@ -34,7 +36,7 @@ for filename in sorted(os.listdir(templates_dir)):
     })
 
 # Read batch_ocr.html
-with open('batch_ocr.html', 'r', encoding='utf-8') as f:
+with open(HTML_PATH, 'r', encoding='utf-8') as f:
     html = f.read()
 
 # Create the replacement block
@@ -60,7 +62,7 @@ new_html = re.sub(
     flags=re.DOTALL
 )
 
-with open('batch_ocr.html', 'w', encoding='utf-8') as f:
+with open(HTML_PATH, 'w', encoding='utf-8') as f:
     f.write(new_html)
 
 print(f"Successfully baked {len(encoded_templates)} templates into batch_ocr.html!")
