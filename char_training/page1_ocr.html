@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Page 1 OCR</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #1a1a1a; color: #ccc; font-family: monospace; font-size: 13px;
+       display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+#toolbar { display: flex; align-items: center; gap: 10px; padding: 8px 14px;
+           background: #222; border-bottom: 1px solid #333; flex-shrink: 0; flex-wrap: wrap; }
+.btn { cursor: pointer; background: #2e2e2e; border: 1px solid #555; padding: 5px 12px;
+       border-radius: 4px; color: #ccc; font-family: monospace; font-size: 13px; }
+.btn:hover { background: #3a3a3a; }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn.active { background: #3a5a3a; border-color: #4a8a4a; color: #7fdf7f; }
+#status { margin-left: auto; font-size: 11px; color: #666; }
+#progress-wrap { width: 200px; background: #333; border-radius: 3px; height: 6px; display: none; }
+#progress-bar  { height: 6px; background: #4a8a4a; border-radius: 3px; width: 0%; transition: width 0.1s; }
+#canvas-wrap { flex: 1; overflow: hidden; background: #111; }
+canvas { display: block; }
+#output { height: 120px; overflow-y: auto; padding: 10px 14px; white-space: pre-wrap;
+          word-break: break-all; font-size: 12px; line-height: 1.6; color: #8f8;
+          background: #0d0d0d; border-top: 1px solid #2a2a2a; flex-shrink: 0; }
+#found-strip { flex-shrink: 0; padding: 6px 14px; background: #111a11;
+               border-top: 1px solid #3a5a3a; display: none; }
+#found-label { font-size: 10px; color: #4a8a4a; margin-bottom: 2px; }
+#found-text  { font-size: 12px; color: #fff; white-space: pre; word-break: break-all; }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <button class="btn" id="tmpl-btn">Load Templates</button>
+  <button class="btn" id="img-btn"  disabled>Load Page Image</button>
+  <button class="btn" id="auto-btn" disabled>Auto-detect Grid</button>
+  <button class="btn" id="run-btn"  disabled>Run OCR</button>
+  <button class="btn" id="fit-btn"  disabled>Fit</button>
+  <div id="progress-wrap"><div id="progress-bar"></div></div>
+  <div id="status">No templates loaded</div>
+</div>
+
+<div id="canvas-wrap">
+  <canvas id="canvas"></canvas>
+</div>
+
+<div id="output">Results will appear here…</div>
+<div id="found-strip">
+  <div id="found-label">base64 detected</div>
+  <div id="found-text"></div>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// TemplateEngine — verbatim from batch_ocr.html
+// ---------------------------------------------------------------------------
+const STEM_TO_CHAR = { eq: '=', slash: '/', plus: '+', minus: '-' };
+const CHAR_TO_STEM = Object.fromEntries(Object.entries(STEM_TO_CHAR).map(([k, v]) => [v, k]));
+
+class TemplateEngine {
+  constructor() { this.templates = []; this._canvas = null; this._ctx = null; }
+
+  stemToChar(stem) {
+    const base = stem.split('_')[0];
+    return STEM_TO_CHAR[base] ?? (stem.includes('_UPPER') ? stem.split('_UPPER')[0] : base);
+  }
+
+  _dataToGray(data) {
+    const pixels = new Float32Array(77);
+    for (let i = 0; i < 77; i++)
+      pixels[i] = (data[i * 4] + data[i * 4 + 1] + data[i * 4 + 2]) / 3;
+    return pixels;
+  }
+
+  _pixelStats(pixels) {
+    let sum = 0;
+    for (let i = 0; i < 77; i++) sum += pixels[i];
+    const mean = sum / 77;
+    let sq = 0;
+    for (let i = 0; i < 77; i++) { const v = pixels[i] - mean; sq += v * v; }
+    return { mean, l2: Math.sqrt(sq) };
+  }
+
+  async loadFromDir(dirHandle) {
+    this.templates = [];
+    const tasks = [];
+    for await (const [name, handle] of dirHandle.entries()) {
+      if (handle.kind !== 'file' || !name.endsWith('.png') || name.includes('unmatched')) continue;
+      const stem = name.slice(0, -4);
+      const char = this.stemToChar(stem);
+      if (!char || char.length !== 1) continue;
+      tasks.push(handle.getFile().then(async file => {
+        const url = URL.createObjectURL(file);
+        try { return await this._loadGray(url, char); } finally { URL.revokeObjectURL(url); }
+      }));
+    }
+    const results = await Promise.all(tasks);
+    this.templates = results.filter(Boolean);
+    return this.templates.length;
+  }
+
+  async loadFromHTTP(manifest) {
+    const tasks = manifest.map(({ filename, char }) => this._loadGray(`/templates/${filename}`, char));
+    const results = await Promise.all(tasks);
+    this.templates = results.filter(Boolean);
+    return this.templates.length;
+  }
+
+  _loadGray(url, char) {
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = 7; c.height = 11;
+        const ctx = c.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, 0, 0, 7, 11);
+        const pixels = this._dataToGray(ctx.getImageData(0, 0, 7, 11).data);
+        const { mean, l2 } = this._pixelStats(pixels);
+        resolve({ char, pixels, mean, den: l2 });
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  }
+
+  _cropCtx() {
+    if (!this._canvas) {
+      this._canvas = document.createElement('canvas');
+      this._canvas.width = 7; this._canvas.height = 11;
+      this._ctx = this._canvas.getContext('2d', { willReadFrequently: true });
+    }
+    return this._ctx;
+  }
+
+  extractCrop(imgEl, sx, sy) {
+    const ctx = this._cropCtx();
+    ctx.clearRect(0, 0, 7, 11);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(imgEl, Math.ceil(sx), sy, 7, 11, 0, 0, 7, 11);
+    return this._dataToGray(ctx.getImageData(0, 0, 7, 11).data);
+  }
+
+  ncc(a, aMean, aL2, t) {
+    let num = 0;
+    for (let i = 0; i < 77; i++) num += (a[i] - aMean) * (t.pixels[i] - t.mean);
+    const den = aL2 * t.den;
+    return den < 1e-8 ? 0 : num / den;
+  }
+
+  matchPixels(pixels) {
+    const { mean, l2 } = this._pixelStats(pixels);
+    if (l2 / Math.sqrt(77) < 5) return { char: ' ', score: 1, blank: true };
+    let bestChar = '?', bestScore = -Infinity;
+    for (const t of this.templates) {
+      const score = this.ncc(pixels, mean, l2, t);
+      if (score > bestScore) { bestScore = score; bestChar = t.char; }
+    }
+    return { char: bestChar, score: bestScore, blank: false };
+  }
+
+  ocrImage(imgEl, rowBands, config) {
+    const pitch = config.charPitch;
+    return rowBands.map(({ y0 }) =>
+      Array.from({ length: config.nCols }, (_, col) => {
+        const pixels = this.extractCrop(imgEl, config.xStart + col * pitch, y0);
+        return this.matchPixels(pixels);
+      })
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Config — exact copy from batch_ocr.html, with mutable gridBase
+// ---------------------------------------------------------------------------
+let gridBase = 36; // default: 4px above batch_ocr's 40
+
+function makeRowBands(base) {
+  return Array.from({ length: 65 }, (_, i) => ({ y0: base + i * 15, y1: base + 11 + i * 15 }));
+}
+
+class Config {
+  constructor() {
+    this.xStart = 60; this.xEnd = 653; this.nCols = 76;
+  }
+  get rowBands()  { return makeRowBands(gridBase); }
+  get charPitch() { return (this.xEnd - this.xStart) / this.nCols; }
+  get nGridLines(){ return this.nCols + 1; }
+}
+
+// ---------------------------------------------------------------------------
+// App
+// ---------------------------------------------------------------------------
+const config = new Config();
+const engine = new TemplateEngine();
+
+const canvas     = document.getElementById('canvas');
+const ctx        = canvas.getContext('2d');
+const wrap       = document.getElementById('canvas-wrap');
+const statusEl   = document.getElementById('status');
+const outputEl   = document.getElementById('output');
+const foundStrip = document.getElementById('found-strip');
+const foundText  = document.getElementById('found-text');
+const tmplBtn    = document.getElementById('tmpl-btn');
+const imgBtn     = document.getElementById('img-btn');
+const autoBtn    = document.getElementById('auto-btn');
+const runBtn     = document.getElementById('run-btn');
+const fitBtn     = document.getElementById('fit-btn');
+const progWrap   = document.getElementById('progress-wrap');
+const progBar    = document.getElementById('progress-bar');
+
+let img = null;
+let tx = 0, ty = 0, scale = 1;
+let dragging = false, dragStart = { x: 0, y: 0 }, txStart = { tx: 0, ty: 0 };
+let matchResults = null;
+
+function setStatus(msg) { statusEl.textContent = msg; }
+function setProgress(pct) {
+  progWrap.style.display = 'block';
+  progBar.style.width = pct + '%';
+  if (pct >= 100) setTimeout(() => { progWrap.style.display = 'none'; }, 600);
+}
+
+// ---------------------------------------------------------------------------
+// Template loading — same as batch_ocr.html
+// ---------------------------------------------------------------------------
+tmplBtn.addEventListener('click', async () => {
+  if (!window.showDirectoryPicker) {
+    try {
+      const res = await fetch('/api/templates');
+      if (res.ok) {
+        const manifest = await res.json();
+        if (manifest.length) {
+          setStatus('Loading templates…');
+          const n = await engine.loadFromHTTP(manifest);
+          setStatus(`${n} templates loaded`);
+          tmplBtn.classList.add('active');
+          imgBtn.disabled = false;
+          return;
+        }
+      }
+    } catch {}
+    setStatus('showDirectoryPicker not available — use Chrome/Edge');
+    return;
+  }
+  let dir;
+  try { dir = await window.showDirectoryPicker({ mode: 'read' }); } catch { return; }
+  setStatus('Loading templates…');
+  const n = await engine.loadFromDir(dir);
+  if (n === 0) { setStatus('No valid templates found.'); return; }
+  setStatus(`${n} templates loaded`);
+  tmplBtn.classList.add('active');
+  imgBtn.disabled = false;
+});
+
+// ---------------------------------------------------------------------------
+// Image loading
+// ---------------------------------------------------------------------------
+function loadImageFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const i = new Image();
+    i.onload = () => { URL.revokeObjectURL(url); resolve(i); };
+    i.onerror = () => { URL.revokeObjectURL(url); reject(); };
+    i.src = url;
+  });
+}
+
+imgBtn.addEventListener('click', async () => {
+  // Try server first (launch.py)
+  try {
+    const res = await fetch('/EFTA00400459_pages/page_001.png');
+    if (res.ok) {
+      const blob = await res.blob();
+      img = await loadImageFromFile(blob);
+      setStatus(`page_001.png loaded (${img.width}×${img.height}) — click Run OCR`);
+      imgBtn.classList.add('active');
+      autoBtn.disabled = false;
+      runBtn.disabled = false;
+      fitBtn.disabled = false;
+      resetFit();
+      return;
+    }
+  } catch {}
+
+  // Fallback: file picker
+  if (!window.showDirectoryPicker) {
+    setStatus('Serve via launch.py or use Chrome/Edge');
+    return;
+  }
+  let dir;
+  try { dir = await window.showDirectoryPicker({ mode: 'read' }); } catch { return; }
+  let handle;
+  try { handle = await dir.getFileHandle('page_001.png'); }
+  catch { setStatus('page_001.png not found in that folder.'); return; }
+  img = await loadImageFromFile(await handle.getFile());
+  setStatus(`page_001.png loaded (${img.width}×${img.height}) — click Run OCR`);
+  imgBtn.classList.add('active');
+  runBtn.disabled = false;
+  fitBtn.disabled = false;
+  resetFit();
+});
+
+// ---------------------------------------------------------------------------
+// OCR
+// ---------------------------------------------------------------------------
+function escHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+const B64_MARKER = 'JVBERi0xLj';
+
+// ---------------------------------------------------------------------------
+// Auto-detect grid base
+// ---------------------------------------------------------------------------
+autoBtn.addEventListener('click', async () => {
+  if (!img || !engine.templates.length) return;
+  autoBtn.disabled = true;
+  setStatus('Auto-detecting grid…');
+  await new Promise(r => setTimeout(r, 0));
+
+  const PROBE_ROWS = 10;
+  const MIN_BASE = 28, MAX_BASE = 52;
+  const THRESHOLD = 0.40;
+
+  let bestBase = null, bestAvg = -Infinity;
+
+  for (let base = MIN_BASE; base <= MAX_BASE; base++) {
+    const probeBands = makeRowBands(base).slice(-PROBE_ROWS);
+    const results = engine.ocrImage(img, probeBands, config);
+    let sum = 0, count = 0;
+    for (const row of results)
+      for (const r of row)
+        if (!r.blank) { sum += r.score; count++; }
+    const avg = count > 0 ? sum / count : 0;
+    if (avg > bestAvg) { bestAvg = avg; bestBase = base; }
+  }
+
+  if (bestAvg >= THRESHOLD) {
+    gridBase = bestBase;
+    const delta = bestBase - 40;
+    setStatus(`Grid base: ${bestBase} (${delta >= 0 ? '+' : ''}${delta}px)  avg confidence: ${(bestAvg * 100).toFixed(1)}% — running OCR…`);
+    autoBtn.classList.add('active');
+    render();
+    runBtn.click();
+  } else {
+    setStatus(`No good alignment found (best avg: ${(bestAvg * 100).toFixed(1)}% at base ${bestBase}) — check templates`);
+  }
+  autoBtn.disabled = false;
+});
+
+runBtn.addEventListener('click', async () => {
+  if (!img || !engine.templates.length) return;
+  runBtn.disabled = true;
+  outputEl.innerHTML = '';
+  foundStrip.style.display = 'none';
+  setProgress(0);
+
+  await new Promise(r => setTimeout(r, 0));
+
+  matchResults = engine.ocrImage(img, config.rowBands, config);
+
+  // Collect all non-blank lines, join into one string, find the marker
+  const lines = [];
+  for (const row of matchResults) {
+    if (row.every(r => r.blank)) continue;
+    lines.push(row.map(r => r.blank ? ' ' : r.char).join('').trimEnd());
+  }
+
+  const fullText = lines.join('\n');
+  const markerIdx = fullText.indexOf(B64_MARKER);
+  const b64block  = markerIdx !== -1 ? fullText.slice(markerIdx).replace(/\s+/g, '') : '';
+
+  // Render output — highlight the base64 section
+  if (markerIdx !== -1) {
+    const before = escHtml(fullText.slice(0, markerIdx));
+    const after  = escHtml(fullText.slice(markerIdx));
+    outputEl.innerHTML = before + `<span style="color:#fff;background:#1a3a1a">${after}</span>`;
+  } else {
+    outputEl.innerHTML = escHtml(fullText);
+  }
+  outputEl.scrollTop = outputEl.scrollHeight;
+
+  if (b64block) {
+    foundText.textContent = b64block;
+    foundStrip.style.display = 'block';
+  }
+
+  let high = 0, mid = 0, low = 0, total = 0;
+  for (const row of matchResults)
+    for (const r of row) {
+      if (r.blank) continue;
+      total++;
+      if (r.score >= 0.75) high++;
+      else if (r.score >= 0.50) mid++;
+      else low++;
+    }
+
+  const b64msg = b64block
+    ? `  ·  base64 found at pos ${markerIdx} (${b64block.length} chars)`
+    : `  ·  marker "${B64_MARKER}" not found`;
+  setStatus(`${high} high / ${mid} mid / ${low} low  (${total} cells)${b64msg}`);
+  setProgress(100);
+  runBtn.disabled = false;
+  render();
+});
+
+fitBtn.addEventListener('click', resetFit);
+
+// ---------------------------------------------------------------------------
+// Rendering — grid verbatim from training.js
+// ---------------------------------------------------------------------------
+function render() {
+  canvas.width  = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (!img) {
+    ctx.fillStyle = '#444';
+    ctx.font = '14px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Load templates, then load page image.', canvas.width / 2, canvas.height / 2);
+    return;
+  }
+
+  ctx.save();
+  ctx.translate(tx, ty);
+  ctx.scale(scale, scale);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(img, 0, 0);
+
+  const hairline = 1 / scale;
+
+  // Vertical char-column grid (red)
+  ctx.strokeStyle = 'rgba(255, 60, 60, 0.70)';
+  ctx.lineWidth = hairline;
+  for (let i = 0; i < config.nGridLines; i++) {
+    const x = Math.ceil(config.xStart + i * config.charPitch);
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, img.height);
+    ctx.stroke();
+  }
+
+  // Horizontal row bands (blue)
+  ctx.strokeStyle = 'rgba(80, 150, 255, 0.80)';
+  ctx.lineWidth = hairline;
+  for (const { y0, y1 } of config.rowBands) {
+    ctx.beginPath(); ctx.moveTo(config.xStart, y0); ctx.lineTo(config.xEnd, y0); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(config.xStart, y1); ctx.lineTo(config.xEnd, y1); ctx.stroke();
+  }
+
+  // Confidence overlay
+  if (matchResults) {
+    const pitch = config.charPitch;
+    const scoreColor = s => s >= 0.75 ? '0,210,70' : s >= 0.50 ? '230,185,0' : '230,55,55';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    for (let ri = 0; ri < Math.min(matchResults.length, config.rowBands.length); ri++) {
+      const { y0, y1 } = config.rowBands[ri];
+      const row = matchResults[ri];
+      const cellH = y1 - y0;
+      const cy = (y0 + y1) / 2;
+      const showScore = pitch * scale >= 60;
+
+      for (let ci = 0; ci < row.length; ci++) {
+        const { char, score, blank } = row[ci];
+        if (blank) continue;
+        const x = Math.ceil(config.xStart + ci * pitch);
+        const rgb = scoreColor(score);
+
+        ctx.fillStyle = `rgba(${rgb},0.28)`;
+        ctx.fillRect(x, y0, 7, 11);
+
+        ctx.font = `bold ${cellH * (showScore ? 0.6 : 0.9)}px monospace`;
+        ctx.fillStyle = `rgba(${rgb},1)`;
+        ctx.fillText(char, x + 3.5, cy - (showScore ? cellH * 0.1 : 0));
+
+        if (showScore) {
+          ctx.font = `${cellH * 0.35}px monospace`;
+          ctx.fillStyle = 'rgba(210,210,210,0.85)';
+          ctx.fillText(score.toFixed(2), x + 3.5, cy + cellH * 0.35);
+        }
+      }
+    }
+  }
+
+  ctx.restore();
+}
+
+function resetFit() {
+  if (!img) return;
+  const margin = 20;
+  scale = Math.min(
+    (canvas.width  - margin * 2) / img.width,
+    (canvas.height - margin * 2) / img.height
+  );
+  tx = (canvas.width  - img.width  * scale) / 2;
+  ty = (canvas.height - img.height * scale) / 2;
+  render();
+}
+
+// ---------------------------------------------------------------------------
+// Pan / zoom
+// ---------------------------------------------------------------------------
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+  const ns = Math.max(0.05, Math.min(80, scale * factor));
+  tx = mx - (mx - tx) * (ns / scale);
+  ty = my - (my - ty) * (ns / scale);
+  scale = ns;
+  render();
+}, { passive: false });
+
+canvas.addEventListener('mousedown', e => {
+  if (e.button !== 0) return;
+  dragging = true;
+  dragStart = { x: e.clientX, y: e.clientY };
+  txStart = { tx, ty };
+});
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  tx = txStart.tx + (e.clientX - dragStart.x);
+  ty = txStart.ty + (e.clientY - dragStart.y);
+  render();
+});
+window.addEventListener('mouseup', () => { dragging = false; });
+
+new ResizeObserver(() => render()).observe(wrap);
+render();
+
+// Auto-load templates from launch.py if available
+fetch('/api/templates')
+  .then(r => r.ok ? r.json() : Promise.reject())
+  .then(async manifest => {
+    if (!manifest.length) return;
+    const n = await engine.loadFromHTTP(manifest);
+    if (n) {
+      setStatus(`Auto-loaded ${n} templates — click Load Page Image`);
+      tmplBtn.classList.add('active');
+      imgBtn.disabled = false;
+    }
+  })
+  .catch(() => {});
+</script>
+</body>
+</html>
