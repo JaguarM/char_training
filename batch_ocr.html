@@ -330,9 +330,14 @@ async function runOCR() {
   const fullText   = lines.join('\n');
   const markerIdx  = fullText.indexOf(B64_MARKER);
   if (markerIdx !== -1) {
-    resultText = fullText.slice(markerIdx).replace(/[^A-Za-z0-9+\/=]/g, '');
+    const b64Lines = fullText.slice(markerIdx).split('\n')
+      .map(l => l.replace(/[^A-Za-z0-9+\/=]/g, '')).filter(l => l.length > 0);
+    let lastEq = b64Lines.length - 1;
+    while (lastEq > 0 && !b64Lines[lastEq].endsWith('=')) lastEq--;
+    resultText = b64Lines.slice(0, lastEq + 1).join('\n');
     outputEl.textContent = resultText;
-    setStatus(`Done — ${total} pages  ·  base64: ${resultText.length} chars`);
+    const charCount = resultText.replace(/\n/g, '').length;
+    setStatus(`Done — ${total} pages  ·  base64: ${charCount} chars`);
   } else {
     resultText = '';
     outputEl.textContent = '(base64 marker "JVBERi0xLj" not found — check templates or grid)';
