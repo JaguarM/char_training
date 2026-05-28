@@ -296,6 +296,7 @@ imgBtn.addEventListener('click', async () => {
   img = await loadImageFromFile(await handle.getFile());
   setStatus(`page_001.png loaded (${img.width}×${img.height}) — click Run OCR`);
   imgBtn.classList.add('active');
+  autoBtn.disabled = false;
   runBtn.disabled = false;
   fitBtn.disabled = false;
   resetFit();
