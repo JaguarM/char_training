@@ -1,0 +1,10 @@
+{
+  "name": "char-training-bench",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Headless speed benchmark for the OCR page path (ocr.js + reader.js).",
+  "dependencies": {
+    "puppeteer-core": "^23.0.0"
+  }
+}

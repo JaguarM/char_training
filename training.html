@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>char_training — glyph template builder</title>
+<link rel="stylesheet" href="training.css">
+  <script src="pdf.min.js"></script>
+</head>
+<body>
+
+<div id="toolbar">
+  <label id="pdf-label">
+    Pick PDF
+    <input type="file" id="pdf-input" accept="application/pdf">
+  </label>
+
+  <button class="btn" id="templates-btn">Load Templates</button>
+  <button class="btn" id="ocr-page-btn">OCR Page</button>
+  <button class="btn" id="ocr-all-btn">OCR All Pages</button>
+  <button class="btn" id="download-txt-btn" disabled>Download .txt</button>
+
+  <div class="page-controls" style="display: flex; gap: 8px; align-items: center; margin-left: 16px;">
+    <button class="btn" id="prev-page-btn" disabled>&lt;</button>
+    <select id="page-select" style="background: #333; color: white; border: 1px solid #555; padding: 4px 8px; border-radius: 4px;"></select>
+    <button class="btn" id="next-page-btn" disabled>&gt;</button>
+  </div>
+
+  <label class="line-field">
+    Line text:
+    <input type="text" id="line-input" spellcheck="false" autocomplete="off"
+           placeholder="click a line's start, then type its text…">
+  </label>
+
+  <div class="legend">
+    <div class="legend-item"><span class="swatch swatch-purple"></span> line start</div>
+    <div class="legend-item"><span class="swatch swatch-blue"></span> text rows</div>
+    <div class="legend-item"><span class="swatch swatch-green"></span> exact match</div>
+    <div class="legend-item"><span class="swatch swatch-orange"></span> placeholder</div>
+  </div>
+
+  <div id="info">No image loaded &nbsp;·&nbsp; Drag anchor = line start &nbsp;·&nbsp; Scroll = zoom &nbsp;·&nbsp; Drag = pan</div>
+</div>
+
+<div id="label-modal" class="hidden">
+  <div id="label-modal-inner">
+    <canvas id="label-preview"></canvas>
+    <input id="label-input" type="text" spellcheck="false" autocomplete="off" maxlength="64" placeholder="label…" />
+    <div id="label-hint">Enter &nbsp;=&nbsp; save &nbsp;·&nbsp; Esc &nbsp;=&nbsp; cancel</div>
+  </div>
+</div>
+
+<div id="main-content">
+  <div id="settings-panel">
+    <div class="settings-group">
+      <h3>Horizontal Lines</h3>
+      <div class="setting-row"><label for="set-rowBase">First row Y</label><input type="number" id="set-rowBase"></div>
+      <div class="setting-row"><label for="set-rowHeight">Row height</label><input type="number" id="set-rowHeight"></div>
+      <div class="setting-row"><label for="set-rowPitch">Line pitch</label><input type="number" id="set-rowPitch"></div>
+      <div class="setting-row"><label for="set-rowCount">Row count</label><input type="number" id="set-rowCount"></div>
+    </div>
+    <div class="settings-group">
+      <h3>Font (character widths)</h3>
+      <div class="setting-row"><label for="set-fontFamily">Font family</label><input type="text" id="set-fontFamily"></div>
+      <div class="setting-row"><label for="set-fontSize">Font size</label><input type="number" id="set-fontSize" step="0.5"></div>
+    </div>
+    <div class="settings-group">
+      <h3>How to use</h3>
+      <p class="settings-help">Click where a line begins to set its start, then type the
+      line's text in the toolbar. Each character's width comes from the font above.
+      Double-click any box to extract that character at its natural size.</p>
+    </div>
+  </div>
+
+  <div id="canvas-wrap">
+    <canvas id="canvas"></canvas>
+  </div>
+</div>
+
+<script src="core.js"></script>
+<script src="ocr.js"></script>
+<script src="reader.js"></script>
+<script src="training.js"></script>
+</body>
+</html>
