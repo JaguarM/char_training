@@ -1,0 +1,9 @@
+# corpus documents: local data, never pushed (66 MB+); big.txt/email.txt/v3.txt
+# transcriptions stay tracked as the regression ground truth
+corpus/*.pdf
+
+# local workbenches / scratch
+font-tool/
+out_*.txt
+source_spaced.txt
+notes/layout_v3.json

@@ -1,80 +1,80 @@
 # char_training
 
-Tools for extracting text from scanned PDFs where the content is encoded as monospaced Base64 printed on a rigid character grid.
-
-## Target documents
-
-The two PDFs this toolchain was built for are released FOIA productions from the Epstein investigation:
-
-| Document | ID |
-|---|---|
-| EFTA00382083 | FBI Epstein production |
-| EFTA00400459 | FBI Epstein production |
-
-Both can be downloaded from the DOJ FOIA reading room:
-**https://www.justice.gov/epstein/search**
-
----
-
-## How it works
-
-Each page of the scanned PDF contains a raster image. The image shows monospaced Base64 text printed on a fixed character grid:
-
-| Constant | Value | Meaning |
-|---|---|---|
-| `xStart` | `60` px | Left edge of the text block |
-| `xEnd` | `653` px | Right edge of the text block |
-| `nCols` | `76` | Characters per line |
-| `charPitch` | `≈ 7.80` px | Width of one character cell |
-| `rowHeight` | `15` px | Distance between text baselines |
-| `cellSize` | `7 × 11` px | Crop extracted per character for matching |
-
-For each cell the tool runs **Normalized Cross-Correlation (NCC)** against a library of 7×11 px reference glyphs. The best match above a confidence threshold is kept; rows where the average score falls below **0.40** are discarded as noise. After all pages are processed the tool scans the output for the Base64 header marker `JVBERi0xLj` (the PDF magic bytes in Base64) and extracts everything from that point onward as the recovered payload.
-
----
+A small, browser-based tool for building a **glyph-template dictionary** from scanned
+document pages — for any font and page layout. You lay text-line bands over a page by hand,
+drag each line's start anchor to where it begins, type (or OCR) the line, and double-click
+any character to save it as a reference PNG. Character widths come from the chosen font's
+advance metrics (default **Times New Roman**), so variable-width fonts line up without a
+fixed grid.
 
 ## Files
 
-```
-batch_ocr.html        — Main OCR tool (self-contained, open in Chrome/Edge)
-char_training/        — Template training tools (see char_training/README.md)
-DOCUMENTATION.md      — Deep-dive technical reference for the training UI
-```
-
----
-
-## batch_ocr.html — Quick start
-
-`batch_ocr.html` is fully self-contained. Open it directly in Chrome or Edge — no server required. Templates are baked in as inline Base64 by `char_training/bake_templates.py`.
-
-### Toolbar
-
-| Button | Action |
+| File | Purpose |
 |---|---|
-| **Pick PDF** | Load a PDF file. Pages are processed lazily — each page's embedded raster image is extracted on demand. |
-| **Run OCR** | Process every page. Progress bar and live row count update during the run. |
-| **Save base64.txt** | Download the recovered Base64 string as a `.txt` file. |
-| **Decode PDF** | Decode the recovered Base64 directly in the browser and download the result as a `.pdf`. |
+| `training.html` / `training.js` / `training.css` | The browser UI (plus `matchAt`, the glyph-picking loop) |
+| `ocr.js` | Matching engine (`TemplateEngine`): template loading, hash index, whole-page buffer, crops; loaded between `core.js` and `reader.js` |
+| `reader.js` | Line reader — position-guided row reading & per-glyph alignment — mixed onto the viewer; loaded between `ocr.js` and `training.js` |
+| `core.js` | DOM-free logic (stem↔char maps, geometry, pixel math & hashing); loaded before `training.js`, unit-tested in Node |
+| `test.js` | `node:test` smoke tests for `core.js` — `node test.js` |
+| `launch.py` | Local HTTP server; serves the UI and the `/api/templates` manifest |
+| `templates/` | The glyph dictionary — one PNG per character variant at natural size, plus `template_metrics.json` (measured per-template metrics the reader uses to place glyphs) |
+| `bench/` | Headless tooling: OCR benchmark, whole-document text dump, false-match tracing, template pruning, metrics measurement — see [bench/README.md](bench/README.md) |
+| `DOCUMENTATION.md` | Technical reference for the layout and OCR models |
 
-### Processing pipeline
+## Quick start
 
-1. **Extract** — for each PDF page, the embedded raster image is pulled from the PDF operator stream (`paintImageXObject` / `paintJpegXObject`).
-2. **Auto-detect row baseline** — `autoDetectBase` sweeps the row offset from 28 to 52 px and picks the value that maximises average NCC score on the last 10 rows. Falls back to 40 px if no sweep value clears the 0.40 threshold.
-3. **OCR** — each of the 65 row × 76 column cells is cropped to 7×11 px, converted to grayscale, and matched via NCC against the baked-in template set.
-4. **Filter** — rows where every cell is blank are dropped; rows where the mean non-blank score is below 0.40 are dropped.
-5. **Assemble** — all kept rows are joined. The tool searches for `JVBERi0xLj` and strips everything before it. All non-Base64 characters are removed.
-6. **Decode** — `atob()` converts the cleaned Base64 string to binary; the result is offered as a PDF download.
+```
+python launch.py                # serve on http://localhost:8765 and open the browser
+python launch.py --port 9000    # custom port
+python launch.py --no-browser   # don't auto-open
+```
 
----
+> Saving glyphs uses the File System Access API, so use **Chrome or Edge**. Other browsers
+> fall back to plain downloads.
 
-## char_training/ — Template library
+## Workflow
 
-See **[char_training/README.md](char_training/README.md)** for the full workflow.
+1. **Pick a PDF** — *Pick PDF* extracts the embedded raster image of each page (pdf.js).
+   Navigate with the `<` `>` buttons or the page dropdown.
+2. **Set up the lines** — in the **Settings** panel, adjust the **Horizontal Lines**
+   (first row Y, row height, line pitch, row count) until the blue bands sit on the text,
+   and the **Font** (family, size) until the character boxes match the print.
+3. **Place each line's start** — drag a row's **purple anchor** to where that line begins.
+   The row becomes active.
+4. **Fill the line** — type into the *Line text* box (or run **OCR Page**). A box is drawn
+   per character, its width taken from the font's advance metrics.
+5. **Extract glyphs** — double-click any character box. A modal shows the crop, pre-filled
+   with the character; press **Enter** to save. The first save prompts for a folder (pick
+   `templates/`); later saves write there silently.
 
-In brief: run `python char_training/launch.py`, pick one of the target PDFs in `training.html`, double-click any cell to label it, then run `python char_training/bake_templates.py` to embed the updated template set into `batch_ocr.html`.
+## Template filename conventions
 
----
+Glyphs are matched by filename stem:
 
-## Browser requirements
+| Pattern | Character |
+|---|---|
+| `0.png`, `0_2.png`, … | `0` (and variants) |
+| `a.png`, `a_2.png`, … | `a` |
+| `A_UPPER.png` | `A` |
+| `eq.png` `slash.png` `plus.png` `minus.png` … | `=` `/` `+` `-` (see `STEM_TO_CHAR` in `core.js` for the full symbol map) |
 
-Chrome 86+ or Edge 86+. The File System Access API (`showDirectoryPicker`) is required for the training tool's direct-save workflow; `batch_ocr.html` itself has no such dependency.
+Variants (`_1`, `_2`, …) are all loaded and matched. At a given font size a glyph only
+renders in a handful of distinct **subpixel slots**, and each variant covers one of them —
+the numbering is kept in ascending slot order (then by the template's measured anchor) by
+the bench tooling, so `t_1 … t_N` reads left-to-right across the pixel. Files with
+`unmatched` in the name are skipped.
+
+## Reading & accuracy
+
+Matching is exact pixel equality, hash-indexed so each probe is a Map lookup rather than a
+scan over the dictionary. When `templates/template_metrics.json` is present (regenerate with
+`node bench/measure-metrics.mjs` after adding, cutting, or deleting templates), the reader
+*places* each next glyph from the previous one's measured fractional advance and anchor and
+rejects candidates whose measured position contradicts the prediction — without the file it
+falls back to ink-width stepping. Changes to templates or the reader are verified by dumping
+the whole document (`node bench/dump-ocr.mjs --all --out out.txt`) before and after and
+comparing the files byte-for-byte.
+
+Layout is fully manual (the `Config` class in `training.js`): rows from `rowBase` /
+`rowHeight` / `rowPitch` / `rowCount`, character widths from `measureText` on
+`fontFamily` / `fontSize`. See [DOCUMENTATION.md](DOCUMENTATION.md) for details.
