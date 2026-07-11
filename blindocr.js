@@ -217,7 +217,10 @@
             if (lin) {
               const sh = gb >= 129 && gb !== 255 ? 1 : 0, s0 = shAt(x, y);
               minPred = (((cv - s0) * (gb - sh)) / 255 | 0) + s0 + sh;
-              hit = Math.abs(minPred - pv) <= t;
+              // composite pixels may read 1 lighter than the law: the producer's
+              // junction arithmetic is 1-ambiguous there (3/925 fitted pairs,
+              // always this sign) — single-glyph pixels stay byte-strict
+              hit = Math.abs(minPred - pv) <= t || (cv !== 255 && minPred - pv === 1);
             } else {
               for (const e of INV[gb]) {
                 const pred = (cv * (256 - e)) >> 8;
@@ -287,7 +290,9 @@
         if (lin) {
           const sh = gb >= 129 && gb !== 255 ? 1 : 0, s0 = shAt(x, y);
           const pred = (((cv - s0) * (gb - sh)) / 255 | 0) + s0 + sh;
-          val = Math.abs(pred - pv) <= t ? pv : pred;             // absorb page value
+          const ok = Math.abs(pred - pv) <= t ||
+                     (cv !== 255 && pred - pv === 1);             // composite 1-lighter case
+          val = ok ? pv : pred;                                   // absorb page value
           addSh(x, y, sh);
         } else {
           for (const e of INV[gb]) {
@@ -362,7 +367,7 @@
     const { mask, objects } = detectObjects(page);
     const bands = findBands(page, mask);
     const lines = [];
-    let n = 0;
+    let n = 0, last = null;                 // previous band's winning (set, phy)
     for (const [top, bot] of bands) {
       if (++n % 6 === 0) {
         opts?.progress?.(n, bands.length);
@@ -375,13 +380,27 @@
           if (page.gray[off + x] < 255 && !mask[off + x]) { if (x < x0) x0 = x; if (x > x1) x1 = x; }
       }
       const lineObjects = objects.filter(ob => ob.y0 < bot + 4 && ob.y1 > top - 4);
+      // fast path: most documents use ONE (font, y-phase) throughout — try the
+      // previous band's winner first and accept it when its probe fully reads;
+      // fall back to the full sweep otherwise (font/style changes, headings)
       let pick = null;
-      for (const set of sets)
-        for (const phy of set.byPhy.keys())
-          for (let yb = bot; yb >= bot - set.maxDesc && yb > top; yb--) {
-            const score = probeBaseline(page, mask, set, phy, yb, Math.max(0, x0 - 2), Math.min(page.w, x1 + 20), tol);
-            if (score > 0 && (!pick || score > pick.score)) pick = { set, phy, yb, score };
-          }
+      if (last) {
+        for (let yb = bot; yb >= bot - last.set.maxDesc && yb > top && !pick; yb--) {
+          const probe = scanLine(page, mask, last.set, last.phy, yb,
+            Math.max(0, x0 - 2), Math.min(page.w, Math.max(0, x0 - 2) + 160), 4, 0, tol);
+          if (probe.glyphs.length >= 3 && probe.fails.length === 0)
+            pick = { set: last.set, phy: last.phy, yb,
+              score: probe.glyphs.reduce((s, g) => s + g.exact, 0) };
+        }
+      }
+      if (!pick)
+        for (const set of sets)
+          for (const phy of set.byPhy.keys())
+            for (let yb = bot; yb >= bot - set.maxDesc && yb > top; yb--) {
+              const score = probeBaseline(page, mask, set, phy, yb, Math.max(0, x0 - 2), Math.min(page.w, x1 + 20), tol);
+              if (score > 0 && (!pick || score > pick.score)) pick = { set, phy, yb, score };
+            }
+      if (pick) last = { set: pick.set, phy: pick.phy };
       if (!pick) {
         lines.push({ top, bot, baseline: null, glyphs: [], fails: x1 >= x0 ? [x0] : [],
           residual: 0, boxes: lineObjects.map(ob => [ob.x0 - 2, ob.x1 + 2]), objects: lineObjects, set: null });

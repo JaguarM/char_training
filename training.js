@@ -343,18 +343,24 @@ class CanvasViewer {
   // renderers we haven't modelled yet. Keeps the fewest-failures read at the
   // lowest tolerance; certificates are labelled accordingly, never silently
   // weakened.
-  async _blindReadEscalating(page, label = 'Auto OCR') {
+  async _blindReadEscalating(page, label = 'Auto OCR', tolHint = null) {
     const sets = await this._ensureBlindSets();
     let tol = 0, res = null, bestFails = Infinity;
-    for (const tryTol of [0, 1, 2, 10]) {
+    // a document's producer doesn't change page to page — try the previous
+    // page's winning tolerance first, then the full ladder (ties prefer the
+    // LOWER tolerance so certificates never weaken without cause)
+    const ladder = [...new Set([...(tolHint != null ? [tolHint] : []), 0, 1, 2, 10])];
+    for (const tryTol of ladder) {
       const r = await BlindOCR.readPage(page, sets, { tol: tryTol,
         progress: (d, t) => { this.infoEl.textContent =
           `${label}${tryTol ? ` (±${tryTol})` : ''}: ${d}/${t} bands…`; },
       });
       const fails = r.lines.reduce((s, L) => s + L.fails.length, 0) +
         r.lines.filter(L => !L.set).length;
-      if (fails < bestFails) { bestFails = fails; res = r; tol = tryTol; }
-      if (fails === 0) break;                          // fully read — keep lowest tol
+      if (fails < bestFails || (fails === bestFails && tryTol < tol)) {
+        bestFails = fails; res = r; tol = tryTol;
+      }
+      if (fails === 0) break;                          // fully read — stop here
       const glyphs = r.lines.reduce((s, L) => s + L.glyphs.length, 0);
       if (tryTol >= 2 && glyphs >= fails * 8) break;   // good enough — stop escalating
     }
@@ -368,11 +374,13 @@ class CanvasViewer {
     await this._ensureBlindSets();
     const pages = [];
     const totals = { lines: 0, clean: 0, fails: 0 };
+    let tolHint = null;                    // learned from the previous page
     for (let i = 0; i < numPages; i++) {
       const src = await pageProvider(i);
       if (!src) { pages.push(null); continue; }
       const page = src.gray ? src : this.engine._pageFor(src);
-      const { res, tol } = await this._blindReadEscalating(page, `Auto OCR ${i + 1}/${numPages}`);
+      const { res, tol } = await this._blindReadEscalating(page, `Auto OCR ${i + 1}/${numPages}`, tolHint);
+      tolHint = tol;
       for (const L of res.lines) {
         if (L.set) totals.lines++;
         if (L.clean) totals.clean++;
@@ -381,7 +389,10 @@ class CanvasViewer {
       pages.push({
         tol, spaceAdv: res.spaceAdv, objects: res.objects,
         lines: res.lines.map(L => ({ baseline: L.baseline ?? null, phy: L.phy ?? 0,
-          font: L.font ?? null, text: L.text ?? '', clean: !!L.clean, fails: L.fails.length })),
+          font: L.font ?? null, text: L.text ?? '', clean: !!L.clean, fails: L.fails.length,
+          // every glyph's measured ¼-px pen — the raw material for
+          // byte-exact source recreation (□ entries carry the fail column)
+          glyphs: (L.entries ?? []).map(e => [e.ch, e.pen]) })),
       });
     }
     const text = pages.map(p => p ? p.lines.map(L => L.text.replace(/□/g, '').trimEnd()).join('\n') : '')

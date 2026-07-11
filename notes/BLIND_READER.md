@@ -202,6 +202,31 @@ Open on this document: ~10 □ clusters (superscript ordinals and similar
 small-size glyphs need per-size sets — tnr8lin10 exists, more sizes as
 needed) and the last ±1 rounding stragglers in the linear model fit.
 
+## 2026-07-11 evening — positions everywhere + SOURCE RECREATION certificate
+
+The ultimate goal is recreating the source, so glyph positions are now a
+first-class output and there is a tool that PROVES the output is lossless:
+
+- **Per-glyph ¼-px pens in every export**: bench `--json` (added by the hunt
+  session) and the app's `.json` download both carry `glyphs: [[ch, pen], …]`
+  per line alongside baseline / y-phase / font / certificate. A page is fully
+  described by (glyph, pen, baseline, font, compositor) + objects.
+- **`bench/recreate.mjs`** — the round-trip certificate: reads a positions
+  JSON, re-renders every page (mupdf-model lines through real MuPDF via the
+  worker; linear-model lines composed in pure JS with the fitted producer
+  law), and byte-compares against the cached truth outside objects/□ masks.
+  Results: **v3 P2 byte-exact recreation (0 stray px)**; **report.pdf 5/7
+  pages byte-exact** with only the documented one-sided composite-slack
+  pixels (2–15/page) — pages 5–6 differ exactly at the hunt doc's root-caused
+  reader object-handling issues (over-masked box, false vrule), i.e. the
+  recreation tool independently confirms that diagnosis.
+- **App parity + speed**: the one-sided composite slack is ported to
+  blindocr.js (report P2 in-app: 34/34 byte-clean at tol 0, linear set
+  auto-picked); readPage now fast-paths each band with the previous band's
+  winning (font, y-phase) and only falls back to the full sweep on a miss;
+  blindOcrDocument learns the winning tolerance from page to page (ties
+  prefer the lower tolerance, so certificates never weaken without cause).
+
 ## What this establishes
 
 - The document-specific layer of the project (grid constants, startX,

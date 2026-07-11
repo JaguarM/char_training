@@ -539,7 +539,7 @@ async function main() {
         outLines.push(sp.text);
         jsonLines.push({ baseline: L.baseline, phy: L.phy, font: L.set.name,
           text: sp.text, verified: L.verified ?? null, fails: L.fails.length,
-          boxes: L.boxes, oddGaps: sp.oddGaps,
+          failCols: L.fails, boxes: L.boxes, oddGaps: sp.oddGaps,
           glyphs: L.glyphs.map(g => [g.ch, g.pen]) });
         if (truth) {
           // row index from baseline is unknown to the reader — compare against
