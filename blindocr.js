@@ -56,14 +56,21 @@
         maxDesc = Math.max(maxDesc, r.dy + r.h);
       }
     }
-    return { name, sizePx: json.size_px, byPhy, maxAsc, maxDesc };
+    return { name, sizePx: json.size_px, linear: !!json.linear, byPhy, maxAsc, maxDesc };
   }
 
   let _sets = null;
   async function loadSets(urls) {
     if (_sets) return _sets;
     const out = [];
-    for (const u of urls ?? ['bench/glyphs_times16.json', 'bench/glyphs_arial16.json', 'bench/glyphs_georgia16.json']) {
+    for (const u of urls ?? ['bench/glyphs_times16.json', 'bench/glyphs_timesbd16.json',
+      'bench/glyphs_timesi16.json', 'bench/glyphs_tnr8_16.json',
+      'bench/glyphs_arial16.json', 'bench/glyphs_georgia16.json',
+      // linear-compositor variants (eDiscovery producer — see blind-read.mjs);
+      // the per-band auto-pick chooses whichever compositor matches the page
+      'bench/glyphs_timeslin16.json', 'bench/glyphs_timesbdlin16.json',
+      'bench/glyphs_timesilin16.json', 'bench/glyphs_tnr8lin16.json',
+      'bench/glyphs_tnr8lin10.json']) {
       try {
         const r = await fetch(u, { cache: 'no-store' });
         if (!r.ok) continue;
@@ -97,9 +104,29 @@
       if (o) { o.y1 = r.y + 1; o.x0 = Math.min(o.x0, r.x0); o.x1 = Math.max(o.x1, r.x1); }
       else objects.push({ y0: r.y, y1: r.y + 1, x0: r.x0, x1: r.x1 });
     }
+    // vertical rules (table/quote borders): long solid runs down a column
+    const vcols = [];
+    for (let x = 0; x < w; x++) {
+      let s = -1, gap = 0;
+      for (let y = 0; y <= h; y++) {
+        const dark = y < h && gray[y * w + x] < 160;
+        if (dark) { if (s < 0) s = y; gap = 0; }
+        else if (s >= 0 && ++gap > 1) {
+          if (y - gap + 1 - s >= 40) vcols.push({ x, y0: s, y1: y - gap + 1 });
+          s = -1; gap = 0;
+        }
+      }
+    }
+    for (const c of vcols) {
+      const o = objects.find(o => o.vr && o.x1 === c.x &&
+        Math.min(o.y1, c.y1) - Math.max(o.y0, c.y0) > 0.8 * Math.min(o.y1 - o.y0, c.y1 - c.y0));
+      if (o) { o.x1 = c.x + 1; o.y0 = Math.min(o.y0, c.y0); o.y1 = Math.max(o.y1, c.y1); }
+      else objects.push({ vr: true, x0: c.x, x1: c.x + 1, y0: c.y0, y1: c.y1 });
+    }
     const mask = new Uint8Array(w * h);
     for (const o of objects) {
-      o.type = o.y1 - o.y0 <= 4 ? 'rule' : 'box';
+      o.type = o.vr ? 'vrule' : o.y1 - o.y0 <= 4 ? 'rule' : 'box';
+      delete o.vr;
       for (let y = Math.max(0, o.y0 - 2); y < Math.min(h, o.y1 + 2); y++)
         for (let x = Math.max(0, o.x0 - 2); x < Math.min(w, o.x1 + 2); x++)
           mask[y * w + x] = 1;
@@ -126,9 +153,20 @@
   }
 
   // ---- the scanner (see bench/blind-read.mjs for the full derivation) ----
-  function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs, maxFails) {
+  // TOL relaxes byte-exactness to |Δ|≤TOL per glyph-ink pixel (2×TOL on
+  // composite pixels, where two curves' rasterizer deviations compound) — for
+  // pages from a NEAR-identical rasterizer (e.g. an older FreeType). 0 = exact.
+  // Linear sets (set.linear — the eDiscovery producer): glyph raw alpha bytes
+  // composite multiplicatively in 255-space with floor, and the PAGE byte adds
+  // +1 per contributing "light" pixel — light iff RAW MuPDF byte ∈ [128,254],
+  // which in linear-set bytes is gb ∈ [129,254] with raw = gb−1 (gb 255 =
+  // raw 254 is erased to white by the +1 and drops out of the ink mask).
+  // A per-pixel shift count keeps the raw canvas recoverable from page space.
+  function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs, maxFails, TOL) {
     if (maxGlyphs === undefined) maxGlyphs = Infinity;
     if (maxFails === undefined) maxFails = Infinity;
+    TOL = TOL || 0;
+    const lin = set.linear;
     const W = page.w, cands = set.byPhy.get(phy) ?? [];
     const y0 = Math.max(0, baseline - set.maxAsc), y1 = Math.min(page.h, baseline + set.maxDesc);
     const bw = xTo - xFrom, bh = y1 - y0;
@@ -138,6 +176,9 @@
     const masked = (x, y) => mask[y * W + x];
     const canAt = (x, y) => canvas[(y - y0) * bw + (x - xFrom)];
     const setCan = (x, y, v) => { canvas[(y - y0) * bw + (x - xFrom)] = v; };
+    const shifts = lin ? new Uint8Array(bw * bh) : null;   // producer +1 count per pixel
+    const shAt = (x, y) => (lin ? shifts[(y - y0) * bw + (x - xFrom)] : 0);
+    const addSh = (x, y, s) => { if (lin) shifts[(y - y0) * bw + (x - xFrom)] += s; };
     for (let y = y0; y < y1; y++)
       for (let x = xFrom; x < xTo; x++)
         if (mask[y * W + x]) setCan(x, y, pageAt(x, y));
@@ -168,14 +209,24 @@
             const x = gx + cc, y = gy + rr;
             if (masked(x, y)) { skipped++; continue; }
             const gb = g.bytes[p], pv = pageAt(x, y), cv = canAt(x, y);
+            // tol mode: a neighbour may have absorbed this composite pixel
+            // already; a faint own-contribution proves nothing — skip it
+            if (TOL && cv !== 255 && gb >= 255 - 2 * TOL) { skipped++; continue; }
+            const t = cv !== 255 ? 2 * TOL : TOL;
             let hit = false, minPred = 256;
-            for (const e of INV[gb]) {
-              const pred = (cv * (256 - e)) >> 8;
-              if (pred < minPred) minPred = pred;
-              if (pred === pv) { hit = true; break; }
+            if (lin) {
+              const sh = gb >= 129 && gb !== 255 ? 1 : 0, s0 = shAt(x, y);
+              minPred = (((cv - s0) * (gb - sh)) / 255 | 0) + s0 + sh;
+              hit = Math.abs(minPred - pv) <= t;
+            } else {
+              for (const e of INV[gb]) {
+                const pred = (cv * (256 - e)) >> 8;
+                if (pred < minPred) minPred = pred;
+                if (Math.abs(pred - pv) <= t) { hit = true; break; }
+              }
             }
             if (hit) exact++;
-            else if (pv < minPred) pending++;
+            else if (pv < minPred - t) pending++;
             else { ok = false; break; }
           }
           const considered = g.ink.length - skipped;
@@ -187,6 +238,29 @@
         }
       }
       if (!best) {
+        // junction/rasterizer dust (tol mode): ≤3 unexplained pixels, each
+        // faint or adjacent to explained ink → absorb silently, no failure
+        if (TOL) {
+          const px = [];
+          for (let x = col; x < Math.min(col + 3, xTo); x++)
+            for (let y = y0; y < y1; y++)
+              if (pageAt(x, y) !== canAt(x, y)) px.push([x, y]);
+          const okDust = px.length <= 3 && px.every(([x, y]) => {
+            if (pageAt(x, y) >= 255 - 6 * TOL && Math.abs(pageAt(x, y) - canAt(x, y)) <= 6 * TOL) return true;
+            for (let dy = -1; dy <= 1; dy++)
+              for (let dx = -1; dx <= 1; dx++) {
+                const nx = x + dx, ny = y + dy;
+                if (nx >= xFrom && nx < xTo && ny >= y0 && ny < y1 &&
+                    canAt(nx, ny) < 255 && pageAt(nx, ny) === canAt(nx, ny)) return true;
+              }
+            return false;
+          });
+          if (okDust) {
+            for (const [x, y] of px) setCan(x, y, pageAt(x, y));
+            cursor = col;
+            continue;
+          }
+        }
         if (!fails.length || col > fails[fails.length - 1] + 4) fails.push(col);
         let x = col;
         for (; x < xTo; x++) {
@@ -207,11 +281,20 @@
         const x = gx + cc, y = gy + rr;
         if (masked(x, y)) continue;
         const gb = g.bytes[p], pv = pageAt(x, y), cv = canAt(x, y);
+        if (TOL && cv !== 255 && gb >= 255 - 2 * TOL) continue;   // faint skip (see above)
+        const t = cv !== 255 ? 2 * TOL : TOL;
         let val = null;
-        for (const e of INV[gb]) {
-          const pred = (cv * (256 - e)) >> 8;
-          if (pred === pv) { val = pv; break; }
-          if (val === null) val = pred;
+        if (lin) {
+          const sh = gb >= 129 && gb !== 255 ? 1 : 0, s0 = shAt(x, y);
+          const pred = (((cv - s0) * (gb - sh)) / 255 | 0) + s0 + sh;
+          val = Math.abs(pred - pv) <= t ? pv : pred;             // absorb page value
+          addSh(x, y, sh);
+        } else {
+          for (const e of INV[gb]) {
+            const pred = (cv * (256 - e)) >> 8;
+            if (Math.abs(pred - pv) <= t) { val = pv; break; }    // absorb page value
+            if (val === null) val = pred;
+          }
         }
         setCan(x, y, val);
       }
@@ -228,8 +311,8 @@
     return { glyphs, fails, residual };
   }
 
-  function probeBaseline(page, mask, set, phy, baseline, x0, x1) {
-    const line = scanLine(page, mask, set, phy, baseline, x0, Math.min(x1, x0 + 160), 4, 2);
+  function probeBaseline(page, mask, set, phy, baseline, x0, x1, tol) {
+    const line = scanLine(page, mask, set, phy, baseline, x0, Math.min(x1, x0 + 160), 4, 2, tol);
     return line.glyphs.reduce((s, g) => s + g.exact, 0) - line.fails.length * 20;
   }
 
@@ -264,7 +347,8 @@
         else if (spaceAdv && gap > 0.55 * spaceAdv) text += ' '.repeat(Math.max(1, Math.round(gap / spaceAdv)));
       }
       entries[i].i = text.length;
-      text += entries[i].ch;
+      const ch = entries[i].ch;
+      text += ch === 'ﬁ' ? 'fi' : ch === 'ﬂ' ? 'fl' : ch;  // ligatures transcribe as letters
     }
     return { entries, text };
   }
@@ -274,6 +358,7 @@
   // on native gray pages). opts.progress(done, total) is called between bands;
   // the read yields to the event loop every few bands so the UI stays alive.
   async function readPage(page, sets, opts) {
+    const tol = opts?.tol || 0;
     const { mask, objects } = detectObjects(page);
     const bands = findBands(page, mask);
     const lines = [];
@@ -294,7 +379,7 @@
       for (const set of sets)
         for (const phy of set.byPhy.keys())
           for (let yb = bot; yb >= bot - set.maxDesc && yb > top; yb--) {
-            const score = probeBaseline(page, mask, set, phy, yb, Math.max(0, x0 - 2), Math.min(page.w, x1 + 20));
+            const score = probeBaseline(page, mask, set, phy, yb, Math.max(0, x0 - 2), Math.min(page.w, x1 + 20), tol);
             if (score > 0 && (!pick || score > pick.score)) pick = { set, phy, yb, score };
           }
       if (!pick) {
@@ -303,7 +388,7 @@
         continue;
       }
       const L = scanLine(page, mask, pick.set, pick.phy, pick.yb,
-        Math.max(0, x0 - 2), Math.min(page.w, x1 + 4));
+        Math.max(0, x0 - 2), Math.min(page.w, x1 + 4), Infinity, Infinity, tol);
       L.top = top; L.bot = bot; L.baseline = pick.yb; L.phy = pick.phy;
       L.set = pick.set; L.font = pick.set.name;
       L.boxes = lineObjects.map(ob => [ob.x0 - 2, ob.x1 + 2]);

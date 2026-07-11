@@ -84,6 +84,20 @@ async function run() {
     const truth = readFileSync(o.truth, 'utf8').replace(/\r/g, '').split('\n')
       .map(t => t.trimEnd());
 
+    // whole-document API smoke test: two pages through blindOcrDocument
+    if (jobs.length > 1) {
+      const doc = await page.evaluate(async (urls) => {
+        const v = window.__v;
+        const cached = await Promise.all(urls.map(u => rcFetchPage(u)));
+        const out = await v.blindOcrDocument(cached.length,
+          i => ({ w: cached[i].w, h: cached[i].h, gray: cached[i].gray }));
+        return { totals: out.totals, pages: out.pages.length,
+          textHead: out.text.slice(0, 60) };
+      }, jobs.map(j => j.url));
+      console.log(`document API: ${doc.pages} pages, totals ${JSON.stringify(doc.totals)}, ` +
+        `text starts ${JSON.stringify(doc.textHead)}`);
+    }
+
     for (const job of jobs) {
       const res = await page.evaluate(async (url) => {
         const v = window.__v;

@@ -14,11 +14,10 @@
     <input type="file" id="pdf-input" accept="application/pdf">
   </label>
 
-  <button class="btn" id="templates-btn">Load Templates</button>
-  <button class="btn" id="ocr-page-btn">OCR Page</button>
-  <button class="btn" id="blind-ocr-btn" title="Grid-free OCR: measures bands, baselines, pens and spaces from the pixels; auto font pick; detects redaction boxes and rules">Auto OCR</button>
-  <button class="btn" id="ocr-all-btn">OCR All Pages</button>
+  <button class="btn" id="blind-ocr-btn" title="Grid-free OCR: measures bands, baselines, pens and spaces from the pixels; auto font + compositor pick; detects redaction boxes and rules; per-line byte certificates">Auto OCR</button>
+  <button class="btn" id="ocr-all-btn" title="Auto OCR every page of the document">Auto OCR All</button>
   <button class="btn" id="download-txt-btn" disabled>Download .txt</button>
+  <button class="btn" id="download-json-btn" disabled title="Structured export: per-line baseline, font, certificate, tolerance + objects">.json</button>
 
   <div class="page-controls" style="display: flex; gap: 8px; align-items: center; margin-left: 16px;">
     <button class="btn" id="prev-page-btn" disabled>&lt;</button>
@@ -53,23 +52,28 @@
 <div id="main-content">
   <div id="settings-panel">
     <div class="settings-group">
-      <h3>Horizontal Lines</h3>
+      <h3>How to use</h3>
+      <p class="settings-help"><b>Auto OCR</b> reads the page with no settings: line
+      positions, baselines, font, size and spacing are measured from the pixels, and
+      every line carries a byte-exactness certificate (green = certified). Redaction
+      boxes and rules are detected and shown as overlays. <b>Auto OCR All</b> +
+      Download .txt / .json export the whole document. Click a row to edit its text;
+      double-click any glyph box to extract it.</p>
+    </div>
+    <details class="settings-group">
+      <summary><h3 style="display:inline">Legacy: grid &amp; template tools</h3></summary>
+      <p class="settings-help">The old fixed-grid reader (template matching against
+      the configured rows below). Superseded by Auto OCR — kept for template work
+      and for parity with the bench tools. Auto OCR ignores all of these settings.</p>
+      <button class="btn" id="templates-btn">Load Templates</button>
+      <button class="btn" id="ocr-page-btn">Grid OCR Page</button>
       <div class="setting-row"><label for="set-rowBase">First row Y</label><input type="number" id="set-rowBase"></div>
       <div class="setting-row"><label for="set-rowHeight">Row height</label><input type="number" id="set-rowHeight"></div>
       <div class="setting-row"><label for="set-rowPitch">Line pitch</label><input type="number" id="set-rowPitch"></div>
       <div class="setting-row"><label for="set-rowCount">Row count</label><input type="number" id="set-rowCount"></div>
-    </div>
-    <div class="settings-group">
-      <h3>Font (character widths)</h3>
       <div class="setting-row"><label for="set-fontFamily">Font family</label><input type="text" id="set-fontFamily"></div>
       <div class="setting-row"><label for="set-fontSize">Font size</label><input type="number" id="set-fontSize" step="0.5"></div>
-    </div>
-    <div class="settings-group">
-      <h3>How to use</h3>
-      <p class="settings-help">Click where a line begins to set its start, then type the
-      line's text in the toolbar. Each character's width comes from the font above.
-      Double-click any box to extract that character at its natural size.</p>
-    </div>
+    </details>
   </div>
 
   <div id="canvas-wrap">
