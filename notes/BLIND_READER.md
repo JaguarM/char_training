@@ -125,6 +125,83 @@ v3 P2 54/54 rows byte-clean and exact vs v3.txt, hostile arial page 10/10
 byte-clean with arial auto-detected and space self-calibrated to 4.42 px
 (true: 4.445).
 
+## 2026-07-11 PM — report.pdf: first foreign-producer document (tolerant mode)
+
+`corpus/report.pdf` (7 pages, from report.docx via Word-era tooling) is NOT
+from the corpus renderer, and the blind reader now reads it:
+
+- **Same architecture, different PAGE COMPOSITOR (producer identified).**
+  Same 816×1056 gray pages, integer baselines, and the same ¼-px pen lattice
+  (every glyph phase ∈ {0,16,32,48}/64). Body = Times 12pt (the docx default
+  style size — never in the explicit size list), headings = Times bold.
+  The "older FreeType" hypothesis was DISPROVEN by direct test (FT 2.6.5,
+  2.7.1, 2.8.1, 2.13.2 render bit-identically; old mutool 1.2–1.11 are worse,
+  1.14+ identical): the producer rasterizes glyphs with modern MuPDF (≥1.14)
+  — our fontgen rasters are ITS rasters — but composites the page itself with
+  plain integer alpha blending. Verified byte model (0/110 singles, 512
+  ¼-phase sliding hits, 0/499 on double-overlap pixels): single glyph
+  `page = g+1` for g∈128..254 else g; overlaps composite multiplicatively in
+  255-space with floor, +1 per contributing "light" glyph. Implemented as
+  `linear`-flagged glyph sets (glyphs_timeslin16 / timesbdlin16 /
+  timesilin16 / tnr8lin16 / tnr8lin10) — the per-band auto-pick chooses the
+  compositor model like it chooses the font.
+
+  **Exact "light glyph" semantics** (settled 2026-07-11, hunt session): the
+  map lives in RAW MuPDF byte space — a pixel is light iff its raw
+  single-on-white MuPDF byte ∈ [128, 254] (raw 127 is unreachable on white;
+  raw 255 = no ink). The producer adds +1 to exactly those pixels, so
+  linear-set bytes are raw+1 there, i.e. gb ∈ [129, 255] — and gb = 255
+  (raw 254, coverage ~1/255) is erased to white and drops out of the ink
+  mask entirely. The reader's `gb >= 129 && gb !== 255` is therefore exactly
+  "raw ∈ [128, 254] and the pixel still carries ink"; `gb − 1 = raw` is
+  valid precisely on [129, 254]. Prose "128..254" (raw space) and code
+  "≥129" (linear space) are the same set, one representation apart. The
+  renderer hunt itself is documented in the `..\ocr` workspace
+  (REPORT_RENDERER_HUNT — that session works from `C:\Users\yanni\Desktop\ocr`).
+- **`--tol N` mode** (bench + app): glyph-ink pixels match within ±N (double
+  on composite pixels — two curves' deviations compound at junctions like
+  f-hook ∩ i-dot), the anchor scan and canvas bookkeeping stay exact, and
+  ≤3-pixel unexplained residues that are faint or hug explained ink are
+  absorbed as junction/rasterizer dust. Three real tolerance-mode bugs were
+  found this way (anchor slip on faint leading AA, composite-pixel
+  "stealing", compound junction deviations) — all fixed; **tol 0 semantics
+  are untouched** (v3/big/hostile still byte-exact, regression-checked).
+- **Charset extension**: fontgen DEFAULT_CHARS now includes ‘’“”–—…•§¶© and
+  the ﬁ/ﬂ ligatures (the report pipeline LIGATES — readers transcribe ﬁ→"fi").
+  All exported sets regenerated at 107 chars × 8 phases.
+- **Vertical rules** (table/quote borders) detected as objects, same as
+  horizontal rules/boxes.
+- **Result: 220 lines, 12.8k glyphs, 10 □ · 210/220 lines are exact
+  substrings of the docx text** — and every remaining diff is a PROVEN
+  docx-vs-page revision difference, not a read error: the docx contains
+  "Subject Devide-23/-25" typos, "on the floor on the dining room",
+  lowercase "first floor" where the page prints "First Floor", a serial
+  number the docx lacks, and a sentence naming SARAH KELLEN that the page
+  version dropped. The pixel-true transcription out-audits its own ground
+  truth, again.
+- **App**: blindocr.js carries the linear compositor (per-set flag, same as
+  the bench) and Auto OCR escalates tol 0 → 1 → 2 → 10, keeping the
+  lowest-tolerance / fewest-failures read and labelling results honestly
+  ("byte-clean" vs "clean@±N · tolerant mode"). Headless tests: report P1 =
+  33/33 lines clean@±2 (plus one honest □ band); v3 regression unchanged
+  (39/40 + 54/54 byte-clean at tol 0, no escalation).
+- **App modernized to Auto-OCR-first** (same day): "Auto OCR All" +
+  "Download .txt" now run the blind reader over the whole document
+  (`CanvasViewer.blindOcrDocument`, page-provider based and headless-testable),
+  and a new ".json" export carries per-line baseline / font / certificate /
+  tolerance plus detected objects — the structured product output. The legacy
+  grid/template tools (Load Templates, Grid OCR Page, row-grid and font
+  settings) moved into a collapsed "Legacy" panel: still functional (bench
+  dump-ocr drives those code paths), templates now load on demand instead of
+  at startup. Reader.js/ocr.js internals untouched.
+- Bench with linear sets: 210/220 docx-matching lines at **tol 1** (was ±10
+  before the compositor was identified) — same accuracy, far stronger
+  certificate.
+
+Open on this document: ~10 □ clusters (superscript ordinals and similar
+small-size glyphs need per-size sets — tnr8lin10 exists, more sizes as
+needed) and the last ±1 rounding stragglers in the linear model fit.
+
 ## What this establishes
 
 - The document-specific layer of the project (grid constants, startX,

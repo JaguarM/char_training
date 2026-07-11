@@ -330,19 +330,72 @@ class CanvasViewer {
   // existing interaction (row select, edit, box hover, double-click
   // extract) works unchanged, with glyph boxes at the MEASURED pens.
   // ------------------------------------------------------------------
+  async _ensureBlindSets() {
+    if (!this._blindSets) this._blindSets = await BlindOCR.loadSets();
+    if (!this._blindSets.length) throw new Error(
+      'no glyph sets found — run ocr/tools/export_glyphs.py (bench/glyphs_*.json)');
+    return this._blindSets;
+  }
+
+  // Escalating passes: byte-exact first (both compositor models are in the
+  // set list — the per-band auto-pick chooses), then small tolerances for
+  // producers with sub-model rounding stragglers, then ±10 for near-identical
+  // renderers we haven't modelled yet. Keeps the fewest-failures read at the
+  // lowest tolerance; certificates are labelled accordingly, never silently
+  // weakened.
+  async _blindReadEscalating(page, label = 'Auto OCR') {
+    const sets = await this._ensureBlindSets();
+    let tol = 0, res = null, bestFails = Infinity;
+    for (const tryTol of [0, 1, 2, 10]) {
+      const r = await BlindOCR.readPage(page, sets, { tol: tryTol,
+        progress: (d, t) => { this.infoEl.textContent =
+          `${label}${tryTol ? ` (±${tryTol})` : ''}: ${d}/${t} bands…`; },
+      });
+      const fails = r.lines.reduce((s, L) => s + L.fails.length, 0) +
+        r.lines.filter(L => !L.set).length;
+      if (fails < bestFails) { bestFails = fails; res = r; tol = tryTol; }
+      if (fails === 0) break;                          // fully read — keep lowest tol
+      const glyphs = r.lines.reduce((s, L) => s + L.glyphs.length, 0);
+      if (tryTol >= 2 && glyphs >= fails * 8) break;   // good enough — stop escalating
+    }
+    return { res, tol };
+  }
+
+  // Whole-document Auto OCR. pageProvider(i) resolves to a canvas (or a
+  // ready {w,h,gray} page buffer) or null for an empty page. Returns
+  // per-page structured results plus the plain-text transcription.
+  async blindOcrDocument(numPages, pageProvider) {
+    await this._ensureBlindSets();
+    const pages = [];
+    const totals = { lines: 0, clean: 0, fails: 0 };
+    for (let i = 0; i < numPages; i++) {
+      const src = await pageProvider(i);
+      if (!src) { pages.push(null); continue; }
+      const page = src.gray ? src : this.engine._pageFor(src);
+      const { res, tol } = await this._blindReadEscalating(page, `Auto OCR ${i + 1}/${numPages}`);
+      for (const L of res.lines) {
+        if (L.set) totals.lines++;
+        if (L.clean) totals.clean++;
+        totals.fails += L.fails.length + (L.set ? 0 : 1);
+      }
+      pages.push({
+        tol, spaceAdv: res.spaceAdv, objects: res.objects,
+        lines: res.lines.map(L => ({ baseline: L.baseline ?? null, phy: L.phy ?? 0,
+          font: L.font ?? null, text: L.text ?? '', clean: !!L.clean, fails: L.fails.length })),
+      });
+    }
+    const text = pages.map(p => p ? p.lines.map(L => L.text.replace(/□/g, '').trimEnd()).join('\n') : '')
+      .join('\n\n') + '\n';
+    return { pages, text, totals };
+  }
+
   async blindOcrPage() {
     if (!this.img) return;
     this.infoEl.textContent = 'Auto OCR: loading glyph sets…';
-    const sets = await BlindOCR.loadSets();
-    if (!sets.length) {
-      this.infoEl.textContent =
-        'Auto OCR: no glyph sets found — run ocr/tools/export_glyphs.py (bench/glyphs_*.json)';
-      return;
-    }
-    const page = this.engine._pageFor(this.img);
-    const res = await BlindOCR.readPage(page, sets, {
-      progress: (d, t) => { this.infoEl.textContent = `Auto OCR: ${d}/${t} bands…`; },
-    });
+    let out;
+    try { out = await this._blindReadEscalating(this.engine._pageFor(this.img)); }
+    catch (e) { this.infoEl.textContent = `Auto OCR: ${e.message}`; return; }
+    const { res, tol } = out;
     this.rowBands = res.lines.map(L => ({ y0: L.top, y1: L.bot }));
     this.activeRow = 0;
     this.rowStartX = res.lines.map(L => L.entries[0]?.pen ?? this.config.startX);
@@ -361,9 +414,11 @@ class CanvasViewer {
     const readable = res.lines.filter(L => L.set).length;
     const clean = res.lines.filter(L => L.clean).length;
     const fonts = [...new Set(res.lines.map(L => L.font).filter(Boolean))].join('+') || '—';
+    const cert = tol ? `clean@±${tol}` : 'byte-clean';
     this.infoEl.textContent =
-      `Auto OCR: ${readable} lines, ${clean} byte-clean, ${res.objects.length} non-text objects · ` +
-      `font ${fonts} · space ${res.spaceAdv ? res.spaceAdv.toFixed(2) + 'px' : '—'} · no grid used`;
+      `Auto OCR: ${readable} lines, ${clean} ${cert}, ${res.objects.length} non-text objects · ` +
+      `font ${fonts} · space ${res.spaceAdv ? res.spaceAdv.toFixed(2) + 'px' : '—'} · no grid used` +
+      (tol ? ' · near-identical renderer (tolerant mode)' : '');
   }
 
   setLineText(text) {
@@ -900,71 +955,72 @@ document.addEventListener('DOMContentLoaded', () => {
   const lineInput = document.getElementById('line-input');
   lineInput.addEventListener('input', () => viewer.setLineText(lineInput.value));
 
-  // Templates + OCR
+  // Primary OCR = Auto OCR (grid-free, self-verifying). The legacy
+  // grid/template reader stays available from the Legacy panel — the bench
+  // (dump-ocr.mjs) still drives those code paths, so they are demoted in the
+  // UI, not removed. Templates now load on demand instead of at startup.
+  document.getElementById('blind-ocr-btn').addEventListener('click',
+    () => viewer.blindOcrPage().catch(e => { viewer.infoEl.textContent = `Auto OCR failed: ${e.message}`; }));
   document.getElementById('templates-btn').addEventListener('click', () => viewer.loadTemplates());
-  document.getElementById('ocr-page-btn').addEventListener('click', () => {
+  document.getElementById('ocr-page-btn').addEventListener('click', async () => {
+    if (viewer.engine.templates.length === 0) {
+      viewer.infoEl.textContent = 'Loading templates for grid OCR…';
+      try { await viewer.autoLoadTemplatesFromHTTP(); } catch {}
+      if (viewer.engine.templates.length === 0) {
+        viewer.infoEl.textContent = 'Grid OCR needs templates — click Load Templates.';
+        return;
+      }
+    }
     // grid OCR assumes the configured bands — leave blind mode first
     if (viewer.rowPens && viewer.rowPens.some(Boolean)) viewer.applySettings();
     viewer.ocrAllRows();
   });
-  document.getElementById('blind-ocr-btn').addEventListener('click',
-    () => viewer.blindOcrPage().catch(e => { viewer.infoEl.textContent = `Auto OCR failed: ${e.message}`; }));
 
-  // OCR every page + download the transcription — the browser equivalent of
-  // bench/dump-ocr.mjs. Same per-page recipe (set the image, band the rows,
-  // first-ink anchor, OCR each row), driven straight off the viewer/engine that
-  // the interactive tool already uses, so the output matches the CLI dump.
-  // Strip the □ placeholder only — a leading '>' is real text (quoted email).
-  const cleanRow = (row) => row.replace(/□/g, '').trimEnd();
+  // Auto OCR every page + download — the browser equivalent of
+  // bench/blind-read.mjs --all. Text export strips □ (unreadable-cluster
+  // markers); the JSON export keeps everything: per-line baseline, font,
+  // certificate flag and tolerance, plus detected non-text objects.
   const ocrAllBtn = document.getElementById('ocr-all-btn');
   const downloadBtn = document.getElementById('download-txt-btn');
-  let ocrDocText = null;   // last full-document transcription, for Download .txt
+  const downloadJsonBtn = document.getElementById('download-json-btn');
+  let ocrDoc = null;   // last full-document result {pages, text, totals}
 
   ocrAllBtn.addEventListener('click', async () => {
     if (!pdfDoc) { viewer.infoEl.textContent = 'Load a PDF first.'; return; }
-    if (viewer.engine.templates.length === 0) {
-      viewer.infoEl.textContent = 'No templates loaded — click Load Templates.';
-      return;
-    }
     ocrAllBtn.disabled = true;
     downloadBtn.disabled = true;
-    const n = pdfDoc.numPages;
-    const pages = [];
-    for (let i = 0; i < n; i++) {
-      viewer.infoEl.textContent = `OCR page ${i + 1}/${n}…`;
-      // Yield so the progress text paints before the (synchronous) page OCR.
-      await new Promise(r => setTimeout(r));
-      const canvas = await getPageCanvas(i);
-      if (!canvas) { pages.push(''); continue; }
-      viewer.img = canvas;
-      viewer.rowBands = config.makeRowBands();
-      viewer.resetLine();       // per-row state + rows against the bands
-      viewer.autoAnchorRows();  // first-ink anchor per row
-      const rows = [];
-      for (let r = 0; r < viewer.rowBands.length; r++) {
-        viewer.ocrRow(r);
-        rows.push(cleanRow(viewer.rowText[r] || ''));
-      }
-      pages.push(rows.join('\n'));
+    downloadJsonBtn.disabled = true;
+    try {
+      ocrDoc = await viewer.blindOcrDocument(pdfDoc.numPages, getPageCanvas);
+      downloadBtn.disabled = false;
+      downloadJsonBtn.disabled = false;
+      const t = ocrDoc.totals;
+      const tols = [...new Set(ocrDoc.pages.filter(Boolean).map(p => p.tol))].sort((a, b) => a - b);
+      viewer.infoEl.textContent =
+        `Auto OCR complete — ${pdfDoc.numPages} page(s), ${t.lines} lines, ${t.clean} certified, ` +
+        `${t.fails} unread clusters · tol ${tols.join('/')} · Download .txt / .json`;
+    } catch (e) {
+      viewer.infoEl.textContent = `Auto OCR failed: ${e.message}`;
+    } finally {
+      ocrAllBtn.disabled = false;
+      // Restore the on-screen page (the sweep reused the engine's page buffer).
+      await loadPage(currentPageIndex);
     }
-    ocrDocText = pages.join('\n\n') + '\n';
-    downloadBtn.disabled = false;
-    ocrAllBtn.disabled = false;
-    // Restore the on-screen page (its rows were overwritten by the sweep).
-    await loadPage(currentPageIndex);
-    viewer.infoEl.textContent = `OCR complete — ${n} page(s). Click Download .txt.`;
   });
 
-  downloadBtn.addEventListener('click', () => {
-    if (ocrDocText == null) return;
-    const blob = new Blob([ocrDocText], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
+  const download = (data, name, type) => {
+    const url = URL.createObjectURL(new Blob([data], { type }));
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${pdfName}.txt`;
+    a.download = name;
     a.click();
     URL.revokeObjectURL(url);
+  };
+  downloadBtn.addEventListener('click', () => {
+    if (ocrDoc) download(ocrDoc.text, `${pdfName}.txt`, 'text/plain;charset=utf-8');
   });
-
-  viewer.autoLoadTemplatesFromHTTP().catch(() => {});
+  downloadJsonBtn.addEventListener('click', () => {
+    if (ocrDoc) download(JSON.stringify({ pdf: pdfName, totals: ocrDoc.totals, pages: ocrDoc.pages }, null, 1),
+      `${pdfName}.ocr.json`, 'application/json');
+  });
 });

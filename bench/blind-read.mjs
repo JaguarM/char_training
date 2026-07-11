@@ -41,7 +41,7 @@ const REPO = resolve(__dirname, '..');
 
 // ---------------- args ----------------
 const o = { pdf: null, raster: null, page: 1, all: false, truth: null, out: null,
-  json: null, glyphs: ['glyphs_times16.json'], verify: false,
+  json: null, glyphs: ['glyphs_times16.json'], verify: false, tol: 0,
   worker: 'C:/Users/yanni/Desktop/ocr/tools/render_hypotheses.py' };
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i], next = () => process.argv[++i];
@@ -52,6 +52,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === '--truth') o.truth = resolve(process.cwd(), next());
   else if (a === '--out') o.out = resolve(process.cwd(), next());
   else if (a === '--json') o.json = resolve(process.cwd(), next());
+  else if (a === '--tol') o.tol = parseInt(next(), 10);
   else if (a === '--glyphs') o.glyphs = next().split(',');
   else if (a === '--verify') o.verify = true;
   else if (a === '--worker') o.worker = next();
@@ -101,6 +102,7 @@ function loadSet(file) {
   }
   const stem = (j.font ?? '').replace(/_\d+.*$/, '');   // "times_16.npz" -> "times"
   return { name: basename(file).replace(/^glyphs_|\.json$/g, ''), sizePx: j.size_px,
+    linear: !!j.linear,                                 // report.pdf producer blend
     fontFile: `C:/Windows/Fonts/${stem || 'times'}.ttf`, byPhy, maxAsc, maxDesc };
 }
 
@@ -113,6 +115,15 @@ const INV = (() => {
   }
   return inv;
 })();
+
+// report.pdf producer (linear glyph sets): glyph raw alpha bytes composite
+// multiplicatively in 255-space with floor — raw' = floor(raw_canvas * rb /
+// 255) — and the PAGE byte adds +1 per contributing "light" glyph (raster
+// byte 129..254; its raw byte is rb = gb - 1). The scanner keeps the page-
+// space canvas plus a per-pixel shift count so the raw canvas is recoverable.
+// Fitted with 0/499 mismatches on every double-overlap pixel of the clean
+// report.pdf lines (ocr REPORT_RENDERER_HUNT, 2026-07-11); singles reduce to
+// the proven g -> g+1 (g in 128..254) byte map.
 
 // ---------------- non-text objects (rules, redaction boxes) ----------------
 // Long near-solid horizontal ink runs cannot be glyphs. Thin groups (≤4 rows)
@@ -143,9 +154,29 @@ function detectObjects(page) {
     if (o) { o.y1 = r.y + 1; o.x0 = Math.min(o.x0, r.x0); o.x1 = Math.max(o.x1, r.x1); }
     else objects.push({ y0: r.y, y1: r.y + 1, x0: r.x0, x1: r.x1 });
   }
+  // vertical rules (table/quote borders): long solid runs down a column
+  const vcols = [];
+  for (let x = 0; x < w; x++) {
+    let s = -1, gap = 0;
+    for (let y = 0; y <= h; y++) {
+      const dark = y < h && gray[y * w + x] < 160;
+      if (dark) { if (s < 0) s = y; gap = 0; }
+      else if (s >= 0 && ++gap > 1) {
+        if (y - gap + 1 - s >= 40) vcols.push({ x, y0: s, y1: y - gap + 1 });
+        s = -1; gap = 0;
+      }
+    }
+  }
+  for (const c of vcols) {
+    const o = objects.find(o => o.vr && o.x1 === c.x &&
+      Math.min(o.y1, c.y1) - Math.max(o.y0, c.y0) > 0.8 * Math.min(o.y1 - o.y0, c.y1 - c.y0));
+    if (o) { o.x1 = c.x + 1; o.y0 = Math.min(o.y0, c.y0); o.y1 = Math.max(o.y1, c.y1); }
+    else objects.push({ vr: true, x0: c.x, x1: c.x + 1, y0: c.y0, y1: c.y1 });
+  }
   const mask = new Uint8Array(w * h);
   for (const o of objects) {
-    o.type = o.y1 - o.y0 <= 4 ? 'rule' : 'box';
+    o.type = o.vr ? 'vrule' : o.y1 - o.y0 <= 4 ? 'rule' : 'box';
+    delete o.vr;
     for (let y = Math.max(0, o.y0 - 2); y < Math.min(h, o.y1 + 2); y++)
       for (let x = Math.max(0, o.x0 - 2); x < Math.min(w, o.x1 + 2); x++)
         mask[y * w + x] = 1;
@@ -183,21 +214,32 @@ function probeBaseline(page, mask, set, phy, baseline, x0, x1) {
 // Reads one band left→right. Returns {glyphs:[{ch,pen,exact,pending}], fails:[col,...]}.
 // maxGlyphs: stop early (baseline probing).
 function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infinity, maxFails = Infinity) {
-  const W = page.w, cands = set.byPhy.get(phy) ?? [];
+  const W = page.w, cands = set.byPhy.get(phy) ?? [], lin = set.linear;
   // explained-ink canvas over the band window (white = nothing explained yet;
   // don't-care object pixels are pre-absorbed so the scan flows through them)
   const y0 = Math.max(0, baseline - set.maxAsc), y1 = Math.min(page.h, baseline + set.maxDesc);
   const bw = xTo - xFrom, bh = y1 - y0;
   const canvas = new Uint8Array(bw * bh).fill(255);
+  const shifts = lin ? new Uint8Array(bw * bh) : null;   // producer +1 count per pixel
   const pageAt = (x, y) => page.gray[y * W + x];
   const masked = (x, y) => mask && mask[y * W + x];
   const canAt = (x, y) => canvas[(y - y0) * bw + (x - xFrom)];
   const setCan = (x, y, v) => { canvas[(y - y0) * bw + (x - xFrom)] = v; };
+  const shAt = (x, y) => (lin ? shifts[(y - y0) * bw + (x - xFrom)] : 0);
+  const addSh = (x, y, s) => { if (lin) shifts[(y - y0) * bw + (x - xFrom)] += s; };
   if (mask)
     for (let y = y0; y < y1; y++)
       for (let x = xFrom; x < xTo; x++)
         if (mask[y * W + x]) setCan(x, y, pageAt(x, y));
 
+  // --tol N relaxes byte-exactness to |Δ|≤N per glyph-ink pixel — for pages
+  // from a NEAR-identical rasterizer (e.g. an older FreeType whose curve
+  // corner coverage differs by a few gray levels). 0 = byte-exact (default).
+  // The unexplained-ink scan stays STRICT: accepted glyphs absorb the page's
+  // exact bytes, so any |page−canvas| > 0 is truly unexplained — skipping
+  // within-tol pixels here would let faint leading AA columns slip past and
+  // misplace the next glyph's anchor.
+  const TOL = o.tol;
   const nextUnexplained = (fromX) => {
     for (let x = fromX; x < xTo; x++)
       for (let y = y0; y < y1; y++)
@@ -226,15 +268,33 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
           const x = gx + cc, y = gy + rr;
           if (masked(x, y)) { skipped++; continue; }   // object pixel: no evidence either way
           const gb = g.bytes[p], pv = pageAt(x, y), cv = canAt(x, y);
-          // predicted values for this pixel over the e-ambiguity
+          // tol mode: a neighbour may have absorbed this pixel's composite
+          // already (within-tol steal); a FAINT own-contribution proves
+          // nothing either way — skip instead of predicting double ink
+          if (TOL && cv !== 255 && gb >= 255 - 2 * TOL) { skipped++; continue; }
+          // predicted values for this pixel over the e-ambiguity; composite
+          // pixels (canvas already inked) get double tolerance — rasterizer
+          // deviations of BOTH overlapping curves compound (f-hook ∩ i-dot)
+          const t = cv !== 255 ? 2 * TOL : TOL;
           let hit = false, minPred = 256;
-          for (const e of INV[gb]) {
-            const pred = (cv * (256 - e)) >> 8;
-            if (pred < minPred) minPred = pred;
-            if (pred === pv) { hit = true; break; }
+          if (lin) {
+            const sh = gb >= 129 && gb !== 255 ? 1 : 0, s0 = shAt(x, y);
+            minPred = (((cv - s0) * (gb - sh)) / 255 | 0) + s0 + sh;
+            // composite pixels may read 1 lighter than the law: the producer's
+            // junction arithmetic is 1-ambiguous there (3/925 fitted pairs,
+            // always this sign) — single-glyph pixels stay byte-strict
+            hit = Math.abs(minPred - pv) <= t || (cv !== 255 && minPred - pv === 1);
+          } else {
+            for (const e of INV[gb]) {
+              const pred = (cv * (256 - e)) >> 8;
+              if (pred < minPred) minPred = pred;
+              if (Math.abs(pred - pv) <= t) { hit = true; break; }
+            }
           }
+          if (process.env.BR_PIX && +process.env.BR_PIX === col && !hit)
+            console.log(`      pix '${g.ch}' pen ${pi + g.phx} @(${x},${y}) gb=${gb} cv=${cv} pv=${pv} minPred=${minPred}`);
           if (hit) exact++;
-          else if (pv < minPred) pending++;            // darker: future glyph may composite
+          else if (pv < minPred - t) pending++;        // darker: future glyph may composite
           else { ok = false; break; }
         }
         // pending is for kern overlap (a few columns) — a glyph "hiding" inside
@@ -251,8 +311,41 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
       if (best) break;
     }
     if (!best) {
+      // rasterizer-variance dust: an older rasterizer may spread a curve a
+      // pixel wider than our raster, and at glyph junctions (f-hook ∩ i-dot)
+      // the deviations of both curves compound beyond any per-pixel tolerance.
+      // A residue of ≤3 unexplained pixels, each either faint or adjacent to
+      // already-explained ink, is absorbed silently; anything larger/isolated
+      // and dark is real unexplained ink and stays a □ failure.
+      if (TOL) {
+        const px = [];
+        for (let x = col; x < Math.min(col + 3, xTo); x++)
+          for (let y = y0; y < y1; y++)
+            if (pageAt(x, y) !== canAt(x, y)) px.push([x, y]);
+        const okDust = px.length <= 3 && px.every(([x, y]) => {
+          if (pageAt(x, y) >= 255 - 6 * TOL && Math.abs(pageAt(x, y) - canAt(x, y)) <= 6 * TOL) return true;
+          for (let dy = -1; dy <= 1; dy++)
+            for (let dx = -1; dx <= 1; dx++) {
+              const nx = x + dx, ny = y + dy;
+              if (nx >= xFrom && nx < xTo && ny >= y0 && ny < y1 &&
+                  canAt(nx, ny) < 255 && pageAt(nx, ny) === canAt(nx, ny)) return true;
+            }
+          return false;
+        });
+        if (okDust) {
+          for (const [x, y] of px) setCan(x, y, pageAt(x, y));
+          cursor = col;
+          continue;
+        }
+      }
       // give up on this ink cluster: absorb its columns up to the next white
       // gap, emit one □, and bail out entirely once the fail budget is spent
+      if (process.env.BR_DEBUG && maxGlyphs === Infinity) {
+        console.log(`    fail @col ${col} baseline ${baseline}`);
+        for (let y = y0; y < y1; y++)
+          if (pageAt(col, y) !== canAt(col, y))
+            console.log(`      unexplained (${col},${y}) page=${pageAt(col, y)} canvas=${canAt(col, y)}`);
+      }
       if (!fails.length || col > fails[fails.length - 1] + 4) fails.push(col);
       let x = col;
       for (; x < xTo; x++) {
@@ -276,14 +369,26 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
       const x = gx + cc, y = gy + rr;
       if (masked(x, y)) continue;                      // keep page bytes under objects
       const gb = g.bytes[p], pv = pageAt(x, y), cv = canAt(x, y);
+      if (TOL && cv !== 255 && gb >= 255 - 2 * TOL) continue;  // faint skip (see above)
       let val = null;
-      for (const e of INV[gb]) {
-        const pred = (cv * (256 - e)) >> 8;
-        if (pred === pv) { val = pv; break; }
-        if (val === null) val = pred;
+      if (lin) {
+        const sh = gb >= 129 && gb !== 255 ? 1 : 0, s0 = shAt(x, y);
+        const pred = (((cv - s0) * (gb - sh)) / 255 | 0) + s0 + sh;
+        const ok = Math.abs(pred - pv) <= (cv !== 255 ? 2 * TOL : TOL) ||
+                   (cv !== 255 && pred - pv === 1);   // composite 1-lighter case
+        val = ok ? pv : pred;
+        addSh(x, y, sh);
+      } else {
+        for (const e of INV[gb]) {
+          const pred = (cv * (256 - e)) >> 8;
+          if (Math.abs(pred - pv) <= (cv !== 255 ? 2 * TOL : TOL)) { val = pv; break; }  // absorb page value
+          if (val === null) val = pred;
+        }
       }
       setCan(x, y, val);
     }
+    if (process.env.BR_LINE && +process.env.BR_LINE === baseline && maxGlyphs === Infinity)
+      console.log(`    accept '${g.ch}' pen ${pi + g.phx} exact ${best.exact} pend ${best.pending} (anchor ${col})`);
     glyphs.push({ ch: g.ch, pen: pi + g.phx, adv: g.adv, exact: best.exact, pending: best.pending });
     accepted.add(`${g.ch}@${pi + g.phx}`);
     cursor = col + 1;   // pending overlap columns right of col are revisited; the
@@ -323,7 +428,8 @@ function withSpaces(L, spaceAdv) {
         if (Math.abs(gap - n * spaceAdv) > 0.75) flags++;   // narrow/odd space
       }
     }
-    out += L.glyphs[i].ch;
+    const ch = L.glyphs[i].ch;
+    out += ch === 'ﬁ' ? 'fi' : ch === 'ﬂ' ? 'fl' : ch;  // ligatures transcribe as letters
   }
   return { text: out, oddGaps: flags };
 }
@@ -433,7 +539,8 @@ async function main() {
         outLines.push(sp.text);
         jsonLines.push({ baseline: L.baseline, phy: L.phy, font: L.set.name,
           text: sp.text, verified: L.verified ?? null, fails: L.fails.length,
-          boxes: L.boxes, oddGaps: sp.oddGaps });
+          boxes: L.boxes, oddGaps: sp.oddGaps,
+          glyphs: L.glyphs.map(g => [g.ch, g.pen]) });
         if (truth) {
           // row index from baseline is unknown to the reader — compare against
           // the truth row whose letters match (letters-only first, then spaced)
