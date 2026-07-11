@@ -147,6 +147,7 @@ function loadGlyphs() {
   for (const [ch, rec] of Object.entries(j.chars)) {
     const ph = new Map();
     for (const [phx, r] of Object.entries(rec.ph)) {
+      if (phx.includes('_')) continue;   // phy=0.5 rasters (blind-read only): corpus baselines are integer
       const bytes = r.b64 ? Buffer.from(r.b64, 'base64') : new Uint8Array(0);
       const coreCols = [], inkCols = [];
       for (let c = 0; c < r.w; c++) {

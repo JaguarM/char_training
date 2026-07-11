@@ -147,14 +147,18 @@ class CanvasViewer {
     this.rowScores = [];
     this.rowMode = [];
     this.rowStopX = [];
+    this.rowPens = [];        // per row: blind-OCR entries [{ch,pen,adv,score,i}] or undefined
+    this.blindObjects = null; // page-level non-text objects from blind OCR
     this.allBoxes = [];
     this._hoverKey = null;
     this.ensureRows();
   }
 
   // Make sure every current row has a start anchor + text/score slots.
+  // Auto (blind) OCR may install MORE measured bands than the configured grid
+  // has rows — never truncate those away.
   ensureRows() {
-    const n = this.config.rowCount;
+    const n = Math.max(this.config.rowCount, this.rowBands.length);
     for (let i = 0; i < n; i++) {
       if (this.rowStartX[i] === undefined) this.rowStartX[i] = this.config.startX;
       if (this.rowText[i] === undefined) this.rowText[i] = '';
@@ -311,10 +315,55 @@ class CanvasViewer {
   // ------------------------------------------------------------------
   applySettings() {
     this.rowBands = this.config.makeRowBands();
+    this.rowPens = [];        // grid settings changed → leave blind-OCR mode
+    this.blindObjects = null;
     this.ensureRows();
     this.rebuildBoxes();
     this.updateInfo();
     this.render();
+  }
+
+  // ------------------------------------------------------------------
+  // Auto OCR (blind) — grid-free reading via blindocr.js: measured bands,
+  // measured baselines, measured pens/spaces, auto font pick, object
+  // detection. Results are mapped into the normal row model so every
+  // existing interaction (row select, edit, box hover, double-click
+  // extract) works unchanged, with glyph boxes at the MEASURED pens.
+  // ------------------------------------------------------------------
+  async blindOcrPage() {
+    if (!this.img) return;
+    this.infoEl.textContent = 'Auto OCR: loading glyph sets…';
+    const sets = await BlindOCR.loadSets();
+    if (!sets.length) {
+      this.infoEl.textContent =
+        'Auto OCR: no glyph sets found — run ocr/tools/export_glyphs.py (bench/glyphs_*.json)';
+      return;
+    }
+    const page = this.engine._pageFor(this.img);
+    const res = await BlindOCR.readPage(page, sets, {
+      progress: (d, t) => { this.infoEl.textContent = `Auto OCR: ${d}/${t} bands…`; },
+    });
+    this.rowBands = res.lines.map(L => ({ y0: L.top, y1: L.bot }));
+    this.activeRow = 0;
+    this.rowStartX = res.lines.map(L => L.entries[0]?.pen ?? this.config.startX);
+    this.rowText = res.lines.map(L => L.text);
+    this.rowScores = res.lines.map(L => {
+      const sc = [];
+      for (const e of L.entries) sc[e.i] = e.score;
+      return sc;
+    });
+    this.rowMode = res.lines.map(() => 'ocr');
+    this.rowStopX = res.lines.map(() => null);
+    this.rowPens = res.lines.map(L => L.entries);
+    this.blindObjects = res.objects;
+    this.rebuildBoxes();
+    this.render();
+    const readable = res.lines.filter(L => L.set).length;
+    const clean = res.lines.filter(L => L.clean).length;
+    const fonts = [...new Set(res.lines.map(L => L.font).filter(Boolean))].join('+') || '—';
+    this.infoEl.textContent =
+      `Auto OCR: ${readable} lines, ${clean} byte-clean, ${res.objects.length} non-text objects · ` +
+      `font ${fonts} · space ${res.spaceAdv ? res.spaceAdv.toFixed(2) + 'px' : '—'} · no grid used`;
   }
 
   setLineText(text) {
@@ -331,6 +380,7 @@ class CanvasViewer {
     this.rowText[r] = text;
     this.rowScores[r] = scores;
     this.rowMode[r] = 'manual'; // hand-edited → never auto-overwritten by a save refresh
+    if (this.rowPens) this.rowPens[r] = undefined; // measured pens no longer match edited text
     this.rebuildBoxes();
     this.render();
   }
@@ -354,6 +404,14 @@ class CanvasViewer {
     const text = this.rowText[r] || '';
     if (!text || r < 0 || r >= this.rowBands.length) return [];
     const band = this.rowBands[r];
+    // Blind-OCR rows carry MEASURED pens — boxes sit exactly on the drawn
+    // glyphs regardless of layout, no font-advance walk needed.
+    if (this.rowPens && this.rowPens[r]) {
+      return this.rowPens[r].map(e => ({
+        char: e.ch, x0: e.pen, x1: e.pen + e.adv,
+        y0: band.y0, y1: band.y1, score: e.score, row: r, i: e.i,
+      }));
+    }
     const startX = this.rowStartX[r];
     const scores = this.rowScores[r] || [];
     const out = [];
@@ -446,6 +504,16 @@ class CanvasViewer {
       this.ctx.fillStyle = 'rgba(255, 80, 80, 0.9)';
       this.ctx.font = 'bold 8px monospace';
       this.ctx.fillText(i.toString(), -4, (y0 + y1) / 2);
+    }
+
+    // Non-text objects found by Auto OCR (redaction boxes magenta, rules amber)
+    if (this.blindObjects) {
+      for (const ob of this.blindObjects) {
+        this.ctx.fillStyle = ob.type === 'box' ? 'rgba(255, 0, 180, 0.15)' : 'rgba(255, 180, 0, 0.25)';
+        this.ctx.fillRect(ob.x0, ob.y0, ob.x1 - ob.x0, ob.y1 - ob.y0);
+        this.ctx.strokeStyle = ob.type === 'box' ? 'rgba(255, 0, 180, 0.8)' : 'rgba(255, 180, 0, 0.8)';
+        this.ctx.strokeRect(ob.x0, ob.y0, ob.x1 - ob.x0, ob.y1 - ob.y0);
+      }
     }
 
     this.renderLines();
@@ -834,7 +902,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Templates + OCR
   document.getElementById('templates-btn').addEventListener('click', () => viewer.loadTemplates());
-  document.getElementById('ocr-page-btn').addEventListener('click', () => viewer.ocrAllRows());
+  document.getElementById('ocr-page-btn').addEventListener('click', () => {
+    // grid OCR assumes the configured bands — leave blind mode first
+    if (viewer.rowPens && viewer.rowPens.some(Boolean)) viewer.applySettings();
+    viewer.ocrAllRows();
+  });
+  document.getElementById('blind-ocr-btn').addEventListener('click',
+    () => viewer.blindOcrPage().catch(e => { viewer.infoEl.textContent = `Auto OCR failed: ${e.message}`; }));
 
   // OCR every page + download the transcription — the browser equivalent of
   // bench/dump-ocr.mjs. Same per-page recipe (set the image, band the rows,

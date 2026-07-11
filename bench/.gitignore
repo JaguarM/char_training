@@ -1,3 +1,4 @@
 node_modules/
 raster-cache/
 glyphs_times16.json
+glyphs_*.json
