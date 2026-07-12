@@ -31,8 +31,8 @@ node blind-read.mjs --raster raster-cache/<key>/page-0001.gray.gz --glyphs …
 |---|---|
 | `--pdf` / `--raster` | document (pages come from `raster-cache/`; populate it once with `dump-ocr.mjs --all`) or a single cached page |
 | `--page <n>` / `--all` | page selection |
-| `--glyphs a.json,b.json` | glyph sets; the per-band auto-pick chooses font AND compositor |
-| `--union` | merge the sets into one candidate pool so a single line may mix fonts (bold labels + regular values); opt-in |
+| `--glyphs a.json,b.json` | glyph sets; the per-band auto-pick chooses font AND compositor. `+` joins sets into ONE union pool (`a.json+b.json,c.json` = [a∪b, c]) — pool only fonts that mix within a line; a global pool lets a foreign font byte-match glyph fragments and steal pixels |
+| `--union` | merge ALL sets into one candidate pool so a single line may mix fonts (bold labels + regular values); opt-in, superseded by `+` groups for multi-size documents |
 | `--tol N` | per-pixel tolerance for near-identical rasterizers (0 = byte-exact; keep 0 unless a producer is unidentified) |
 | `--quant` | palette-quantized producers (v4-family): snap every prediction to the page's available gray levels |
 | `--truth <txt>` | per-row letters/spaces comparison |

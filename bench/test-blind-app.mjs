@@ -35,7 +35,7 @@ function freePort() {
 async function waitForServer(base, timeoutMs = 15000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    try { const r = await fetch(`${base}/api/templates`); if (r.ok) return; } catch {}
+    try { const r = await fetch(`${base}/training.html`); if (r.ok) return; } catch {}
     await new Promise(r => setTimeout(r, 150));
   }
   throw new Error('server did not become ready');
@@ -88,6 +88,14 @@ async function run() {
         jobs.push({ label: `email P${pno}`,
           url: `${base}/${email.urlBase}/${email.pageName(pno)}`,
           truth: join(REPO, 'corpus', 'email.txt'), letters: true });
+      // courier_1 P1: Times 16px header (bold labels → same-size union pass)
+      // + Courier New 13px body; truth = the bench's certified transcription
+      if (existsSync(join(REPO, 'corpus', 'courier_1.txt'))) {
+        const cour = await openRasterCache(join(REPO, 'corpus', 'courier_1.pdf'), REPO);
+        jobs.push({ label: 'courier_1 P1',
+          url: `${base}/${cour.urlBase}/${cour.pageName(1)}`,
+          truth: join(REPO, 'corpus', 'courier_1.txt'), letters: true });
+      }
     }
 
     // whole-document API smoke test: two pages through blindOcrDocument

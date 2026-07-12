@@ -2,16 +2,17 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 // core.js (loaded first) attaches the DOM-free helpers used below as globals:
-// charToStem, stemToChar, STEM_TO_CHAR, EXACT_MATCH, BLANK_STDDEV,
-// TEMPLATE_LEFT_CROP, PLACEHOLDER, makeRowBands, gray, stats, isBlankPixels,
-// pixelsEqual.
+// charToStem, stemToChar, STEM_TO_CHAR, TEMPLATE_LEFT_CROP, PLACEHOLDER,
+// makeRowBands, gray.
 //
-// ocr.js (loaded next) defines the TemplateEngine class — the glyph-matching
-// OCR engine that CanvasViewer instantiates below.
+// ocr.js (loaded next) defines the PageEngine class — the page-buffer engine
+// (grayscale reduction + RGBA access) that CanvasViewer instantiates below.
 
 
 // ---------------------------------------------------------------------------
-// Config — manual layout (works for any font / page layout)
+// Config — placeholder row grid shown before Auto OCR runs, plus the font
+// used to draw typed text and size manual glyph boxes. Auto OCR replaces the
+// grid with measured bands and measured pens; these are display defaults only.
 // ---------------------------------------------------------------------------
 class Config {
   constructor() {
@@ -21,9 +22,9 @@ class Config {
     this.rowPitch = 18;    // vertical distance between consecutive rows
     this.rowCount = 54;    // number of rows
 
-    // Font used to derive each character's cutout width
+    // Font used to derive each character's cutout width (typed text only)
     this.fontFamily = 'Times New Roman';
-    this.fontSize = 16;    // px, in image space — tune until widths match the scan
+    this.fontSize = 16;    // px, in image space
 
     this.startX = 64;      // default X of each row's draggable start anchor
   }
@@ -99,12 +100,11 @@ class CanvasViewer {
     this.rowText = [];     // text per row (typed or OCR'd)
     this.rowScores = [];   // per-char match score (1.0 exact / 0 placeholder, null = manual/blank)
     this.rowMode = [];     // 'ocr' | 'manual' | undefined, per row
-    this.rowStopX = [];    // image x of the glyph an OCR row stopped on (anchors its trailing □)
     this.allBoxes = [];    // [{char, x0, x1, y0, y1, score, row, i}] for every row
     this._hoverKey = null; // "row:i" of the box under the cursor
     this._dragAnchorRow = -1; // row whose anchor is currently being dragged
 
-    this.engine = new TemplateEngine();
+    this.engine = new PageEngine();
 
     this.initEvents();
   }
@@ -133,7 +133,6 @@ class CanvasViewer {
     this.img = canvas;
     this.filename = label;
     this.resetLine();
-    this.autoAnchorRows(); // place each row's start anchor at its first inked column
     this.updateInfo();
     this.resetFit();
     const li = document.getElementById('line-input');
@@ -146,7 +145,6 @@ class CanvasViewer {
     this.rowText = [];
     this.rowScores = [];
     this.rowMode = [];
-    this.rowStopX = [];
     this.rowPens = [];        // per row: blind-OCR entries [{ch,pen,adv,score,i}] or undefined
     this.blindObjects = null; // page-level non-text objects from blind OCR
     this.allBoxes = [];
@@ -168,7 +166,6 @@ class CanvasViewer {
     this.rowText.length = n;
     this.rowScores.length = n;
     this.rowMode.length = n;
-    this.rowStopX.length = n;
     if (this.activeRow >= n) this.activeRow = n - 1;
     if (this.activeRow < 0) this.activeRow = 0;
   }
@@ -337,17 +334,18 @@ class CanvasViewer {
     return this._blindSets;
   }
 
-  // Escalating passes: byte-exact first (both compositor models are in the
-  // set list — the per-band auto-pick chooses), then palette quantization
-  // (v4/email-P1-family producers palettize the final page — still byte-
-  // exact), then small tolerances for producers with sub-model rounding
-  // stragglers, then a mixed-font union pool (bold label + regular value on
-  // ONE line), then ±10 for near-identical renderers we haven't modelled yet.
+  // Escalating passes, all BYTE-EXACT machinery first: plain per-band pick
+  // (both compositor models are in the set list), palette quantization
+  // (v4/email-P1-family producers palettize the final page), same-size
+  // mixed-font union pools (bold label + regular value on ONE line) — and
+  // only then per-pixel tolerances for producers with sub-model rounding
+  // stragglers, ±10 last for near-identical renderers we haven't modelled.
   // Keeps the fewest-failures read at the earliest (weakest-machinery) pass;
   // certificates are labelled accordingly, never silently weakened.
   static blindPasses = [
-    { tol: 0 }, { tol: 0, quant: true }, { tol: 1 }, { tol: 2 },
-    { tol: 0, union: true }, { tol: 0, quant: true, union: true }, { tol: 10 },
+    { tol: 0 }, { tol: 0, quant: true },
+    { tol: 0, union: true }, { tol: 0, quant: true, union: true },
+    { tol: 1 }, { tol: 2 }, { tol: 10 },
   ];
 
   _passLabel(pass) {
