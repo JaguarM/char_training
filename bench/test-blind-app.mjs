@@ -75,14 +75,20 @@ async function run() {
       mkdirSync(dir, { recursive: true });
       const name = basename(o.raster);
       copyFileSync(o.raster, join(dir, name));
-      jobs = [{ label: name, url: `${base}/bench/raster-cache/adhoc/${name}` }];
+      jobs = [{ label: name, url: `${base}/bench/raster-cache/adhoc/${name}`, truth: o.truth }];
     } else {
       const cache = await openRasterCache(join(REPO, 'corpus', 'v3.pdf'), REPO);
       jobs = [1, 2].map(pno => ({ label: `v3 P${pno}`,
-        url: `${base}/${cache.urlBase}/${cache.pageName(pno)}` }));
+        url: `${base}/${cache.urlBase}/${cache.pageName(pno)}`, truth: o.truth }));
+      // email.pdf: P1 = color page + palette-quantized producer + redaction
+      // boxes; P2 = plain page behind the light-gray quote bar (vrule).
+      // email.txt spacing rarely matches the measured read — compare letters.
+      const email = await openRasterCache(join(REPO, 'corpus', 'email.pdf'), REPO);
+      for (const pno of [1, 2])
+        jobs.push({ label: `email P${pno}`,
+          url: `${base}/${email.urlBase}/${email.pageName(pno)}`,
+          truth: join(REPO, 'corpus', 'email.txt'), letters: true });
     }
-    const truth = readFileSync(o.truth, 'utf8').replace(/\r/g, '').split('\n')
-      .map(t => t.trimEnd());
 
     // whole-document API smoke test: two pages through blindOcrDocument
     if (jobs.length > 1) {
@@ -93,12 +99,14 @@ async function run() {
           i => ({ w: cached[i].w, h: cached[i].h, gray: cached[i].gray }));
         return { totals: out.totals, pages: out.pages.length,
           textHead: out.text.slice(0, 60) };
-      }, jobs.map(j => j.url));
+      }, jobs.slice(0, 2).map(j => j.url));
       console.log(`document API: ${doc.pages} pages, totals ${JSON.stringify(doc.totals)}, ` +
         `text starts ${JSON.stringify(doc.textHead)}`);
     }
 
     for (const job of jobs) {
+      const truth = readFileSync(job.truth, 'utf8').replace(/\r/g, '').split('\n')
+        .map(t => t.trimEnd());
       const res = await page.evaluate(async (url) => {
         const v = window.__v;
         const cached = await rcFetchPage(url);
@@ -110,11 +118,17 @@ async function run() {
           rows: v.rowText.filter(t => t && t.trim()).map(t => t.trimEnd()),
           bands: v.rowBands.length, boxes: v.allBoxes.length };
       }, job.url);
-      const hit = res.rows.filter(r => truth.includes(r)).length;
-      console.log(`${job.label}: ${res.rows.length} rows read, ${hit} exactly in truth · ` +
+      // letters-only jobs: the truth file's exporter spaces rows differently
+      // (and drops characters — a known truth-defect family); letter identity
+      // is the metric the bench certifies, so compare that
+      const canon = job.letters ? (s) => s.replace(/[ □]/g, '') : (s) => s;
+      const tset = new Set(truth.map(canon));
+      const hit = res.rows.filter(r => tset.has(canon(r))).length;
+      console.log(`${job.label}: ${res.rows.length} rows read, ${hit} ` +
+        `${job.letters ? 'letter-exact vs truth' : 'exactly in truth'} · ` +
         `${res.bands} bands, ${res.boxes} boxes`);
       console.log(`  info: ${res.info}`);
-      for (const r of res.rows.filter(r => !truth.includes(r)).slice(0, 6))
+      for (const r of res.rows.filter(r => !tset.has(canon(r))).slice(0, 6))
         console.log(`  not-in-truth: ${JSON.stringify(r.slice(0, 70))}`);
     }
     if (errors.length) console.error('browser errors:\n' + errors.join('\n'));

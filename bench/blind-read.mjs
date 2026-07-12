@@ -182,6 +182,27 @@ const INV = (() => {
 // with the underline reported as a separate object.
 function detectObjects(page) {
   const { w, h, gray } = page;
+  // light rules (HTML blockquote quote bars, decorative separators): a long
+  // strictly-contiguous run of NEAR-CONSTANT light gray (min ≥160 — darker is
+  // the dark-run rule's job — and max−min ≤ 8) is a rule regardless of
+  // darkness. Text can never fake it: blank inter-line rows/columns break
+  // runs long before 40px (glyph stacks are ~15 rows) and glyph AA never
+  // holds one value for 40px. email.pdf's quote bar (x=56, gray 204, 982
+  // rows) and v4's separator (y=440, gray 237) match; underline/box-edge AA
+  // rows merge into their dark rule object like any other run.
+  const lightRuns = (n, m, at, out) => {              // scan m lines of length n
+    for (let j = 0; j < m; j++) {
+      let s = -1, mn = 0, mx = 0;
+      const close = i => { if (s >= 0 && i - s >= 40) out(j, s, i); s = -1; };
+      for (let i = 0; i <= n; i++) {
+        const v = i < n ? at(j, i) : 255;
+        if (v >= 255 || v < 160) { close(i); continue; }
+        if (s >= 0 && Math.max(mx, v) - Math.min(mn, v) > 8) close(i);
+        if (s < 0) { s = i; mn = mx = v; }
+        else { mn = Math.min(mn, v); mx = Math.max(mx, v); }
+      }
+    }
+  };
   const rows = [];                                      // per-row long dark runs
   for (let y = 0; y < h; y++) {
     const off = y * w;
@@ -195,6 +216,8 @@ function detectObjects(page) {
       }
     }
   }
+  lightRuns(w, h, (y, x) => gray[y * w + x], (y, s, e) => rows.push({ y, x0: s, x1: e }));
+  rows.sort((a, b) => a.y - b.y || a.x0 - b.x0);
   const objects = [];
   for (const r of rows) {
     const o = objects.find(o => o.y1 === r.y &&
@@ -215,6 +238,8 @@ function detectObjects(page) {
       }
     }
   }
+  lightRuns(h, w, (x, y) => gray[y * w + x], (x, s, e) => vcols.push({ x, y0: s, y1: e }));
+  vcols.sort((a, b) => a.x - b.x || a.y0 - b.y0);
   for (const c of vcols) {
     const o = objects.find(o => o.vr && o.x1 === c.x &&
       Math.min(o.y1, c.y1) - Math.max(o.y0, c.y0) > 0.8 * Math.min(o.y1 - o.y0, c.y1 - c.y0));
@@ -531,7 +556,7 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
     accepted.add(`${g.ch}@${pi + g.phx}`);
     cursor = col + 1;   // pending overlap columns right of col are revisited; the
   }                     // accepted-set guard prevents re-accepting the same glyph
-  return { glyphs, fails };
+  return { glyphs, fails, canvas, y0, y1, xFrom, xTo };
 }
 
 // ---------------- spaces from measured gaps ----------------
@@ -596,17 +621,27 @@ function startWorker(py) {
 // ---------------- per-page driver ----------------
 async function readPage(page, sets, worker, useQuant) {
   const quant = useQuant ? quantMap(page) : null;
+  const q = quant ? v => quant[v] : v => v;
   const { mask, objects } = detectObjects(page);
   const bands = findBands(page, mask);
   const lines = [];
+  // ink already explained by an earlier line's scan window: a line without
+  // descenders but with '_' glyphs leaves the '_' strokes (rows baseline+2..3)
+  // as their own blank-row-separated band, though the line's scan (which spans
+  // baseline+maxDesc) read and reported them — such a band is not a □
+  const explained = new Uint8Array(page.w * page.h);
   for (const [top, bot] of bands) {
     // leftmost/rightmost non-object ink of the band
-    let x0 = page.w, x1 = 0;
+    let x0 = page.w, x1 = 0, fresh = false;
     for (let y = top; y < bot; y++) {
       const off = y * page.w;
       for (let x = 0; x < page.w; x++)
-        if (page.gray[off + x] < 255 && !mask[off + x]) { if (x < x0) x0 = x; if (x > x1) x1 = x; }
+        if (page.gray[off + x] < 255 && !mask[off + x]) {
+          if (x < x0) x0 = x; if (x > x1) x1 = x;
+          if (!explained[off + x]) fresh = true;
+        }
     }
+    if (x1 >= x0 && !fresh) continue;                  // fully explained by a line above
     // objects sharing rows with this band (reported per line; space gaps
     // spanning them are suppressed)
     const lineObjects = objects.filter(ob => ob.y0 < bot + 4 && ob.y1 > top - 4);
@@ -620,9 +655,24 @@ async function readPage(page, sets, worker, useQuant) {
           const score = probeBaseline(page, mask, set, phy, yb, Math.max(0, x0 - 2), Math.min(page.w, x1 + 20), quant);
           if (score > 0 && (!pick || score > pick.score)) pick = { set, phy, yb, score };
         }
+    // glyphs whose ink sits entirely above the baseline (a row of '-' or '*':
+    // separators, dividers) put the true baseline BELOW the band bottom —
+    // outside the range above. Only failed bands pay for the second sweep.
+    if (!pick)
+      for (const set of sets)
+        for (const phy of set.byPhy.keys())
+          for (let yb = bot + 1; yb <= bot + set.maxAsc && yb <= page.h; yb++) {
+            const score = probeBaseline(page, mask, set, phy, yb, Math.max(0, x0 - 2), Math.min(page.w, x1 + 20), quant);
+            if (score > 0 && (!pick || score > pick.score)) pick = { set, phy, yb, score };
+          }
     if (!pick) { lines.push({ top, bot, glyphs: [], fails: [x0], set: null, boxes: [] }); continue; }
     const L = scanLine(page, mask, pick.set, pick.phy, pick.yb,
       Math.max(0, x0 - 2), Math.min(page.w, x1 + 4), Infinity, Infinity, quant);
+    for (let y = L.y0; y < L.y1; y++)                  // record explained ink
+      for (let x = L.xFrom; x < L.xTo; x++)
+        if (page.gray[y * page.w + x] < 255 &&
+            page.gray[y * page.w + x] === q(L.canvas[(y - L.y0) * (L.xTo - L.xFrom) + (x - L.xFrom)]))
+          explained[y * page.w + x] = 1;
     L.top = top; L.bot = bot; L.baseline = pick.yb; L.set = pick.set; L.phy = pick.phy;
     L.boxes = lineObjects.map(ob => [ob.x0 - 2, ob.x1 + 2]);
     L.objects = lineObjects;
@@ -654,7 +704,18 @@ async function readPage(page, sets, worker, useQuant) {
     }
     lines.push(L);
   }
-  return { lines, objects };
+  // an unread band may be explained by a line BELOW it (an 'i' dot separated
+  // from its stem by a blank row precedes its own line's band): re-check
+  // against the final explained map before calling it a □
+  return { lines: lines.filter(L => {
+    if (L.set) return true;
+    for (let y = L.top; y < L.bot; y++) {
+      const off = y * page.w;
+      for (let x = 0; x < page.w; x++)
+        if (page.gray[off + x] < 255 && !mask[off + x] && !explained[off + x]) return true;
+    }
+    return false;
+  }), objects };
 }
 
 // ---------------- main ----------------

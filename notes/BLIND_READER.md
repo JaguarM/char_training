@@ -403,3 +403,89 @@ Reproduce:
 `node bench/blind-read.mjs --pdf ../corpus/v3.pdf --all --truth ../corpus/v3.txt --verify`
 · hostile pages: `python ..\ocr\tools\make_hostile.py <dir>` then
 `--raster <dir>/hostile_arial.gray.gz --glyphs glyphs_times16.json,glyphs_arial16.json,glyphs_georgia16.json`.
+
+## 2026-07-12 (late) — email.pdf reads 0 □; Auto OCR reaches bench parity
+
+Session prompt: [EMAIL_VRULE_PROMPT.md](EMAIL_VRULE_PROMPT.md). The confirmed
+quote-bar root cause was real but email.pdf hid three more; all four fixes
+landed in BOTH `bench/blind-read.mjs` and `blindocr.js` (kept in sync), and
+the app port closed the whole feature gap (color pages, `--quant`, `--union`,
+strike suppression) — the "Open:" item of the previous section is done.
+
+**1. Light-constant rules** (`detectObjects`, both readers). The blockquote
+quote bar is column 56, gray 204 constant, 982 rows, exactly 1 px wide with NO
+AA columns (measured on all 36 pages; single bar, no nesting; no light
+horizontal separators in email). New rule alongside the dark-run rule: a
+strictly-contiguous run of near-constant light gray (len ≥40, min ≥160,
+max−min ≤8) is a rule regardless of darkness — text can't fake it (blank
+inter-line rows break column runs; glyph AA never holds one value for 40 px).
+Applied to rows AND columns, feeding the existing merge/segment/mask pipeline,
+so light runs merge into their dark neighbours: the underline AA rows that v3
+(27) and big (13) carry at constant gray 187 simply thicken their rule objects
+by a row and stay inside the ±2 mask padding — v3/report gate numbers
+unchanged. The bar comes out as a reported `vrule` object (app draws it).
+
+**2. email P1 is palette-quantized** (the v4 producer family). After bands
+split, P1 still failed with the signature "page byte exactly 1 darker than
+prediction" (98 vs 99, 96 vs 97, 215 vs 216) — the physics rule "±1 off a
+proven rasterizer = check for a palette first" paid off immediately: `--quant`
+took P1 from 311 □ to clean. P1 and P36 are mode-2 (hyperlink blue, colored
+ink flooded); the palette map is read off the flooded page, and quant is a
+no-op on the mode-1 pages 2–35 (byte-identical reads with/without).
+
+**3. Detached-ink bands are not □s** (`readPage`, both). Two shapes: (a) a
+line with '_' but no descenders — the '_' strokes (baseline+2..3) sit below a
+blank row, so findBands makes them their own 2-row band although the line's
+scan window (baseline+maxDesc) already read and reported them; (b) an 'i' dot
+split from its stem, where the donor line comes AFTER the band. Fix: an
+`explained` page mask records every ink pixel the accepted scans reproduced
+byte-exactly; bands with no fresh ink are skipped, and unread bands are
+re-checked against the final mask before being counted (□ only if some ink
+was never explained by any line).
+
+**4. Baseline below the band bottom** (`readPage`, both). A band of only
+'-' or '*' glyphs (separators: `--` signature line, `****…` divider) has ALL
+its ink above the baseline; the true baseline lies below the band's last ink
+row, outside the probe range. On probe failure only, a second sweep tries
+yb ∈ (bot, bot+maxAsc]. This also un-□'d v4's two "decorative separator
+bands" — they were never decorations but a `--` line and a `*…*` line, and
+now read as text (v4: 28→30 lines, 823→884 glyphs, 3→1 □; the 1 is the
+struck-fragment, deliberate).
+
+**email.pdf certified** (tol 0 + quant, glyphs_times16 only):
+`1908 lines, 113,599 glyphs, 0 □` · vs `email.txt`: 1898 letter-exact, 10
+differ — all classified, none a reader error: 5 truth char-drops (the known
+exporter defect: "reuested", "ofers", "Epress", "sofware", "coying", a lost
+','), 1 truth truncation (P32 base64 line ends mid-stream like v3.txt P5L13),
+4 hyperlink rows (colored spans deliberately blank / truth flows the URL text
+differently). Quoted lines carry real '>' glyphs at a larger margin, as
+predicted; space calibration unaffected.
+
+**App parity port** (`blindocr.js` + `training.js` + `ocr.js`):
+- `BlindOCR.whitenColored(page, rgba?)` — colored-ink flood; exact per-pixel
+  R≠G≠B when the canvas RGBA is available (`engine.pageRGBA`), fractional-gray
+  fallback (the bench's sum%3 signal) for seeded cache pages.
+- `BlindOCR.quantMap` / `unionSets` + per-glyph compositor (`g.lin ?? lin`),
+  quant-aware scan/probe/residual, strike suppression, fixes 1/3/4 — all
+  line-for-line the bench logic.
+- Auto OCR escalation ladder is now passes, not tolerances: `{0}`,
+  `{0,quant}`, `{1}`, `{2}`, `{0,union}`, `{0,quant,union}`, `{10}` — fewest
+  fails wins, ties to the earliest (weakest-machinery) pass, previous page's
+  winner tried first; certificates labelled (`byte-clean`, `·palette`,
+  `·mixed-font`), never silently weakened.
+- `test-blind-app.mjs` now also runs email P1 (color+palette+boxes) and P2
+  (quote bar), letters-only truth compare (email.txt spacing differs):
+  `v3 P1 40/40 byte-clean · v3 P2 54/54 · email P1 54 lines byte-clean,
+  48/54 letter-exact (6 = the classified truth rows) · email P2 54/54
+  letter-exact` — the app reads email.pdf as cleanly as the bench.
+
+Gate after this session (update notes/README.md when these move):
+v3 `1785 / 122,865 / 2 □ / 1779 letter-exact` (unchanged) · big `18,308 /
+1,338,823 / 4 □ / 18,271 letter-exact` (+1 line +1 glyph: P211's clipped
+base64 "ix" row — an unread □ band before — now pins its baseline via fix 4
+and reads the 'i'; same 4 □, verified by old-vs-new full-text diff = that
+single line) ·
+report-raster `34 / 2031 / 2 □` (unchanged) · v4 `30 / 884 / 1 □` (improved,
+see fix 4; regress via `--raster raster-cache/5df5c985891500ac/page-0001.gray.gz`
+— the PDF left corpus/) · email `1908 / 113,599 / 0 □ / 1898 letter-exact`
+(new).

@@ -1,5 +1,12 @@
 # Prompt: email.pdf — light-gray quote bar merges all bands into one
 
+> **COMPLETED 2026-07-12** — light-constant rule detection landed in both
+> readers; email.pdf reads 1908 lines / 113,599 glyphs / 0 □ (bench, `--quant`)
+> and byte-clean in the app. En route the app gained the full bench feature set
+> (color pages, palette, union, strike suppression). Results + the two extra
+> root causes found (palette-quantized P1, detached-ink bands):
+> [BLIND_READER.md](BLIND_READER.md), bottom section. Kept for provenance.
+
 Read `notes/README.md` first (physics + regression gate), then the
 `detectObjects` sections of `bench/blind-read.mjs` and `blindocr.js` (kept in
 sync — every fix lands in BOTH). Don't re-derive the root cause; it is

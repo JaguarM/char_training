@@ -3,7 +3,6 @@
 corpus/*.pdf
 
 # local workbenches / scratch
-font-tool/
 out_*.txt
-source_spaced.txt
 notes/layout_v3.json
+char_training-main/
