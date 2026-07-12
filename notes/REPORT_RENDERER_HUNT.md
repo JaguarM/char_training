@@ -124,3 +124,6 @@ the "fifth floor" docx guess was actually "first floor" on the page.)
   <out.npz> --linear`, export via `tools/export_glyphs.py <npz> <bench json>`.
 - Raster cache (`char_training/bench/raster-cache/fe9580296d53ee66/`) is the
   only byte-truth; never re-rasterize report.pdf.
+- **2026-07-12:** corpus/report.pdf was later replaced by a SINGLE page (the
+  old p6, cache `a42927acc2aaca91`) and then removed from corpus/ entirely —
+  regressions run via `blind-read.mjs --raster raster-cache/a42927acc2aaca91/page-0001.gray.gz`.

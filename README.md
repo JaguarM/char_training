@@ -1,80 +1,69 @@
 # char_training
 
-A small, browser-based tool for building a **glyph-template dictionary** from scanned
-document pages — for any font and page layout. You lay text-line bands over a page by hand,
-drag each line's start anchor to where it begins, type (or OCR) the line, and double-click
-any character to save it as a reference PNG. Character widths come from the chosen font's
-advance metrics (default **Times New Roman**), so variable-width fonts line up without a
-fixed grid.
+Byte-exact OCR for MuPDF-rendered document rasters. Accuracy is **certified,
+not sampled**: a line is accepted only when its glyphs explain the page's
+pixels exactly through the renderer's proven blend law (optionally re-rendered
+through real MuPDF as an independent certificate); anything unexplained is an
+honest `□` with exact coordinates. **Start with [notes/README.md](notes/README.md)**
+— the map of the proven physics, the regression gate, and all documentation.
+
+Two reading paths:
+
+- **Blind reader** (current) — no layout constants; bands, baselines, fonts,
+  spaces and non-text objects (redaction boxes, rules, strike-throughs) are
+  measured from the pixels. Headless: `bench/blind-read.mjs`; in the app: the
+  **Auto OCR** button (`blindocr.js`). Handles multiple fonts/compositors per
+  document, color pages, and palette-quantized producers.
+- **Grid/template path** (legacy, regression-kept) — manual row bands + a
+  hand/synth-harvested `templates/` dictionary, exact-pixel matching
+  (`ocr.js` + `reader.js`). Documented in [DOCUMENTATION.md](DOCUMENTATION.md);
+  in the app it lives in the collapsed "Legacy" panel.
 
 ## Files
 
 | File | Purpose |
 |---|---|
-| `training.html` / `training.js` / `training.css` | The browser UI (plus `matchAt`, the glyph-picking loop) |
-| `ocr.js` | Matching engine (`TemplateEngine`): template loading, hash index, whole-page buffer, crops; loaded between `core.js` and `reader.js` |
-| `reader.js` | Line reader — position-guided row reading & per-glyph alignment — mixed onto the viewer; loaded between `ocr.js` and `training.js` |
-| `core.js` | DOM-free logic (stem↔char maps, geometry, pixel math & hashing); loaded before `training.js`, unit-tested in Node |
-| `test.js` | `node:test` smoke tests for `core.js` — `node test.js` |
-| `launch.py` | Local HTTP server; serves the UI and the `/api/templates` manifest |
-| `templates/` | The glyph dictionary — one PNG per character variant at natural size, plus `template_metrics.json` (measured per-template metrics the reader uses to place glyphs) |
-| `bench/` | Headless tooling: OCR benchmark, whole-document text dump, false-match tracing, template pruning, metrics measurement — see [bench/README.md](bench/README.md) |
-| `DOCUMENTATION.md` | Technical reference for the layout and OCR models |
+| `training.html` / `training.js` / `training.css` | Browser UI: PDF viewing, Auto OCR (primary), glyph extraction, legacy grid tools |
+| `blindocr.js` | Browser port of the blind reader (Auto OCR / Auto OCR All / .txt + .json export) |
+| `ocr.js` / `reader.js` | Legacy path: template matching engine + grid line reader |
+| `core.js` | DOM-free logic (stem↔char maps, geometry, pixel math & hashing); unit-tested in Node (`node test.js`) |
+| `launch.py` | Local HTTP server; serves the UI, `/api/templates`, and the raster cache |
+| `templates/` | Legacy glyph dictionary (PNG per variant + `template_metrics.json`) |
+| `bench/` | All headless tooling — blind reader, recreation certificate, dumps, benchmarks, template tools: [bench/README.md](bench/README.md) |
+| `corpus/` | Test documents (PDFs .gitignored — local only) + certified transcriptions (`v3.txt`, `big.txt`) |
+| `notes/` | Research record: proven physics, producer laws, session results — index in [notes/README.md](notes/README.md) |
 
 ## Quick start
 
 ```
 python launch.py                # serve on http://localhost:8765 and open the browser
-python launch.py --port 9000    # custom port
-python launch.py --no-browser   # don't auto-open
 ```
 
-> Saving glyphs uses the File System Access API, so use **Chrome or Edge**. Other browsers
-> fall back to plain downloads.
+Open a PDF (**Pick PDF**), hit **Auto OCR** (or **Auto OCR All** + **Download
+.txt/.json**). Measured bands, per-glyph pens, detected objects and per-line
+byte-clean certificates come back without any layout setup. Headless
+equivalent:
 
-## Workflow
+```
+cd bench
+node blind-read.mjs --pdf ../corpus/v3.pdf --all --truth ../corpus/v3.txt
+```
 
-1. **Pick a PDF** — *Pick PDF* extracts the embedded raster image of each page (pdf.js).
-   Navigate with the `<` `>` buttons or the page dropdown.
-2. **Set up the lines** — in the **Settings** panel, adjust the **Horizontal Lines**
-   (first row Y, row height, line pitch, row count) until the blue bands sit on the text,
-   and the **Font** (family, size) until the character boxes match the print.
-3. **Place each line's start** — drag a row's **purple anchor** to where that line begins.
-   The row becomes active.
-4. **Fill the line** — type into the *Line text* box (or run **OCR Page**). A box is drawn
-   per character, its width taken from the font's advance metrics.
-5. **Extract glyphs** — double-click any character box. A modal shows the crop, pre-filled
-   with the character; press **Enter** to save. The first save prompts for a folder (pick
-   `templates/`); later saves write there silently.
+> Glyph saving (legacy path) uses the File System Access API — Chrome/Edge.
 
-## Template filename conventions
+## Legacy template workflow
 
-Glyphs are matched by filename stem:
+Set up row bands + font in the Legacy panel, drag each line's purple anchor,
+type or Grid-OCR the line, double-click a character box to save it as a
+template PNG. Filename stems map to characters via `STEM_TO_CHAR` in
+`core.js` (`A_UPPER.png` → `A`, `eq.png` → `=`, `_2`/`_3` variants per subpixel
+slot; names containing `unmatched` are skipped). Details, layout model, and
+matching internals: [DOCUMENTATION.md](DOCUMENTATION.md).
 
-| Pattern | Character |
-|---|---|
-| `0.png`, `0_2.png`, … | `0` (and variants) |
-| `a.png`, `a_2.png`, … | `a` |
-| `A_UPPER.png` | `A` |
-| `eq.png` `slash.png` `plus.png` `minus.png` … | `=` `/` `+` `-` (see `STEM_TO_CHAR` in `core.js` for the full symbol map) |
+## Verification discipline
 
-Variants (`_1`, `_2`, …) are all loaded and matched. At a given font size a glyph only
-renders in a handful of distinct **subpixel slots**, and each variant covers one of them —
-the numbering is kept in ascending slot order (then by the template's measured anchor) by
-the bench tooling, so `t_1 … t_N` reads left-to-right across the pixel. Files with
-`unmatched` in the name are skipped.
-
-## Reading & accuracy
-
-Matching is exact pixel equality, hash-indexed so each probe is a Map lookup rather than a
-scan over the dictionary. When `templates/template_metrics.json` is present (regenerate with
-`node bench/measure-metrics.mjs` after adding, cutting, or deleting templates), the reader
-*places* each next glyph from the previous one's measured fractional advance and anchor and
-rejects candidates whose measured position contradicts the prediction — without the file it
-falls back to ink-width stepping. Changes to templates or the reader are verified by dumping
-the whole document (`node bench/dump-ocr.mjs --all --out out.txt`) before and after and
-comparing the files byte-for-byte.
-
-Layout is fully manual (the `Config` class in `training.js`): rows from `rowBase` /
-`rowHeight` / `rowPitch` / `rowCount`, character widths from `measureText` on
-`fontFamily` / `fontSize`. See [DOCUMENTATION.md](DOCUMENTATION.md) for details.
+Any change to a reader or template set is gated on re-reading the full corpus
+and comparing against the certified transcriptions — the exact commands and
+expected numbers live in [notes/README.md](notes/README.md). For template-set
+changes additionally byte-compare whole-document dumps (`bench/dump-ocr.mjs`,
+see [bench/README.md](bench/README.md)).

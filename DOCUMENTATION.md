@@ -1,4 +1,14 @@
-# char_training — Technical Reference
+# char_training — Technical Reference (legacy grid/template path)
+
+> **Scope note (2026-07-12):** this file documents the **grid/template path**
+> — the manual row-band layout (`Config`), the `templates/` dictionary, and
+> exact-pixel matching (`matchAt`, `ocr.js`, `reader.js`). It is accurate for
+> that path, which lives in the app's collapsed "Legacy" panel and is kept
+> working by the bench regression. The app's PRIMARY path is **Auto OCR**
+> (`blindocr.js`, the blind reader) — no layout constants, measured bands and
+> pens, per-line byte-clean certificates — documented in
+> [notes/BLIND_READER.md](notes/BLIND_READER.md); start at
+> [notes/README.md](notes/README.md).
 
 A browser tool for building a glyph-template dictionary from scanned pages. You open a PDF,
 the tool extracts each page's embedded raster image and overlays manually configured

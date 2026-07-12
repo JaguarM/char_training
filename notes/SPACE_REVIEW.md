@@ -1,5 +1,13 @@
 # Space-placement review list (2026-07-06)
 
+> **Status 2026-07-12: superseded.** These disputes came from the grid-path
+> era, where spaces were inferred from the measureText model. The blind
+> reader (2026-07-10, [BLIND_READER.md](BLIND_READER.md)) MEASURES pen gaps
+> and self-calibrates the space width, and inspection settled the disputed
+> rows in the pixels' favor (v3.txt carried collapses like
+> "customersusetheAmericanExpress…"). Kept as reference for which rows were
+> historically contentious ("styled"/narrow-space rows, v3 P3–P6).
+
 28 rows where the transcription's spacing disagrees with the page pixels but the
 automatic correction could not be double-confirmed. Three lines per row:
   -  current v3.txt
