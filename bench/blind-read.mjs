@@ -55,6 +55,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === '--tol') o.tol = parseInt(next(), 10);
   else if (a === '--glyphs') o.glyphs = next().split(',');
   else if (a === '--verify') o.verify = true;
+  else if (a === '--union') o.union = true;
   else if (a === '--worker') o.worker = next();
   else { console.error(`unknown arg ${a}`); process.exit(2); }
 }
@@ -64,9 +65,37 @@ function readGray(path) {
   const raw = gunzipSync(readFileSync(path));
   const hdr = new Uint32Array(raw.buffer, raw.byteOffset, 4);
   if (hdr[0] !== 0x31595247) throw new Error(`bad GRY1 magic: ${path}`);
-  if (hdr[1] === 0) return null;
-  if (hdr[1] !== 1) throw new Error(`mode ${hdr[1]} unsupported (need mode 1)`);
-  return { w: hdr[2], h: hdr[3], gray: new Uint8Array(raw.buffer, raw.byteOffset + 16, hdr[2] * hdr[3]) };
+  const mode = hdr[1], w = hdr[2], h = hdr[3];
+  if (mode === 0) return null;
+  if (mode === 1) return { w, h, gray: new Uint8Array(raw.buffer, raw.byteOffset + 16, w * h) };
+  if (mode !== 2) throw new Error(`mode ${mode} unsupported`);
+  // mode 2: u16 R+G+B sums (color page). Achromatic ink (R=G=B — plain black
+  // text) has sum ≡ 0 (mod 3) at every pixel, so gray = sum/3 is exact there;
+  // colored ink (hyperlink blue) is non-neutral at least on its AA edges.
+  // Whiten every ink component connected to a non-neutral pixel — the reader
+  // then sees only the plain text, byte-exactly.
+  const sums = new Uint16Array(raw.buffer, raw.byteOffset + 16, w * h);
+  const gray = new Uint8Array(w * h);
+  const colored = new Uint8Array(w * h);
+  const stack = [];
+  for (let i = 0; i < w * h; i++) {
+    gray[i] = sums[i] >= 765 ? 255 : (sums[i] / 3) | 0;
+    if (sums[i] < 765 && sums[i] % 3) { colored[i] = 1; stack.push(i); }
+  }
+  while (stack.length) {                               // flood over connected ink
+    const i = stack.pop(), x = i % w, y = (i / w) | 0;
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+        const j = ny * w + nx;
+        if (!colored[j] && sums[j] < 765) { colored[j] = 1; stack.push(j); }
+      }
+  }
+  let removed = 0;
+  for (let i = 0; i < w * h; i++) if (colored[i]) { gray[i] = 255; removed++; }
+  if (removed) console.error(`  (color page: ${removed} colored-ink px removed)`);
+  return { w, h, gray };
 }
 function cachePages(pdfPath) {
   const key = createHash('sha256').update(readFileSync(pdfPath)).digest('hex').slice(0, 16);
@@ -104,6 +133,24 @@ function loadSet(file) {
   return { name: basename(file).replace(/^glyphs_|\.json$/g, ''), sizePx: j.size_px,
     linear: !!j.linear,                                 // report.pdf producer blend
     fontFile: `C:/Windows/Fonts/${stem || 'times'}.ttf`, byPhy, maxAsc, maxDesc };
+}
+
+// --union: one merged candidate pool over all sets, so a single line may mix
+// fonts (bold "From:" label + regular value). Per-glyph `lin` keeps each
+// candidate on its own compositor law. Byte-exact matching keeps cross-font
+// false hits out; per-band font detection (and --verify) don't apply.
+function unionSets(sets) {
+  const byPhy = new Map();
+  let maxAsc = 0, maxDesc = 0;
+  for (const s of sets) {
+    maxAsc = Math.max(maxAsc, s.maxAsc); maxDesc = Math.max(maxDesc, s.maxDesc);
+    for (const [phy, arr] of s.byPhy) {
+      if (!byPhy.has(phy)) byPhy.set(phy, []);
+      for (const g of arr) byPhy.get(phy).push({ ...g, lin: s.linear });
+    }
+  }
+  return { name: sets.map(s => s.name).join('+'), sizePx: sets[0].sizePx,
+    linear: sets.some(s => s.linear), fontFile: sets[0].fontFile, byPhy, maxAsc, maxDesc };
 }
 
 // blend-law tables: single-glyph gray g on white -> possible e = cov + (cov>>7)
@@ -172,6 +219,68 @@ function detectObjects(page) {
       Math.min(o.y1, c.y1) - Math.max(o.y0, c.y0) > 0.8 * Math.min(o.y1 - o.y0, c.y1 - c.y0));
     if (o) { o.x1 = c.x + 1; o.y0 = Math.min(o.y0, c.y0); o.y1 = Math.max(o.y1, c.y1); }
     else objects.push({ vr: true, x0: c.x, x1: c.x + 1, y0: c.y0, y1: c.y1 });
+  }
+  // Box-extent correction. Stacked redactions of different widths merge into
+  // one bbox above, and a glyph bridged into a row's run across a ≤1px AA gap
+  // stretches a row a few px past the box — either way the padded mask
+  // swallows real letters beside a box. Split each box into row segments of
+  // near-constant raw extent, absorb short burst segments between agreeing
+  // neighbours (a real box edge persists for many rows; a bridge lasts a few),
+  // and take each segment's edge as the MODE of its rows — bridged rows shift
+  // an edge for a minority of rows and lose the vote, while real AA wobble
+  // stays within the ±2 mask padding.
+  const segmented = [];
+  for (let i = objects.length - 1; i >= 0; i--) {
+    const o = objects[i];
+    if (o.vr || o.y1 - o.y0 <= 4) continue;
+    const ext = [];                                    // per-row [y, x0, x1]
+    for (const r of rows)
+      if (r.y >= o.y0 && r.y < o.y1 && r.x1 > o.x0 && r.x0 < o.x1) {
+        const e = ext.length && ext[ext.length - 1][0] === r.y ? ext[ext.length - 1] : null;
+        if (e) { e[1] = Math.min(e[1], r.x0); e[2] = Math.max(e[2], r.x1); }
+        else ext.push([r.y, r.x0, r.x1]);
+      }
+    if (!ext.length) continue;
+    const mode = (seg, k) => {                         // most frequent edge value
+      const n = new Map();
+      for (const e of seg.exts) n.set(e[k], (n.get(e[k]) ?? 0) + 1);
+      let best = null;
+      for (const [v, c] of n) if (!best || c > best[1]) best = [v, c];
+      return best[0];
+    };
+    const segs = [];
+    for (const [y, x0, x1] of ext) {
+      const s = segs[segs.length - 1];
+      if (s && y === s.y1 && Math.abs(x0 - s.last[0]) <= 2 && Math.abs(x1 - s.last[1]) <= 2) {
+        s.y1 = y + 1; s.last = [x0, x1]; s.exts.push([x0, x1]);
+      } else segs.push({ y0: y, y1: y + 1, last: [x0, x1], exts: [[x0, x1]] });
+    }
+    for (let m = 1; m < segs.length - 1; ) {           // absorb bridge bursts
+      const [a, b, c] = [segs[m - 1], segs[m], segs[m + 1]];
+      if (b.y1 - b.y0 < 5 &&
+          Math.abs(mode(a, 0) - mode(c, 0)) <= 2 && Math.abs(mode(a, 1) - mode(c, 1)) <= 2) {
+        a.y1 = c.y1; a.exts.push(...c.exts); a.last = c.last;
+        segs.splice(m, 2);
+        m = Math.max(1, m - 1);
+      } else m++;
+    }
+    for (const s of segs)
+      segmented.push({ y0: s.y0, y1: s.y1, x0: mode(s, 0), x1: mode(s, 1) });
+    objects.splice(i, 1);
+  }
+  objects.push(...segmented);
+  // a glyph descender touching a box top merges with the box's own dark column
+  // into one long vertical run — drop vrule candidates that live inside boxes
+  // (summing coverage over box segments: a stacked pair covers a rule jointly)
+  const boxes = objects.filter(o => !o.vr && o.y1 - o.y0 > 4);
+  for (let i = objects.length - 1; i >= 0; i--) {
+    const o = objects[i];
+    if (!o.vr) continue;
+    let cov = 0;
+    for (const b of boxes)
+      if (o.x0 >= b.x0 - 2 && o.x1 <= b.x1 + 2)
+        cov += Math.max(0, Math.min(o.y1, b.y1) - Math.max(o.y0, b.y0));
+    if (cov > 0.6 * (o.y1 - o.y0)) objects.splice(i, 1);
   }
   const mask = new Uint8Array(w * h);
   for (const o of objects) {
@@ -277,7 +386,7 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
           // deviations of BOTH overlapping curves compound (f-hook ∩ i-dot)
           const t = cv !== 255 ? 2 * TOL : TOL;
           let hit = false, minPred = 256;
-          if (lin) {
+          if (g.lin ?? lin) {
             const sh = gb >= 129 && gb !== 255 ? 1 : 0, s0 = shAt(x, y);
             minPred = (((cv - s0) * (gb - sh)) / 255 | 0) + s0 + sh;
             // composite pixels may read 1 lighter than the law: the producer's
@@ -351,7 +460,9 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
       for (; x < xTo; x++) {
         let anyInk = false;
         for (let y = y0; y < y1; y++) {
-          if (pageAt(x, y) < 255) anyInk = true;
+          // object pixels are don't-care: without this a fail beside a
+          // redaction box absorbs every word sharing columns with the box
+          if (pageAt(x, y) < 255 && !masked(x, y)) anyInk = true;
           setCan(x, y, pageAt(x, y));
         }
         if (!anyInk && x > col) break;
@@ -371,7 +482,7 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
       const gb = g.bytes[p], pv = pageAt(x, y), cv = canAt(x, y);
       if (TOL && cv !== 255 && gb >= 255 - 2 * TOL) continue;  // faint skip (see above)
       let val = null;
-      if (lin) {
+      if (g.lin ?? lin) {
         const sh = gb >= 129 && gb !== 255 ? 1 : 0, s0 = shAt(x, y);
         const pred = (((cv - s0) * (gb - sh)) / 255 | 0) + s0 + sh;
         const ok = Math.abs(pred - pv) <= (cv !== 255 ? 2 * TOL : TOL) ||
@@ -487,6 +598,17 @@ async function readPage(page, sets, worker) {
     L.top = top; L.bot = bot; L.baseline = pick.yb; L.set = pick.set; L.phy = pick.phy;
     L.boxes = lineObjects.map(ob => [ob.x0 - 2, ob.x1 + 2]);
     L.objects = lineObjects;
+    // strike-through: a rule crossing the line's x-height voids the struck
+    // span — text under the bar is deliberately not transcribed, so glyph
+    // fragments and □s inside it are noise, not content (underlines sit
+    // below the baseline and don't match)
+    const strikes = lineObjects.filter(ob => ob.type === 'rule' &&
+      ob.y0 >= pick.yb - 10 && ob.y1 <= pick.yb - 2);
+    if (strikes.length) {
+      L.glyphs = L.glyphs.filter(g => !strikes.some(sb => g.pen < sb.x1 + 2 && g.pen + g.adv > sb.x0 - 1));
+      L.fails = L.fails.filter(c => !strikes.some(sb => c >= sb.x0 - 4 && c < sb.x1 + 4));
+      L.struck = strikes.map(sb => [sb.x0, sb.x1]);
+    }
     // verification certificate: byte-exact re-render of the whole band
     // (detected non-text boxes are reported objects, excluded from the compare)
     if (worker && L.glyphs.length && !L.fails.length) {
@@ -506,7 +628,8 @@ async function readPage(page, sets, worker) {
 
 // ---------------- main ----------------
 async function main() {
-  const sets = o.glyphs.map(loadSet);
+  let sets = o.glyphs.map(loadSet);
+  if (o.union && sets.length > 1) sets = [unionSets(sets)];
   const worker = o.verify ? startWorker(o.worker) : null;
   const t0 = Date.now();
   try {
@@ -540,6 +663,7 @@ async function main() {
         jsonLines.push({ baseline: L.baseline, phy: L.phy, font: L.set.name,
           text: sp.text, verified: L.verified ?? null, fails: L.fails.length,
           failCols: L.fails, boxes: L.boxes, oddGaps: sp.oddGaps,
+          ...(L.struck ? { struck: L.struck } : {}),
           glyphs: L.glyphs.map(g => [g.ch, g.pen]) });
         if (truth) {
           // row index from baseline is unknown to the reader — compare against

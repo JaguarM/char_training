@@ -81,17 +81,25 @@ bench/blind-read.mjs (grep `lin`).
 
 ### Remaining 5 fail events — root-caused, all reader object-handling
 
+> **FIXED 2026-07-12 (items 1+2)** in blind-read.mjs + blindocr.js
+> `detectObjects`: box extents are now per-segment MODE-voted from per-row
+> runs (bridged rows lose the vote; stacked different-width redactions split
+> into exact segments), vrules mostly covered by box segments are dropped,
+> and the □ fail-absorption no longer counts masked object ink as ink.
+> The box lines now read "…including ███ and GHISLAINE MAXWELL." and
+> "…concerning the identity…" at tol 0. Item 3 still stands.
+
 1. p6 base 695 & 748 ("… GHISLAINE MAXWELL ███"): a mid-line REDACTION BOX
    is detected fine, but its AA padding over-masks ~9 columns to its right,
    eating the first word after the box. Behind it the page CONTINUES with
-   caps that read like "and SARAH KELLEN" — the docx's "extra SARAH KELLEN
-   sentence" is on the page after a redaction box, not a docx invention.
-   Fix: tighten box x-padding, or re-scan from box.x1 with a fresh anchor.
+   caps — "and GHISLAINE MAXWELL." (the earlier "SARAH KELLEN" guess was
+   from the docx revision, not the pixels).
+   Root cause: per-row dark runs bridge from the box through the next word
+   across ≤1px AA gaps, stretching the box bbox (x1 367 vs solid edge 357).
 2. p6 base 676 ("concernin■identity", truly "concerning the identity"):
    the 'g' stem column merges with the box edge below it into a
    false-positive vrule object (x 324-325, y 669-709) whose mask eats the
-   g. Fix: drop vrule candidates whose column abuts a detected box, or
-   require vrules to be ink-free above the first text band they pierce.
+   g — and the □ absorption then ran under the solid box rows and ate "the".
 3. p5 base 460 & p6 base 313 ("…b4f■e4…" hex ids): one f-b junction pixel
    each, off by 5 — beyond the ±1 slack; per-pixel variance (reads at
    --tol 1 via dust absorption). Could be pinned by testing pymupdf

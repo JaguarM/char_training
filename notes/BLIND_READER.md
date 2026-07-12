@@ -227,6 +227,43 @@ first-class output and there is a tool that PROVES the output is lossless:
   blindOcrDocument learns the winning tolerance from page to page (ties
   prefer the lower tolerance, so certificates never weaken without cause).
 
+## 2026-07-12 — exact box extents (the "and ███" fix)
+
+Three compounding `detectObjects`/scan defects made words beside redaction
+boxes vanish (report.pdf "…including ███ ~~and~~ GHISLAINE MAXWELL", v3 P5
+link rows). Fixed in blind-read.mjs and ported to blindocr.js:
+
+1. **Bridged rows stretched the box bbox.** Per-row dark runs jump the ≤1px
+   AA gap between a box edge and the next word's first letters, so the
+   merged bbox ran ~10px past the solid edge and the ±2 mask swallowed
+   "an" of "and". A real box edge is CONSTANT across its rows while bridges
+   vary, so each box is now split into row segments of near-constant raw
+   extent (short burst segments between agreeing neighbours are absorbed)
+   and each segment's edge is the MODE of its rows. This also splits
+   **stacked different-width redactions** (v3 P5 has 9px- and 61px-offset
+   pairs previously merged into one bbox — the 9px pair defeated simpler
+   solid-core trimming) into exact per-box segments.
+2. **False vrule from descender + box.** A 'g' stem touching a box top
+   merges with the box's own dark column into one 40px+ vertical run; the
+   fake vrule's mask ate the g. Vrules whose length is >60% covered by box
+   segments (coverage summed across segments) are dropped.
+3. **□ absorption ate words behind boxes.** The fail-absorption loop counted
+   masked object ink as ink, so a □ next to a box absorbed every word
+   sharing columns with the box ("the" of "concerning the identity").
+   Masked pixels are now don't-care there too.
+
+Regression (all improved, nothing lost): report.pdf 34 lines / 2031 glyphs /
+**2 □** (was 5; both remaining are pre-existing: the tol-1 hex junction pixel
++ the small-size footer digits). v3 all 34 pages: 1785 lines, □ 12→**2**,
+letter-exact 1773→**1779**, +101 glyphs (P5's "may apply…visiting" and
+href rows now read fully — old code stopped at the fake vrule); **MuPDF
+verify: P1 40/40, P5 54/54 byte-exact re-renders** (P1 was 39/40 — the '<'
+sliver beside the box now reads). big.pdf all 340 pages: 18,307 lines,
+1,338,822 glyphs (+422), □ 13→**4**, letter-exact 18,263→**18,271**, differing
+rows 37→36 (all remaining are the documented big.txt-untranscribed P1 rows).
+App headless test: v3 P1 40/40 + P2 54/54 byte-clean, document API 94/94
+unchanged.
+
 ## What this establishes
 
 - The document-specific layer of the project (grid constants, startX,
