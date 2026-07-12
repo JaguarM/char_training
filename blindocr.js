@@ -123,6 +123,68 @@
       if (o) { o.x1 = c.x + 1; o.y0 = Math.min(o.y0, c.y0); o.y1 = Math.max(o.y1, c.y1); }
       else objects.push({ vr: true, x0: c.x, x1: c.x + 1, y0: c.y0, y1: c.y1 });
     }
+    // Box-extent correction. Stacked redactions of different widths merge into
+    // one bbox above, and a glyph bridged into a row's run across a ≤1px AA gap
+    // stretches a row a few px past the box — either way the padded mask
+    // swallows real letters beside a box. Split each box into row segments of
+    // near-constant raw extent, absorb short burst segments between agreeing
+    // neighbours (a real box edge persists for many rows; a bridge lasts a few),
+    // and take each segment's edge as the MODE of its rows — bridged rows shift
+    // an edge for a minority of rows and lose the vote, while real AA wobble
+    // stays within the ±2 mask padding.
+    const segmented = [];
+    for (let i = objects.length - 1; i >= 0; i--) {
+      const o = objects[i];
+      if (o.vr || o.y1 - o.y0 <= 4) continue;
+      const ext = [];                                    // per-row [y, x0, x1]
+      for (const r of rows)
+        if (r.y >= o.y0 && r.y < o.y1 && r.x1 > o.x0 && r.x0 < o.x1) {
+          const e = ext.length && ext[ext.length - 1][0] === r.y ? ext[ext.length - 1] : null;
+          if (e) { e[1] = Math.min(e[1], r.x0); e[2] = Math.max(e[2], r.x1); }
+          else ext.push([r.y, r.x0, r.x1]);
+        }
+      if (!ext.length) continue;
+      const mode = (seg, k) => {                         // most frequent edge value
+        const n = new Map();
+        for (const e of seg.exts) n.set(e[k], (n.get(e[k]) ?? 0) + 1);
+        let best = null;
+        for (const [v, c] of n) if (!best || c > best[1]) best = [v, c];
+        return best[0];
+      };
+      const segs = [];
+      for (const [y, x0, x1] of ext) {
+        const s = segs[segs.length - 1];
+        if (s && y === s.y1 && Math.abs(x0 - s.last[0]) <= 2 && Math.abs(x1 - s.last[1]) <= 2) {
+          s.y1 = y + 1; s.last = [x0, x1]; s.exts.push([x0, x1]);
+        } else segs.push({ y0: y, y1: y + 1, last: [x0, x1], exts: [[x0, x1]] });
+      }
+      for (let m = 1; m < segs.length - 1; ) {           // absorb bridge bursts
+        const [a, b, c] = [segs[m - 1], segs[m], segs[m + 1]];
+        if (b.y1 - b.y0 < 5 &&
+            Math.abs(mode(a, 0) - mode(c, 0)) <= 2 && Math.abs(mode(a, 1) - mode(c, 1)) <= 2) {
+          a.y1 = c.y1; a.exts.push(...c.exts); a.last = c.last;
+          segs.splice(m, 2);
+          m = Math.max(1, m - 1);
+        } else m++;
+      }
+      for (const s of segs)
+        segmented.push({ y0: s.y0, y1: s.y1, x0: mode(s, 0), x1: mode(s, 1) });
+      objects.splice(i, 1);
+    }
+    objects.push(...segmented);
+    // a glyph descender touching a box top merges with the box's own dark column
+    // into one long vertical run — drop vrule candidates that live inside boxes
+    // (summing coverage over box segments: a stacked pair covers a rule jointly)
+    const boxObjs = objects.filter(o => !o.vr && o.y1 - o.y0 > 4);
+    for (let i = objects.length - 1; i >= 0; i--) {
+      const o = objects[i];
+      if (!o.vr) continue;
+      let cov = 0;
+      for (const b of boxObjs)
+        if (o.x0 >= b.x0 - 2 && o.x1 <= b.x1 + 2)
+          cov += Math.max(0, Math.min(o.y1, b.y1) - Math.max(o.y0, b.y0));
+      if (cov > 0.6 * (o.y1 - o.y0)) objects.splice(i, 1);
+    }
     const mask = new Uint8Array(w * h);
     for (const o of objects) {
       o.type = o.vr ? 'vrule' : o.y1 - o.y0 <= 4 ? 'rule' : 'box';
@@ -269,7 +331,9 @@
         for (; x < xTo; x++) {
           let anyInk = false;
           for (let y = y0; y < y1; y++) {
-            if (pageAt(x, y) < 255) anyInk = true;
+            // object pixels are don't-care: without this a fail beside a
+            // redaction box absorbs every word sharing columns with the box
+            if (pageAt(x, y) < 255 && !masked(x, y)) anyInk = true;
             setCan(x, y, pageAt(x, y));
           }
           if (!anyInk && x > col) break;
