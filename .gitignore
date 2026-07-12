@@ -4,5 +4,5 @@ corpus/*.pdf
 
 # local workbenches / scratch
 out_*.txt
-notes/layout_v3.json
+docs/layout_v3.json
 char_training-main/

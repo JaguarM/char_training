@@ -1,4 +1,4 @@
-# notes/ — the debugging entry point
+# docs/ — the debugging entry point
 
 Start here. This file is the map: the system in ten lines, the proven physics,
 the regression gate, and what every other document is (and whether it is still
@@ -8,7 +8,7 @@ current). Last full revision: 2026-07-12.
 
 The project reads MuPDF-rendered document rasters **byte-exactly** — accuracy
 is *certified per line*, not sampled. The current reader is the **blind
-reader** (`bench/blind-read.mjs`, browser port `blindocr.js` = the app's
+reader** (`tools/blind-read.mjs`, browser port `blindocr.js` = the app's
 "Auto OCR"): it assumes NO layout constants, measures bands/baselines/fonts
 from the pixels, and accepts a glyph only if it explains the page bytes
 through the renderer's proven blend law. Unknown ink becomes an honest `□`
@@ -37,7 +37,7 @@ rasterizer = **check for a palette before hunting renderers**.
 ## The regression gate (run after any reader change)
 
 ```bash
-cd bench
+cd tools
 node blind-read.mjs --pdf ../corpus/v3.pdf  --all --truth ../corpus/v3.txt
 node blind-read.mjs --pdf ../corpus/big.pdf --all --truth ../corpus/big.txt
 node blind-read.mjs --pdf ../corpus/email.pdf --all --truth ../corpus/email.txt --quant
@@ -76,10 +76,10 @@ The □s and diff rows are all root-caused (see BLIND_READER.md); a CHANGE in
 any number is the signal, not the absolute. Speed (2026-07-13): ~0.2 s/page —
 big.pdf full doc 72 s, v3 5 s (15–50× vs before; BLIND_READER.md bottom). report.pdf exists only as its
 raster cache (the PDF left corpus/); big/v3/v4 PDFs are local-only
-(.gitignored), caches under `bench/raster-cache/`.
+(.gitignored), caches under `tools/raster-cache/`.
 `--verify` per-line MuPDF re-render certificates need
 `..\ocr\tools\render_hypotheses.py` (Desktop/ocr workspace).
-Raster caches are populated once per document with `bench/rasterize.mjs`.
+Raster caches are populated once per document with `tools/rasterize.mjs`.
 
 ## Document map
 
@@ -114,7 +114,7 @@ Raster caches are populated once per document with `bench/rasterize.mjs`.
 
 **Elsewhere**
 - `../README.md` — repo intro + quick start (app is Auto-OCR-first).
-- `../bench/README.md` — every bench tool: blind reader, rasterizer,
+- `../tools/README.md` — every bench tool: blind reader, rasterizer,
   recreate certificate, app test. (The legacy grid-path tools and their
   DOCUMENTATION.md were removed 2026-07-13 with the rest of that path.)
 - `..\ocr` workspace — renderer-hunt tooling (fontgen.py, export_glyphs.py,

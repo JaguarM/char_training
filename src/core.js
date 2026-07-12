@@ -38,7 +38,7 @@
 
   // Average R,G,B of each pixel of an RGBA buffer into n grayscale values
   // (alpha ignored). THE page-buffer law: the raster cache stores exactly
-  // these values (see bench/raster-cache-browser.js), so cached and live
+  // these values (see tools/raster-cache-browser.js), so cached and live
   // pages are bit-identical.
   function gray(data, n) {
     const px = new Float32Array(n);

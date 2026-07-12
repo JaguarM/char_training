@@ -88,7 +88,7 @@ print(a[100-11:100+4, 102:109])   # == templates/B_UPPER_1.png byte-for-byte
 
 ## What stays valid
 
-The 2026-07-03 research paragraph in bench/README.md was right on every measured
+The 2026-07-03 research paragraph in tools/README.md was right on every measured
 fact: unhinted grayscale TNR 16 px, ¼-px pen quantization, integer baseline =
 band top + 11, deterministic byte-identical occurrences. The corrections above
 add the *mechanism* (MuPDF/FreeType, gray = 255 − coverage, no gamma) and remove

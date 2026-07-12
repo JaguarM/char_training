@@ -28,6 +28,7 @@ import { dirname, resolve, join } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(__dirname, '..');
+const GLYPH_DIR = resolve(REPO, 'assets', 'glyphs');   // shared glyph sets (fontgen exports)
 
 const o = { json: null, pdf: null, page: null,
   worker: 'C:/Users/yanni/Desktop/ocr/tools/render_hypotheses.py' };
@@ -48,15 +49,15 @@ function readGray(path) {
   return { w: hdr[2], h: hdr[3], gray: new Uint8Array(raw.buffer, raw.byteOffset + 16, hdr[2] * hdr[3]) };
 }
 const key = createHash('sha256').update(readFileSync(o.pdf)).digest('hex').slice(0, 16);
-const cacheDir = join(REPO, 'bench', 'raster-cache', key);
+const cacheDir = join(REPO, 'tools', 'raster-cache', key);
 
 // glyph sets: reuse the reader's parser (blindocr.js is dual node/browser)
-const BlindOCR = await import('../blindocr.js').then(m => m.default ?? m);
+const BlindOCR = await import('../src/blindocr.js').then(m => m.default ?? m);
 const setCache = new Map();
 function setByName(name) {
   let s = setCache.get(name);
   if (!s) {
-    const j = JSON.parse(readFileSync(join(__dirname, `glyphs_${name}.json`), 'utf8'));
+    const j = JSON.parse(readFileSync(join(GLYPH_DIR, `glyphs_${name}.json`), 'utf8'));
     s = BlindOCR.parseSet(j, name);
     s.stem = (j.font ?? '').replace(/_\d+.*$/, '');
     setCache.set(name, s);

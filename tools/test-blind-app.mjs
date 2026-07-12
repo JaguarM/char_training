@@ -35,7 +35,7 @@ function freePort() {
 async function waitForServer(base, timeoutMs = 15000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    try { const r = await fetch(`${base}/training.html`); if (r.ok) return; } catch {}
+    try { const r = await fetch(`${base}/src/training.html`); if (r.ok) return; } catch {}
     await new Promise(r => setTimeout(r, 150));
   }
   throw new Error('server did not become ready');
@@ -55,7 +55,7 @@ async function run() {
     const errors = [];
     page.on('pageerror', e => errors.push(String(e)));
     await suppressAppInit(page);
-    await page.goto(`${base}/training.html`, { waitUntil: 'load' });
+    await page.goto(`${base}/src/training.html`, { waitUntil: 'load' });
     await page.waitForFunction(() => typeof CanvasViewer !== 'undefined' && typeof BlindOCR !== 'undefined');
     page.setDefaultTimeout(120000);
     await page.addScriptTag({ path: resolve(__dirname, 'raster-cache-browser.js') });
@@ -70,12 +70,12 @@ async function run() {
     // which pages to test
     let jobs;
     if (o.raster) {
-      // serve the raster through the repo: copy under bench/raster-cache/adhoc/
-      const dir = join(REPO, 'bench', 'raster-cache', 'adhoc');
+      // serve the raster through the repo: copy under tools/raster-cache/adhoc/
+      const dir = join(REPO, 'tools', 'raster-cache', 'adhoc');
       mkdirSync(dir, { recursive: true });
       const name = basename(o.raster);
       copyFileSync(o.raster, join(dir, name));
-      jobs = [{ label: name, url: `${base}/bench/raster-cache/adhoc/${name}`, truth: o.truth }];
+      jobs = [{ label: name, url: `${base}/tools/raster-cache/adhoc/${name}`, truth: o.truth }];
     } else {
       const cache = await openRasterCache(join(REPO, 'corpus', 'v3.pdf'), REPO);
       jobs = [1, 2].map(pno => ({ label: `v3 P${pno}`,

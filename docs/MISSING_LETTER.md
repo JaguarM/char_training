@@ -2,11 +2,11 @@
 
 Stress-test from `MISSING_LETTER_PROMPT.md`: erase ONE letter from a real
 corpus line and try to recover it from the surviving pixels. Tool:
-`bench/guess-letter.mjs` (single trial `--page/--row/--col`, batch
+`tools/guess-letter.mjs` (single trial `--page/--row/--col`, batch
 `--sample N [--targeted]`, physics `--calibrate`; Python halves
 `export_glyphs.py` / `render_hypotheses.py` in `..\ocr\tools`). All numbers
 below are measured on the real `corpus/v3.pdf` and `corpus/big.pdf` rasters
-from `bench/raster-cache/` — nothing re-rasterized, no template dictionary
+from `tools/raster-cache/` — nothing re-rasterized, no template dictionary
 involved (glyph rasters come straight from fontgen).
 
 ## Setup (what the inference engine gets)
@@ -199,8 +199,8 @@ A single erased letter in this pipeline is recoverable:
   advance 8.0 stood here": 1 of 27 equal possibilities. Language priors (never
   used above) are the only remaining channel.
 
-Reproduce: `node bench/guess-letter.mjs --sample 300 --seed 11` ·
+Reproduce: `node tools/guess-letter.mjs --sample 300 --seed 11` ·
 `--pdf ../corpus/big.pdf --sample 600 --seed 13` · `--targeted` variants ·
-`--calibrate 80`. `bench/glyphs_times16.json` regenerates via
+`--calibrate 80`. `assets/glyphs/glyphs_times16.json` regenerates via
 `python ..\ocr\tools\export_glyphs.py`; the level-3 worker is
 `..\ocr\tools\render_hypotheses.py` (`--worker` to relocate).

@@ -181,7 +181,7 @@ class CanvasViewer {
   // ------------------------------------------------------------------
   // OCR = Auto OCR only (blindocr.js below). The legacy grid/template path
   // (matchAt template matching, reader.js line reader, templates/ dict) was
-  // removed 2026-07-13 — see notes/BLIND_READER.md for the record.
+  // removed 2026-07-13 — see docs/BLIND_READER.md for the record.
   // ------------------------------------------------------------------
 
   // ------------------------------------------------------------------
@@ -194,7 +194,7 @@ class CanvasViewer {
   async _ensureBlindSets() {
     if (!this._blindSets) this._blindSets = await BlindOCR.loadSets();
     if (!this._blindSets.length) throw new Error(
-      'no glyph sets found — run ocr/tools/export_glyphs.py (bench/glyphs_*.json)');
+      'no glyph sets found — run ocr/tools/export_glyphs.py (assets/glyphs/glyphs_*.json)');
     return this._blindSets;
   }
 
@@ -824,7 +824,7 @@ document.addEventListener('DOMContentLoaded', () => {
     () => viewer.blindOcrPage().catch(e => { viewer.infoEl.textContent = `Auto OCR failed: ${e.message}`; }));
 
   // Auto OCR every page + download — the browser equivalent of
-  // bench/blind-read.mjs --all. Text export strips □ (unreadable-cluster
+  // tools/blind-read.mjs --all. Text export strips □ (unreadable-cluster
   // markers); the JSON export keeps everything: per-line baseline, font,
   // certificate flag and tolerance, plus detected non-text objects.
   const ocrAllBtn = document.getElementById('ocr-all-btn');

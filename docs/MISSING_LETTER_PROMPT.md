@@ -5,7 +5,7 @@
 > [MISSING_LETTER.md](MISSING_LETTER.md). Kept as the record of the task
 > definition; numbers below (e.g. "δ ≈ 0.025") were superseded by measurement.
 
-Read `notes/RENDERER_IDENTIFIED.md` and `notes/SYNTHETIC_DICT.md` first; the
+Read `docs/RENDERER_IDENTIFIED.md` and `docs/SYNTHETIC_DICT.md` first; the
 rendering physics below is proven there, don't re-derive it.
 
 ## Goal
@@ -24,7 +24,7 @@ Build the inference engine, run it over many lines of `corpus/v3.pdf` (then
   the drawn pen bucket exactly.
 - Layout is Chrome-metric: kern-correct cumulative advances from canvas
   measureText (`16px "Times New Roman"`), all dyadic (exact in float64).
-  `bench/dump-layout.mjs` computes them; `notes/layout_v3.json` is its output
+  `tools/dump-layout.mjs` computes them; `docs/layout_v3.json` is its output
   (regenerate if missing).
 - The layout producer's pens sit δ ∈ [0, ~0.025] px BELOW the ideal measureText
   positions, varying per glyph (unmodeled quantization). So the pre-image of an
@@ -60,21 +60,21 @@ where it lands empirically (is it the 0.025 δ band? 1/128?).
    workspace, mind the snap-boundary shift copies) and byte-compare everything
    EXCEPT the erased window. Should collapse most remaining ambiguity.
 
-Harness notes: page rasters come from `bench/raster-cache/` (v3 =
+Harness notes: page rasters come from `tools/raster-cache/` (v3 =
 4a03e5ed497dd6a3, big = 370b1d50ba19fda8; format in raster-cache-browser.js) —
 never re-rasterize the PDFs. Pick erased letters uniformly over mid-line
 positions (not first/last), include kern-heavy neighbours (AV, Ye, T?) and
 narrow glyphs on purpose. Skip the known narrow-space styled rows
-(`notes/SPACE_REVIEW.md` list) in the main run; report them as a separate
+(`docs/SPACE_REVIEW.md` list) in the main run; report them as a separate
 hard bucket if attempted. dump-ocr comparisons need `KEEP_SPACES=1`.
 
 ## Deliverables
 
-- `bench/guess-letter.mjs` (node; may reuse puppeteer for measureText like
+- `tools/guess-letter.mjs` (node; may reuse puppeteer for measureText like
   dump-layout.mjs) — takes `--pdf --page --row --col` to erase+infer one glyph,
   and a `--sample N` mode for the batch benchmark.
 - Numbers: per evidence level — unique-recovery %, mean ambiguity set size,
   failure list with causes; the measured x0 precision floor vs the theoretical
   phase-lock argument.
-- A short honest writeup appended to `notes/` (what information a single ¼-px
+- A short honest writeup appended to `docs/` (what information a single ¼-px
   bucket stream actually carries; where geometry alone fails and why).

@@ -43,7 +43,7 @@ function freePort() {
 async function waitForServer(base, timeoutMs = 15000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    try { const r = await fetch(`${base}/training.html`); if (r.ok) return; } catch {}
+    try { const r = await fetch(`${base}/src/training.html`); if (r.ok) return; } catch {}
     await new Promise(r => setTimeout(r, 150));
   }
   throw new Error('server did not become ready');
@@ -87,7 +87,7 @@ async function main() {
     const errors = [];
     page.on('pageerror', e => errors.push(String(e)));
     await suppressAppInit(page);
-    await page.goto(`${base}/training.html`, { waitUntil: 'load' });
+    await page.goto(`${base}/src/training.html`, { waitUntil: 'load' });
     await page.waitForFunction(
       () => typeof extractEmbeddedImages !== 'undefined' && typeof gray !== 'undefined' &&
         typeof window.pdfjsLib !== 'undefined', { timeout: 15000 });

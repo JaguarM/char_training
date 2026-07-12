@@ -3,14 +3,14 @@
 **Answer to "can we OCR with completely synthetic templates?": yes.**
 `templates_full_synth/` (1975 templates + exact metrics) contains **no pixel
 from any corpus document** — every byte is a MuPDF render of Times New Roman
-12 pt @ 96 dpi gray (the identified pipeline, `notes/RENDERER_IDENTIFIED.md`).
+12 pt @ 96 dpi gray (the identified pipeline, `docs/RENDERER_IDENTIFIED.md`).
 `dump-ocr --templates templates_full_synth` on the real `corpus/v3.pdf`:
 
 - **letter-for-letter identical to the live hand-curated `templates/` dict on
   all 1745 rows** (space-stripped comparison of the two dumps: zero differing rows);
 - vs `corpus/v3.txt`: 1708/1745 rows byte-exact (97.9%), 99.70% chars, 0 truncations.
   ALL residuals are space-count-only rows (narrow styled spaces / redaction gaps —
-  the rows `notes/SPACE_REVIEW.md` already holds for manual review) **except P5 L13,
+  the rows `docs/SPACE_REVIEW.md` already holds for manual review) **except P5 L13,
   where v3.txt itself is truncated**: the page really draws
   "First time user? &nbsp;&nbsp;Refer to instructions =" and both dicts read it;
   v3.txt stops at "user" (it inherited an old reader stop at a then-missing '?').
@@ -18,8 +18,8 @@ from any corpus document** — every byte is a MuPDF render of Times New Roman
 
 ## Recipe (all tooling shareable; Python halves live in `..\ocr\tools\`)
 
-1. `bench/dump-layout.mjs` — kern-correct glyph lefts for every row of v3.txt via
-   Chrome measureText (startX 45) → `notes/layout_v3.json`. Pure layout, no pixels.
+1. `tools/dump-layout.mjs` — kern-correct glyph lefts for every row of v3.txt via
+   Chrome measureText (startX 45) → `docs/layout_v3.json`. Pure layout, no pixels.
 2. `ocr/tools/render_synth_pages.py` — MuPDF-render those pages (816×1056 gray),
    write them as a raster cache keyed to a stub PDF. Direct byte-compare vs real
    pages: only 480/1836 row bands byte-exact — because of the **snap-boundary
@@ -33,7 +33,7 @@ from any corpus document** — every byte is a MuPDF render of Times New Roman
    - recovered-pen pages for narrow-space ("styled") rows — `render_synth_recovered.py`
      locates each glyph's drawn ¼-px bucket on the real page (geometry only,
      byte-locating with fontgen rasters) and renders at those pens.
-4. `bench/synth-templates.mjs --pdf <stub> --source <v3.txt×N>` over the synthetic
+4. `tools/synth-templates.mjs --pdf <stub> --source <v3.txt×N>` over the synthetic
    cache → `templates_full_synth` (the normal harvest, just fed synthetic pixels).
 5. Two windows the space-fit gate kept rejecting ('?' in P5 L52, '@' in P4 L36
    after the redaction box) were composited directly from glyph rasters with the
@@ -79,7 +79,7 @@ model exists.
 
 ## Housekeeping (done 2026-07-08)
 
-The synthetic raster caches, the verification dumps, `notes/layout_v3.json`
-(regenerate with `node bench/dump-layout.mjs`, ~5 s) and the synthetic-derived
+The synthetic raster caches, the verification dumps, `docs/layout_v3.json`
+(regenerate with `node tools/dump-layout.mjs`, ~5 s) and the synthetic-derived
 `source_spaced.txt` were deleted in the repo cleanup; everything above tells
 how to regenerate them. Corpus PDFs are untracked/.gitignored — local data only.
