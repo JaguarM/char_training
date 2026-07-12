@@ -1,5 +1,10 @@
 # Prompt: stress-test — recover a single erased letter from a line
 
+> **COMPLETED 2026-07-09** — results, calibration numbers (δ = [0, 1/32 px],
+> x0 = 45.0000 exactly), and the honest write-up live in
+> [MISSING_LETTER.md](MISSING_LETTER.md). Kept as the record of the task
+> definition; numbers below (e.g. "δ ≈ 0.025") were superseded by measurement.
+
 Read `notes/RENDERER_IDENTIFIED.md` and `notes/SYNTHETIC_DICT.md` first; the
 rendering physics below is proven there, don't re-derive it.
 

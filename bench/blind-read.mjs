@@ -56,6 +56,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === '--glyphs') o.glyphs = next().split(',');
   else if (a === '--verify') o.verify = true;
   else if (a === '--union') o.union = true;
+  else if (a === '--quant') o.quant = true;
   else if (a === '--worker') o.worker = next();
   else { console.error(`unknown arg ${a}`); process.exit(2); }
 }
@@ -293,6 +294,31 @@ function detectObjects(page) {
   return { mask, objects };
 }
 
+// ---------------- palette quantization (--quant) ----------------
+// Some producers palettize the final page (v4.pdf: MuPDF render → 256-color
+// Indexed image, only 172 neutral levels survive). The law, byte-proven:
+// page = nearest AVAILABLE gray to the original byte, ties toward darker.
+// The available set is read off the page itself (every actual page byte is
+// present by construction, and palette grays are fixpoints). The scan keeps
+// its canvas in ORIGINAL space — the producer quantized once, at the end —
+// and every prediction-vs-page compare goes through this map.
+function quantMap(page) {
+  const seen = new Uint8Array(256);
+  for (const v of page.gray) seen[v] = 1;
+  const avail = [];
+  for (let v = 0; v < 256; v++) if (seen[v]) avail.push(v);
+  const Q = new Uint8Array(256);
+  for (let v = 0; v < 256; v++) {
+    let best = avail[0];
+    for (const a of avail) {
+      const d = Math.abs(a - v), bd = Math.abs(best - v);
+      if (d < bd || (d === bd && a < best)) best = a;
+    }
+    Q[v] = best;
+  }
+  return Q;
+}
+
 // ---------------- band + baseline detection ----------------
 function findBands(page, mask) {
   const inked = new Uint8Array(page.h);
@@ -314,16 +340,17 @@ function findBands(page, mask) {
 // try to read the first few glyphs of a band at a candidate (baseline, set, phy);
 // returns matched-ink score. maxFails bounds the work on wrong hypotheses —
 // without it a bad baseline absorbs the whole band column by column.
-function probeBaseline(page, mask, set, phy, baseline, x0, x1) {
-  const line = scanLine(page, mask, set, phy, baseline, x0, Math.min(x1, x0 + 160), 4, 2);
+function probeBaseline(page, mask, set, phy, baseline, x0, x1, quant) {
+  const line = scanLine(page, mask, set, phy, baseline, x0, Math.min(x1, x0 + 160), 4, 2, quant);
   return line.glyphs.reduce((s, g) => s + g.exact, 0) - line.fails.length * 20;
 }
 
 // ---------------- the scanner ----------------
 // Reads one band left→right. Returns {glyphs:[{ch,pen,exact,pending}], fails:[col,...]}.
 // maxGlyphs: stop early (baseline probing).
-function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infinity, maxFails = Infinity) {
+function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infinity, maxFails = Infinity, quant = null) {
   const W = page.w, cands = set.byPhy.get(phy) ?? [], lin = set.linear;
+  const q = quant ? v => quant[v] : v => v;           // palette law (see quantMap)
   // explained-ink canvas over the band window (white = nothing explained yet;
   // don't-care object pixels are pre-absorbed so the scan flows through them)
   const y0 = Math.max(0, baseline - set.maxAsc), y1 = Math.min(page.h, baseline + set.maxDesc);
@@ -352,7 +379,7 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
   const nextUnexplained = (fromX) => {
     for (let x = fromX; x < xTo; x++)
       for (let y = y0; y < y1; y++)
-        if (pageAt(x, y) !== canAt(x, y)) return x;
+        if (pageAt(x, y) !== q(canAt(x, y))) return x;
     return -1;
   };
 
@@ -392,18 +419,18 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
             // composite pixels may read 1 lighter than the law: the producer's
             // junction arithmetic is 1-ambiguous there (3/925 fitted pairs,
             // always this sign) — single-glyph pixels stay byte-strict
-            hit = Math.abs(minPred - pv) <= t || (cv !== 255 && minPred - pv === 1);
+            hit = Math.abs(q(minPred) - pv) <= t || (cv !== 255 && q(minPred) - pv === 1);
           } else {
             for (const e of INV[gb]) {
               const pred = (cv * (256 - e)) >> 8;
               if (pred < minPred) minPred = pred;
-              if (Math.abs(pred - pv) <= t) { hit = true; break; }
+              if (Math.abs(q(pred) - pv) <= t) { hit = true; break; }
             }
           }
           if (process.env.BR_PIX && +process.env.BR_PIX === col && !hit)
             console.log(`      pix '${g.ch}' pen ${pi + g.phx} @(${x},${y}) gb=${gb} cv=${cv} pv=${pv} minPred=${minPred}`);
           if (hit) exact++;
-          else if (pv < minPred - t) pending++;        // darker: future glyph may composite
+          else if (pv < q(minPred) - t) pending++;     // darker: future glyph may composite
           else { ok = false; break; }
         }
         // pending is for kern overlap (a few columns) — a glyph "hiding" inside
@@ -430,14 +457,14 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
         const px = [];
         for (let x = col; x < Math.min(col + 3, xTo); x++)
           for (let y = y0; y < y1; y++)
-            if (pageAt(x, y) !== canAt(x, y)) px.push([x, y]);
+            if (pageAt(x, y) !== q(canAt(x, y))) px.push([x, y]);
         const okDust = px.length <= 3 && px.every(([x, y]) => {
-          if (pageAt(x, y) >= 255 - 6 * TOL && Math.abs(pageAt(x, y) - canAt(x, y)) <= 6 * TOL) return true;
+          if (pageAt(x, y) >= 255 - 6 * TOL && Math.abs(pageAt(x, y) - q(canAt(x, y))) <= 6 * TOL) return true;
           for (let dy = -1; dy <= 1; dy++)
             for (let dx = -1; dx <= 1; dx++) {
               const nx = x + dx, ny = y + dy;
               if (nx >= xFrom && nx < xTo && ny >= y0 && ny < y1 &&
-                  canAt(nx, ny) < 255 && pageAt(nx, ny) === canAt(nx, ny)) return true;
+                  canAt(nx, ny) < 255 && pageAt(nx, ny) === q(canAt(nx, ny))) return true;
             }
           return false;
         });
@@ -485,14 +512,14 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
       if (g.lin ?? lin) {
         const sh = gb >= 129 && gb !== 255 ? 1 : 0, s0 = shAt(x, y);
         const pred = (((cv - s0) * (gb - sh)) / 255 | 0) + s0 + sh;
-        const ok = Math.abs(pred - pv) <= (cv !== 255 ? 2 * TOL : TOL) ||
-                   (cv !== 255 && pred - pv === 1);   // composite 1-lighter case
-        val = ok ? pv : pred;
+        const ok = Math.abs(q(pred) - pv) <= (cv !== 255 ? 2 * TOL : TOL) ||
+                   (cv !== 255 && q(pred) - pv === 1);   // composite 1-lighter case
+        val = ok ? (quant ? pred : pv) : pred;        // quant: canvas stays original-space
         addSh(x, y, sh);
       } else {
         for (const e of INV[gb]) {
           const pred = (cv * (256 - e)) >> 8;
-          if (Math.abs(pred - pv) <= (cv !== 255 ? 2 * TOL : TOL)) { val = pv; break; }  // absorb page value
+          if (Math.abs(q(pred) - pv) <= (cv !== 255 ? 2 * TOL : TOL)) { val = quant ? pred : pv; break; }  // absorb page value
           if (val === null) val = pred;
         }
       }
@@ -567,7 +594,8 @@ function startWorker(py) {
 }
 
 // ---------------- per-page driver ----------------
-async function readPage(page, sets, worker) {
+async function readPage(page, sets, worker, useQuant) {
+  const quant = useQuant ? quantMap(page) : null;
   const { mask, objects } = detectObjects(page);
   const bands = findBands(page, mask);
   const lines = [];
@@ -589,12 +617,12 @@ async function readPage(page, sets, worker) {
     for (const set of sets)
       for (const phy of set.byPhy.keys())
         for (let yb = bot; yb >= bot - set.maxDesc && yb > top; yb--) {
-          const score = probeBaseline(page, mask, set, phy, yb, Math.max(0, x0 - 2), Math.min(page.w, x1 + 20));
+          const score = probeBaseline(page, mask, set, phy, yb, Math.max(0, x0 - 2), Math.min(page.w, x1 + 20), quant);
           if (score > 0 && (!pick || score > pick.score)) pick = { set, phy, yb, score };
         }
     if (!pick) { lines.push({ top, bot, glyphs: [], fails: [x0], set: null, boxes: [] }); continue; }
     const L = scanLine(page, mask, pick.set, pick.phy, pick.yb,
-      Math.max(0, x0 - 2), Math.min(page.w, x1 + 4));
+      Math.max(0, x0 - 2), Math.min(page.w, x1 + 4), Infinity, Infinity, quant);
     L.top = top; L.bot = bot; L.baseline = pick.yb; L.set = pick.set; L.phy = pick.phy;
     L.boxes = lineObjects.map(ob => [ob.x0 - 2, ob.x1 + 2]);
     L.objects = lineObjects;
@@ -603,7 +631,10 @@ async function readPage(page, sets, worker) {
     // fragments and □s inside it are noise, not content (underlines sit
     // below the baseline and don't match)
     const strikes = lineObjects.filter(ob => ob.type === 'rule' &&
-      ob.y0 >= pick.yb - 10 && ob.y1 <= pick.yb - 2);
+      ob.y0 >= pick.yb - 10 && ob.y1 <= pick.yb - 2 &&
+      // a thin top/bottom edge segment of a redaction box is not a strike
+      !objects.some(b => b.type === 'box' && ob.y1 >= b.y0 - 2 && ob.y0 <= b.y1 + 2 &&
+        Math.min(ob.x1, b.x1) > Math.max(ob.x0, b.x0)));
     if (strikes.length) {
       L.glyphs = L.glyphs.filter(g => !strikes.some(sb => g.pen < sb.x1 + 2 && g.pen + g.adv > sb.x0 - 1));
       L.fails = L.fails.filter(c => !strikes.some(sb => c >= sb.x0 - 4 && c < sb.x1 + 4));
@@ -650,7 +681,7 @@ async function main() {
     const jsonPages = [];
     for (const { pno, page } of pages) {
       if (!page) continue;
-      const { lines, objects } = await readPage(page, sets, worker);
+      const { lines, objects } = await readPage(page, sets, worker, o.quant);
       const spaceAdv = spaceCalib(lines);
       const jsonLines = [];
       jsonPages.push({ pno, spaceAdv, objects, lines: jsonLines });

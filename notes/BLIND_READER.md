@@ -1,4 +1,35 @@
-# Blind reader — self-calibrating byte-exact OCR, no layout constants (2026-07-10)
+# Blind reader — self-calibrating byte-exact OCR, no layout constants
+
+> This file is chronological (newest sections at the BOTTOM). Docs map +
+> regression gate: [README.md](README.md).
+
+## Current state (2026-07-12)
+
+`bench/blind-read.mjs` (browser port `blindocr.js` = the app's Auto OCR) is
+THE reader. Capabilities: measured bands/baselines/fonts (per-band auto-pick
+across glyph sets), byte-exact composite-aware scan, measured spaces,
+non-text objects (mode-voted box extents, rules, vrules), strike-through
+voiding, mode-2 color pages (neutral-sum reading + colored-ink flood),
+`--union` mixed-font lines, `--tol N` for unidentified rasterizers,
+`--quant` for palette-quantized producers, `--verify` MuPDF re-render
+certificates, `--json` positions export (round-trip-proven by
+`bench/recreate.mjs`).
+
+| Document | Producer / mode | Result (2026-07-12) |
+|---|---|---|
+| v3.pdf (34 p) | corpus MuPDF, tol 0 | 1785 lines · 122,865 glyphs · 2 □ · 1779 rows letter-exact vs truth |
+| big.pdf (340 p) | corpus MuPDF, tol 0 | 18,307 · 1,338,822 · 4 □ · 18,271 letter-exact |
+| report page | eDiscovery linear law, tol 0, `*lin*` sets | 34 lines · 2031 glyphs · 2 □ (both root-caused; PDF lives on only as raster cache a42927acc2aaca91) |
+| v4.pdf (1 p) | palette-quantized, tol 0 `--quant --union` | 28 lines · 823 glyphs · 3 □ (2 separator bands + 1 struck-line fragment); blue/struck spans deliberately blank |
+
+Known limits: superscript/small-size glyphs need per-size sets; blindocr.js
+lacks union/mode-2/strike/quant; multi-column bands; other rasterizer
+families (pdfium/Ghostscript) unidentified — mismatches self-announce as
+match-rate collapse, never silent errors.
+
+---
+
+## 2026-07-10 — the original design
 
 `bench/blind-read.mjs`: the generalization step. The main reader assumes the
 corpus grid (rows 40+18·r, baseline top+11, startX 45, measureText spacing);
@@ -263,6 +294,56 @@ sliver beside the box now reads). big.pdf all 340 pages: 18,307 lines,
 rows 37→36 (all remaining are the documented big.txt-untranscribed P1 rows).
 App headless test: v3 P1 40/40 + P2 54/54 byte-clean, document API 94/94
 unchanged.
+
+## 2026-07-12 PM — corpus/v4.pdf: color pages, mixed fonts per line, strike-through
+
+v4.pdf (1 page, an email print: Times 16px, MuPDF-family but ±2/px off our
+rasters — reads at `--tol 2`) exercised three new reader capabilities
+(bench/blind-read.mjs only; not yet in blindocr.js):
+
+- **Mode-2 (color) raster support** in `readGray`: pages are u16 R+G+B sums.
+  Achromatic ink (plain black text) has sum ≡ 0 (mod 3) at every pixel, so
+  gray = sum/3 is exact there; colored ink (hyperlink blue) is non-neutral at
+  least on its AA edges. Every ink component connected to a non-neutral pixel
+  is whitened before reading — blue link text (and anything fused to it, e.g.
+  a strike bar that continues over black words) simply disappears and the
+  plain text reads normally.
+- **`--union`**: merges all given glyph sets into one candidate pool with a
+  per-glyph compositor flag, so a single line can mix fonts — v4's header
+  lines are bold "From:/To:/Date:/Subject:" labels + regular values, which
+  the per-band single-font pick could never read. Opt-in; per-band detection
+  (and --verify) unchanged without it.
+- **Strike-through suppression**: a `rule` object crossing a line's x-height
+  ([baseline−10, baseline−2], underlines don't match) that is NOT vertically
+  adjacent to a box (box top/bottom edge segments also land there) voids the
+  struck span: glyphs overlapping it and □s inside it are dropped, and the
+  line carries a `struck` field in the JSON. Struck text is deliberately not
+  transcribed.
+
+Result: every plain-text line reads (headers, body, disclaimer); blue
+addresses/links and struck spans come out blank; the two remaining UNREAD
+bands are decorative separators (a tiny "=" mark and a row of ~8px
+asterisks). Regression: v3 1785/122865/2□/1779 exact, report.pdf (via cached
+raster a42927acc2aaca91 — the PDF left corpus/) byte-identical to the morning
+run, big.pdf unchanged.
+
+Repro: `node blind-read.mjs --pdf ../corpus/v4.pdf --tol 0 --quant --union
+--glyphs glyphs_times16.json,glyphs_timesbd16.json,glyphs_timesi16.json`
+
+**Same evening — v4 solved to tol 0 (`--quant`).** The ±2 deviations turned
+out to be PALETTE QUANTIZATION, not a foreign rasterizer: v4's page image is
+an `/Indexed` XObject whose palette keeps only 172 neutral levels; the law is
+`page = nearest available gray (ties darker)` on top of plain MuPDF bytes,
+byte-proven per value. `--quant` derives the available set from the page
+itself and routes every prediction through it (canvas stays unquantized —
+the producer quantized once, at the end). Full write-up:
+[V4_RENDERER_PROMPT.md](V4_RENDERER_PROMPT.md). Rule of thumb it adds: a
+document reading "almost but ±1" against a proven rasterizer = check for a
+palette before hunting renderers.
+
+Open: the app port (blindocr.js) lacks mode-2/union/strike/quant — the app
+sees the engine's (R+G+B)/3 buffer, but has canvas RGBA available so per-pixel
+R==G==B would be even cleaner there.
 
 ## What this establishes
 
