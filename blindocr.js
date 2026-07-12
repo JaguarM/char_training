@@ -49,9 +49,16 @@
         for (let c = 0; c < r.w; c++)
           for (let rr = 0; rr < r.h; rr++)
             if (bytes[rr * r.w + c] < 255) { ink.push(rr * r.w + c); if (c < inkLeft) inkLeft = c; }
+        // hot-loop precomputation: per ink pixel its column, row and raster
+        // byte (the candidate trial loop runs millions of times per page)
+        const inkC = new Int16Array(ink.length), inkR = new Int16Array(ink.length),
+          inkB = new Uint8Array(ink.length);
+        for (let k = 0; k < ink.length; k++) {
+          inkC[k] = ink[k] % r.w; inkR[k] = (ink[k] / r.w) | 0; inkB[k] = bytes[ink[k]];
+        }
         if (!byPhy.has(phy)) byPhy.set(phy, []);
         byPhy.get(phy).push({ ch, adv: rec.adv, phx, w: r.w, h: r.h, dx: r.dx, dy: r.dy,
-          bytes, ink, inkLeft });
+          bytes, ink, inkC, inkR, inkB, inkLeft });
         maxAsc = Math.max(maxAsc, -r.dy);
         maxDesc = Math.max(maxDesc, r.dy + r.h);
       }
@@ -66,6 +73,7 @@
     for (const u of urls ?? ['bench/glyphs_times16.json', 'bench/glyphs_timesbd16.json',
       'bench/glyphs_timesi16.json', 'bench/glyphs_tnr8_16.json',
       'bench/glyphs_arial16.json', 'bench/glyphs_georgia16.json',
+      'bench/glyphs_cour13.json',                    // courier_1/2 body font
       // linear-compositor variants (eDiscovery producer — see blind-read.mjs);
       // the per-band auto-pick chooses whichever compositor matches the page
       'bench/glyphs_timeslin16.json', 'bench/glyphs_timesbdlin16.json',
@@ -204,6 +212,33 @@
       if (o) { o.y1 = r.y + 1; o.x0 = Math.min(o.x0, r.x0); o.x1 = Math.max(o.x1, r.x1); }
       else objects.push({ y0: r.y, y1: r.y + 1, x0: r.x0, x1: r.x1 });
     }
+    // small solid boxes (inline redactions narrower than the 40px run rule):
+    // a stack of ≥8 rows whose STRICTLY-contiguous dark runs share one x-extent
+    // (±1) is a filled box — text can't fake it: letter interiors break the
+    // contiguity, and no glyph stack holds one constant extent for 8 rows
+    // (x-height spans ~7). Runs 10–39 px; ≥40 is the main rule's job.
+    const shortRuns = [];
+    for (let y = 0; y < h; y++) {
+      const off = y * w;
+      let s = -1;
+      for (let x = 0; x <= w; x++) {
+        const dark = x < w && gray[off + x] < 160;
+        if (dark) { if (s < 0) s = x; }
+        else if (s >= 0) {
+          if (x - s >= 10 && x - s < 40) shortRuns.push({ y, x0: s, x1: x });
+          s = -1;
+        }
+      }
+    }
+    const stacks = [];
+    for (const r of shortRuns) {
+      const g = stacks.find(g => g.y1 === r.y &&
+        Math.abs(g.x0 - r.x0) <= 1 && Math.abs(g.x1 - r.x1) <= 1);
+      if (g) g.y1 = r.y + 1;
+      else stacks.push({ y0: r.y, y1: r.y + 1, x0: r.x0, x1: r.x1 });
+    }
+    for (const g of stacks)
+      if (g.y1 - g.y0 >= 8) objects.push({ y0: g.y0, y1: g.y1, x0: g.x0, x1: g.x1 });
     // vertical rules (table/quote borders): long solid runs down a column
     const vcols = [];
     for (let x = 0; x < w; x++) {
@@ -340,18 +375,34 @@
     const pageAt = (x, y) => page.gray[y * W + x];
     const masked = (x, y) => mask[y * W + x];
     const canAt = (x, y) => canvas[(y - y0) * bw + (x - xFrom)];
-    const setCan = (x, y, v) => { canvas[(y - y0) * bw + (x - xFrom)] = v; };
     const shifts = lin ? new Uint8Array(bw * bh) : null;   // producer +1 count per pixel
     const shAt = (x, y) => (lin ? shifts[(y - y0) * bw + (x - xFrom)] : 0);
     const addSh = (x, y, s) => { if (lin) shifts[(y - y0) * bw + (x - xFrom)] += s; };
     for (let y = y0; y < y1; y++)
       for (let x = xFrom; x < xTo; x++)
-        if (mask[y * W + x]) setCan(x, y, pageAt(x, y));
+        if (mask[y * W + x]) canvas[(y - y0) * bw + (x - xFrom)] = pageAt(x, y);
+    // per-column count of unexplained pixels (page ≠ q(canvas)), maintained on
+    // every canvas write — nextUnexplained becomes a pointer walk instead of
+    // rescanning the band window after every glyph (was 80%+ of read time)
+    const unexpl = new Int32Array(bw);
+    for (let x = xFrom; x < xTo; x++) {
+      let n = 0;
+      for (let y = y0; y < y1; y++)
+        if (pageAt(x, y) !== q(canAt(x, y))) n++;
+      unexpl[x - xFrom] = n;
+    }
+    const setCan = (x, y, v) => {
+      const i = (y - y0) * bw + (x - xFrom);
+      const pv = page.gray[y * W + x];
+      const before = pv !== q(canvas[i]);
+      canvas[i] = v;
+      const after = pv !== q(v);
+      if (before !== after) unexpl[x - xFrom] += after ? 1 : -1;
+    };
 
     const nextUnexplained = (fromX) => {
-      for (let x = fromX; x < xTo; x++)
-        for (let y = y0; y < y1; y++)
-          if (pageAt(x, y) !== q(canAt(x, y))) return x;
+      for (let x = Math.max(fromX, xFrom); x < xTo; x++)
+        if (unexpl[x - xFrom] > 0) return x;
       return -1;
     };
 
@@ -367,20 +418,34 @@
           const pi = col - back - g.dx - g.inkLeft;
           const gx = pi + g.dx, gy = baseline + g.dy;
           if (gx < xFrom || gx + g.w > xTo || gy < y0 || gy + g.h > y1) continue;
-          if (accepted.has(g.ch + '@' + (pi + g.phx))) continue;
+          // must explain the anchor column itself (hoisted: cheap reject)
+          if (col < gx || col >= gx + g.w) continue;
           let exact = 0, pending = 0, skipped = 0, ok = true;
-          for (const p of g.ink) {
-            const rr = (p / g.w) | 0, cc = p % g.w;
-            const x = gx + cc, y = gy + rr;
-            if (masked(x, y)) { skipped++; continue; }
-            const gb = g.bytes[p], pv = pageAt(x, y), cv = canAt(x, y);
+          const linG = g.lin ?? lin;
+          const inkC = g.inkC, inkR = g.inkR, inkB = g.inkB, nInk = inkC.length;
+          const rowBase = gy * W + gx, canBase = (gy - y0) * bw + (gx - xFrom);
+          for (let k = 0; k < nInk; k++) {
+            const cc = inkC[k], rr = inkR[k];
+            const pOff = rowBase + rr * W + cc;
+            if (mask[pOff]) { skipped++; continue; }
+            const gb = inkB[k], pv = page.gray[pOff], cv = canvas[canBase + rr * bw + cc];
+            // fresh-canvas fast path (the overwhelmingly common case, non-
+            // linear law): every e in INV[gb] reproduces gb from white by
+            // construction — pred === gb — one compare replaces the e-loop
+            if (cv === 255 && !linG) {
+              const d = QUANT ? QUANT[gb] : gb;
+              if (pv >= d - TOL && pv <= d + TOL) exact++;
+              else if (pv < d - TOL) pending++;
+              else { ok = false; break; }
+              continue;
+            }
             // tol mode: a neighbour may have absorbed this composite pixel
             // already; a faint own-contribution proves nothing — skip it
             if (TOL && cv !== 255 && gb >= 255 - 2 * TOL) { skipped++; continue; }
             const t = cv !== 255 ? 2 * TOL : TOL;
             let hit = false, minPred = 256;
-            if (g.lin ?? lin) {
-              const sh = gb >= 129 && gb !== 255 ? 1 : 0, s0 = shAt(x, y);
+            if (linG) {
+              const sh = gb >= 129 && gb !== 255 ? 1 : 0, s0 = lin ? shifts[canBase + rr * bw + cc] : 0;
               minPred = (((cv - s0) * (gb - sh)) / 255 | 0) + s0 + sh;
               // composite pixels may read 1 lighter than the law: the producer's
               // junction arithmetic is 1-ambiguous there (3/925 fitted pairs,
@@ -397,10 +462,10 @@
             else if (pv < q(minPred) - t) pending++;
             else { ok = false; break; }
           }
-          const considered = g.ink.length - skipped;
-          if (!ok || considered < g.ink.length * 0.5 ||
+          const considered = nInk - skipped;
+          if (!ok || considered < nInk * 0.5 ||
               exact < considered * 0.5 || pending > considered * 0.35) continue;
-          if (col < gx || col >= gx + g.w) continue;
+          if (accepted.has(g.ch + '@' + (pi + g.phx))) continue;  // after pixel work: rare
           const score = exact - pending * 0.25;
           if (!best || score > best.score) best = { g, pi, gx, gy, exact, pending, score };
         }
@@ -532,7 +597,18 @@
   // between bands; the read yields to the event loop so the UI stays alive.
   async function readPage(page, sets, opts) {
     const tol = opts?.tol || 0;
-    if (opts?.union && sets.length > 1) sets = [unionSets(sets)];
+    // union pools group by PIXEL SIZE, not into one global pool: fonts mixed
+    // within a line (bold label + regular value) share their size, while a
+    // global pool lets a foreign-size font byte-match glyph fragments and
+    // steal pixels (a times sliver ate courier 'e's — measured on courier_1)
+    if (opts?.union && sets.length > 1) {
+      const bySize = new Map();
+      for (const s of sets) {
+        if (!bySize.has(s.sizePx)) bySize.set(s.sizePx, []);
+        bySize.get(s.sizePx).push(s);
+      }
+      sets = [...bySize.values()].map(g => g.length > 1 ? unionSets(g) : g[0]);
+    }
     const quant = opts?.quant ? quantMap(page) : null;
     const q = quant ? v => quant[v] : v => v;
     const { mask, objects } = detectObjects(page);

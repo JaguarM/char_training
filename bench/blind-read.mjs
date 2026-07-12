@@ -123,9 +123,17 @@ function loadSet(file) {
       for (let c = 0; c < r.w; c++)
         for (let rr = 0; rr < r.h; rr++)
           if (bytes[rr * r.w + c] < 255) { ink.push(rr * r.w + c); if (c < inkLeft) inkLeft = c; }
+      // hot-loop precomputation: per ink pixel its column, row and raster byte
+      // (the candidate trial loop runs millions of times per page — the
+      // div/mod and byte lookups were measurable)
+      const inkC = new Int16Array(ink.length), inkR = new Int16Array(ink.length),
+        inkB = new Uint8Array(ink.length);
+      for (let k = 0; k < ink.length; k++) {
+        inkC[k] = ink[k] % r.w; inkR[k] = (ink[k] / r.w) | 0; inkB[k] = bytes[ink[k]];
+      }
       if (!byPhy.has(phy)) byPhy.set(phy, []);
       byPhy.get(phy).push({ ch, adv: rec.adv, phx, w: r.w, h: r.h, dx: r.dx, dy: r.dy,
-        bytes, ink, inkLeft });
+        bytes, ink, inkC, inkR, inkB, inkLeft });
       maxAsc = Math.max(maxAsc, -r.dy);
       maxDesc = Math.max(maxDesc, r.dy + r.h);
     }
@@ -225,6 +233,33 @@ function detectObjects(page) {
     if (o) { o.y1 = r.y + 1; o.x0 = Math.min(o.x0, r.x0); o.x1 = Math.max(o.x1, r.x1); }
     else objects.push({ y0: r.y, y1: r.y + 1, x0: r.x0, x1: r.x1 });
   }
+  // small solid boxes (inline redactions narrower than the 40px run rule):
+  // a stack of ≥8 rows whose STRICTLY-contiguous dark runs share one x-extent
+  // (±1) is a filled box — text can't fake it: letter interiors break the
+  // contiguity, and no glyph stack holds one constant extent for 8 rows
+  // (x-height spans ~7). Runs 10–39 px; ≥40 is the main rule's job.
+  const shortRuns = [];
+  for (let y = 0; y < h; y++) {
+    const off = y * w;
+    let s = -1;
+    for (let x = 0; x <= w; x++) {
+      const dark = x < w && gray[off + x] < 160;
+      if (dark) { if (s < 0) s = x; }
+      else if (s >= 0) {
+        if (x - s >= 10 && x - s < 40) shortRuns.push({ y, x0: s, x1: x });
+        s = -1;
+      }
+    }
+  }
+  const stacks = [];
+  for (const r of shortRuns) {
+    const g = stacks.find(g => g.y1 === r.y &&
+      Math.abs(g.x0 - r.x0) <= 1 && Math.abs(g.x1 - r.x1) <= 1);
+    if (g) g.y1 = r.y + 1;
+    else stacks.push({ y0: r.y, y1: r.y + 1, x0: r.x0, x1: r.x1 });
+  }
+  for (const g of stacks)
+    if (g.y1 - g.y0 >= 8) objects.push({ y0: g.y0, y1: g.y1, x0: g.x0, x1: g.x1 });
   // vertical rules (table/quote borders): long solid runs down a column
   const vcols = [];
   for (let x = 0; x < w; x++) {
@@ -373,6 +408,8 @@ function probeBaseline(page, mask, set, phy, baseline, x0, x1, quant) {
 // ---------------- the scanner ----------------
 // Reads one band left→right. Returns {glyphs:[{ch,pen,exact,pending}], fails:[col,...]}.
 // maxGlyphs: stop early (baseline probing).
+const DBG_PIX = !!process.env.BR_PIX;   // disables the fresh-canvas fast path so
+                                        // per-pixel debug output stays complete
 function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infinity, maxFails = Infinity, quant = null) {
   const W = page.w, cands = set.byPhy.get(phy) ?? [], lin = set.linear;
   const q = quant ? v => quant[v] : v => v;           // palette law (see quantMap)
@@ -385,13 +422,31 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
   const pageAt = (x, y) => page.gray[y * W + x];
   const masked = (x, y) => mask && mask[y * W + x];
   const canAt = (x, y) => canvas[(y - y0) * bw + (x - xFrom)];
-  const setCan = (x, y, v) => { canvas[(y - y0) * bw + (x - xFrom)] = v; };
   const shAt = (x, y) => (lin ? shifts[(y - y0) * bw + (x - xFrom)] : 0);
   const addSh = (x, y, s) => { if (lin) shifts[(y - y0) * bw + (x - xFrom)] += s; };
   if (mask)
     for (let y = y0; y < y1; y++)
       for (let x = xFrom; x < xTo; x++)
-        if (mask[y * W + x]) setCan(x, y, pageAt(x, y));
+        if (mask[y * W + x]) canvas[(y - y0) * bw + (x - xFrom)] = pageAt(x, y);
+  // per-column count of unexplained pixels (page ≠ q(canvas)), maintained on
+  // every canvas write — nextUnexplained becomes an O(1)-amortized pointer
+  // walk instead of rescanning the whole band window after every glyph
+  // (the rescan was 80%+ of read time on dense pages)
+  const unexpl = new Int32Array(bw);
+  for (let x = xFrom; x < xTo; x++) {
+    let n = 0;
+    for (let y = y0; y < y1; y++)
+      if (pageAt(x, y) !== q(canAt(x, y))) n++;
+    unexpl[x - xFrom] = n;
+  }
+  const setCan = (x, y, v) => {
+    const i = (y - y0) * bw + (x - xFrom);
+    const pv = page.gray[y * W + x];
+    const before = pv !== q(canvas[i]);
+    canvas[i] = v;
+    const after = pv !== q(v);
+    if (before !== after) unexpl[x - xFrom] += after ? 1 : -1;
+  };
 
   // --tol N relaxes byte-exactness to |Δ|≤N per glyph-ink pixel — for pages
   // from a NEAR-identical rasterizer (e.g. an older FreeType whose curve
@@ -402,9 +457,8 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
   // misplace the next glyph's anchor.
   const TOL = o.tol;
   const nextUnexplained = (fromX) => {
-    for (let x = fromX; x < xTo; x++)
-      for (let y = y0; y < y1; y++)
-        if (pageAt(x, y) !== q(canAt(x, y))) return x;
+    for (let x = Math.max(fromX, xFrom); x < xTo; x++)
+      if (unexpl[x - xFrom] > 0) return x;
     return -1;
   };
 
@@ -422,13 +476,27 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
         const pi = col - back - g.dx - g.inkLeft;      // integer pen such that first ink col = col-back
         const gx = pi + g.dx, gy = baseline + g.dy;
         if (gx < xFrom || gx + g.w > xTo || gy < y0 || gy + g.h > y1) continue;
-        if (accepted.has(`${g.ch}@${pi + g.phx}`)) continue;
+        // must explain the anchor column itself (hoisted: cheap reject)
+        if (col < gx || col >= gx + g.w) continue;
         let exact = 0, pending = 0, skipped = 0, ok = true;
-        for (const p of g.ink) {
-          const rr = (p / g.w) | 0, cc = p % g.w;
-          const x = gx + cc, y = gy + rr;
-          if (masked(x, y)) { skipped++; continue; }   // object pixel: no evidence either way
-          const gb = g.bytes[p], pv = pageAt(x, y), cv = canAt(x, y);
+        const linG = g.lin ?? lin;
+        const { inkC, inkR, inkB } = g, nInk = inkC.length;
+        const rowBase = gy * W + gx, canBase = (gy - y0) * bw + (gx - xFrom);
+        for (let k = 0; k < nInk; k++) {
+          const cc = inkC[k], rr = inkR[k];
+          const pOff = rowBase + rr * W + cc;
+          if (mask && mask[pOff]) { skipped++; continue; }  // object pixel: no evidence either way
+          const gb = inkB[k], pv = page.gray[pOff], cv = canvas[canBase + rr * bw + cc];
+          // fresh-canvas fast path (the overwhelmingly common case, non-linear
+          // law): every e in INV[gb] reproduces gb from white by construction
+          // — pred === gb — so the whole e-loop collapses to one compare
+          if (cv === 255 && !linG && !DBG_PIX) {
+            const d = quant ? quant[gb] : gb;
+            if (pv >= d - TOL && pv <= d + TOL) exact++;
+            else if (pv < d - TOL) pending++;          // darker: future glyph may composite
+            else { ok = false; break; }
+            continue;
+          }
           // tol mode: a neighbour may have absorbed this pixel's composite
           // already (within-tol steal); a FAINT own-contribution proves
           // nothing either way — skip instead of predicting double ink
@@ -438,8 +506,8 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
           // deviations of BOTH overlapping curves compound (f-hook ∩ i-dot)
           const t = cv !== 255 ? 2 * TOL : TOL;
           let hit = false, minPred = 256;
-          if (g.lin ?? lin) {
-            const sh = gb >= 129 && gb !== 255 ? 1 : 0, s0 = shAt(x, y);
+          if (linG) {
+            const sh = gb >= 129 && gb !== 255 ? 1 : 0, s0 = lin ? shifts[canBase + rr * bw + cc] : 0;
             minPred = (((cv - s0) * (gb - sh)) / 255 | 0) + s0 + sh;
             // composite pixels may read 1 lighter than the law: the producer's
             // junction arithmetic is 1-ambiguous there (3/925 fitted pairs,
@@ -452,8 +520,8 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
               if (Math.abs(q(pred) - pv) <= t) { hit = true; break; }
             }
           }
-          if (process.env.BR_PIX && +process.env.BR_PIX === col && !hit)
-            console.log(`      pix '${g.ch}' pen ${pi + g.phx} @(${x},${y}) gb=${gb} cv=${cv} pv=${pv} minPred=${minPred}`);
+          if (DBG_PIX && +process.env.BR_PIX === col && !hit)
+            console.log(`      pix '${g.ch}' pen ${pi + g.phx} @(${gx + cc},${gy + rr}) gb=${gb} cv=${cv} pv=${pv} minPred=${minPred}`);
           if (hit) exact++;
           else if (pv < q(minPred) - t) pending++;     // darker: future glyph may composite
           else { ok = false; break; }
@@ -461,11 +529,10 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
         // pending is for kern overlap (a few columns) — a glyph "hiding" inside
         // solid ink shows up as mostly-pending and must not be accepted; a glyph
         // mostly inside an object mask has no evidence and is rejected too
-        const considered = g.ink.length - skipped;
-        if (!ok || considered < g.ink.length * 0.5 ||
+        const considered = nInk - skipped;
+        if (!ok || considered < nInk * 0.5 ||
             exact < considered * 0.5 || pending > considered * 0.35) continue;
-        // must explain the anchor column itself
-        if (col < gx || col >= gx + g.w) continue;
+        if (accepted.has(`${g.ch}@${pi + g.phx}`)) continue;  // after the pixel work: rare
         const score = exact - pending * 0.25;
         if (!best || score > best.score) best = { g, pi, gx, gy, exact, pending, score };
       }
@@ -630,6 +697,7 @@ async function readPage(page, sets, worker, useQuant) {
   // as their own blank-row-separated band, though the line's scan (which spans
   // baseline+maxDesc) read and reported them — such a band is not a □
   const explained = new Uint8Array(page.w * page.h);
+  let last = null;                        // previous band's winning (set, phy)
   for (const [top, bot] of bands) {
     // leftmost/rightmost non-object ink of the band
     let x0 = page.w, x1 = 0, fresh = false;
@@ -645,10 +713,23 @@ async function readPage(page, sets, worker, useQuant) {
     // objects sharing rows with this band (reported per line; space gaps
     // spanning them are suppressed)
     const lineObjects = objects.filter(ob => ob.y0 < bot + 4 && ob.y1 > top - 4);
+    // fast path (mirrors the app): most documents use ONE (font, y-phase)
+    // throughout — try the previous band's winner first and accept it when
+    // its probe fully reads; fall back to the full sweep otherwise
+    let pick = null;
+    if (last) {
+      for (let yb = bot; yb >= bot - last.set.maxDesc && yb > top && !pick; yb--) {
+        const probe = scanLine(page, mask, last.set, last.phy, yb,
+          Math.max(0, x0 - 2), Math.min(page.w, Math.max(0, x0 - 2) + 160), 4, 0, quant);
+        if (probe.glyphs.length >= 3 && probe.fails.length === 0)
+          pick = { set: last.set, phy: last.phy, yb,
+            score: probe.glyphs.reduce((s, g) => s + g.exact, 0) };
+      }
+    }
     // pin (set, phy, baseline): try candidates, keep best probe score
     // baseline = last ink row + 1 on descender-free lines, up to maxDesc higher
     // otherwise — try the whole range (and every set × y-phase)
-    let pick = null;
+    if (!pick)
     for (const set of sets)
       for (const phy of set.byPhy.keys())
         for (let yb = bot; yb >= bot - set.maxDesc && yb > top; yb--) {
@@ -665,6 +746,7 @@ async function readPage(page, sets, worker, useQuant) {
             const score = probeBaseline(page, mask, set, phy, yb, Math.max(0, x0 - 2), Math.min(page.w, x1 + 20), quant);
             if (score > 0 && (!pick || score > pick.score)) pick = { set, phy, yb, score };
           }
+    if (pick) last = { set: pick.set, phy: pick.phy };
     if (!pick) { lines.push({ top, bot, glyphs: [], fails: [x0], set: null, boxes: [] }); continue; }
     const L = scanLine(page, mask, pick.set, pick.phy, pick.yb,
       Math.max(0, x0 - 2), Math.min(page.w, x1 + 4), Infinity, Infinity, quant);
@@ -720,7 +802,15 @@ async function readPage(page, sets, worker, useQuant) {
 
 // ---------------- main ----------------
 async function main() {
-  let sets = o.glyphs.map(loadSet);
+  // '+' joins sets into one union POOL (mixed fonts on one line), ',' keeps
+  // separate per-band-pick sets: --glyphs a.json+b.json,c.json = [a∪b, c].
+  // Pool candidates cross-hit byte-identical fragments of a foreign font
+  // (courier body 'e' lost to a times sliver), so pool only what really
+  // mixes within a line; --union still merges everything (legacy).
+  let sets = o.glyphs.map(g => {
+    const parts = g.split('+');
+    return parts.length > 1 ? unionSets(parts.map(loadSet)) : loadSet(g);
+  });
   if (o.union && sets.length > 1) sets = [unionSets(sets)];
   const worker = o.verify ? startWorker(o.worker) : null;
   const t0 = Date.now();

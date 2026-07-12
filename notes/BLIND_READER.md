@@ -489,3 +489,113 @@ report-raster `34 / 2031 / 2 □` (unchanged) · v4 `30 / 884 / 1 □` (improved
 see fix 4; regress via `--raster raster-cache/5df5c985891500ac/page-0001.gray.gz`
 — the PDF left corpus/) · email `1908 / 113,599 / 0 □ / 1898 letter-exact`
 (new).
+
+## 2026-07-12 (courier) — courier_1/2.pdf read byte-exact; grouped union pools; small-box rule; v4 retired
+
+New corpus docs from the user: `courier_1.pdf` (25 p) and `courier_2.pdf`
+(76 p) — the document family the ORIGINAL char_training-main project (grid +
+NCC, 7×11 px templates, hardcoded xStart 60 / pitch 7.8026 / rowHeight 15)
+was built for: email headers in Times 16px (bold labels, redaction boxes)
+with the body — including pages of dense quoted base64 — in **Courier New
+13px em** (advance 7.8 px, row pitch 15; the old grid constants are exactly
+this font's metrics). Same corpus MuPDF producer: the Times header read
+byte-exact at tol 0 before any new work.
+
+**Courier glyph set.** `fontgen.py C:/Windows/Fonts/cour.ttf 13` +
+`export_glyphs.py` → `glyphs_cour13.json` (gitignored, like all sets; also in
+the app's loadSets defaults). With it, the body reads byte-exact at tol 0 —
+zero per-document tuning, as designed.
+
+**Union pools must be GROUPED.** First attempt fed one global `--union` pool
+(times trio + cour13): the body lost glyphs — `Cont□□t-Type`, a dash gone —
+because a Times sliver byte-matched a fragment of the Courier 'e'/'-' at a
+nearby pen, got accepted (pending-tolerance let it), and left one unexplained
+pixel that □-absorbed its neighbours. Cross-SIZE pools are the hazard; fonts
+that genuinely mix within a line share their size. Fixes:
+- bench: `--glyphs a.json+b.json,c.json` — `+` joins into one pool, `,`
+  separates per-band-pick sets ([a∪b, c]); `--union` (merge all) kept.
+- app: the union pass groups sets by `sizePx` into pools automatically.
+- app ladder reordered — ALL byte-exact passes (`{0}`, `{0,quant}`,
+  `{0,union}`, `{0,quant,union}`) before any tolerance pass; previously the
+  tol-2 early-stop could end escalation before union was ever tried.
+
+**Small solid boxes** (`detectObjects`, both readers). courier_2 P1 has an
+inline redaction only 23 px wide — under the 40 px dark-run threshold, so it
+was never masked and each of the two text lines it crosses lost a word to □
+absorption. New rule: a stack of ≥8 rows whose strictly-contiguous dark runs
+(10–39 px) share one x-extent (±1) is a filled box — glyphs can't fake it
+(letter interiors break contiguity; no glyph stack holds a constant extent
+for 8 rows — x-height spans ~7). Words beside the box now read; +4 glyphs on
+courier_2, byte-identical everywhere else.
+
+**Certified** (tol 0, `glyphs_times16+timesbd16+timesi16,cour13`):
+courier_1 `1552 lines / 114,816 glyphs / 1 □` · courier_2 `4899 / 374,461 /
+1 □`. Each doc's □ is the redacted `From:` line on P1: the '>' after the
+address box is partially OVERLAPPED by the box, and glyph pixels composited
+with box ink can't byte-match glyph-on-white — honest, root-caused, the
+covered pixels are unrecoverable by construction. `corpus/courier_1.txt` /
+`courier_2.txt` are the reader's own certified transcriptions (no external
+truth exists for these docs). Byte-exactness matters most exactly here: the
+base64 payload has zero redundancy — one glyph confusion corrupts the
+decoded attachment, which is why the old NCC confidence approach was risky.
+
+**App**: courier_1 P1 in-app = 57 rows, 57/57 letter-exact vs the certified
+transcription, via the sizePx-grouped union pass (16px pool + cour13);
+`test-blind-app.mjs` runs it as a standing case.
+
+**v4 retired from the gate** — raster cache removed at user request (the PDF
+had already left corpus/); last certified numbers recorded in
+notes/README.md. Full gate after this session: v3 `1785 / 122,865 / 2 □` ·
+big `18,308 / 1,338,823 / 4 □` · email `1908 / 113,599 / 0 □` · report-raster
+`34 / 2031 / 2 □` · courier_1 `1552 / 114,816 / 1 □` · courier_2 `4899 /
+374,461 / 1 □` — all green, expected numbers in notes/README.md.
+
+## 2026-07-13 — 15–50× speedup, byte-identical: big.pdf in 72 s
+
+User priority: Auto OCR speed on large documents (vs the legacy grid path's
+53 ms/page; blind was ~3 s/page). Profile first: 83% of wall time was the
+scanLine candidate-trial loop — not the baseline probing (4%). Three
+constant-factor changes plus one structural, in BOTH readers, with the page
+bytes' verdict that nothing changed but time:
+
+1. **Incremental unexplained tracking.** A per-column count of
+   page≠q(canvas) pixels, maintained on every canvas write; nextUnexplained
+   becomes a pointer walk instead of re-scanning the band window after every
+   accepted glyph.
+2. **Hot-loop precomputation.** Each glyph raster carries inkC/inkR/inkB
+   arrays (column, row, byte per ink pixel) built at load — the trial loop
+   drops its per-pixel div/mod/lookups and closure calls for direct indexing.
+3. **Fresh-canvas fast path.** On white canvas every e ∈ INV[gb] reproduces
+   gb by construction (the raster was rendered on white with the same law),
+   so prediction === raster byte and the e-loop collapses to one compare —
+   the overwhelmingly common case. (Bench: BR_PIX debug disables it so
+   per-pixel diagnostics stay complete.) Also: anchor-inside test hoisted
+   before pixel work, accepted-set string check moved after it.
+4. **Bench last-winner fast path** (the app already had it): the previous
+   band's (set, phy) is probed first and wins when it fully reads — the full
+   sets × phy × baseline sweep now runs only on font/style changes.
+
+Verified byte-identical, not just "still passes": every gate count AND
+letter/space-exact totals unchanged on all five documents, plus full-text
+`--out` byte-compare on courier_1+courier_2 against the pre-optimization
+transcriptions — zero byte diffs.
+
+| Document | before | after | |
+|---|---|---|---|
+| big.pdf (340 p) | 1034 s | **72 s** | 0.21 s/page, 14× |
+| v3.pdf (34 p) | 96 s | **5.1 s** | 19× |
+| email.pdf (36 p) | 95 s | **5.8 s** | 16× |
+| courier_1 (25 p) | 190 s | **4.4 s** | 43× |
+| courier_2 (76 p) | 668 s | **13.7 s** | 49× |
+| report raster (1 p) | 5.1 s | **0.5 s** | 10× |
+
+Post-profile: scanLine 32%, the rest spread over raster decode,
+detectObjects, and readPage bookkeeping — no dominant hotspot left. The
+app runs the identical code (test-blind-app: all cases byte-identical; the
+whole 5-page suite incl. browser startup is ~10 s). At ~0.2 s/page one core
+does ~430k pages/day; the earlier "~8 days/million pages" estimate is now
+~2.3 days/million on ONE core, before any parallelism. Next lever if ever
+needed: candidate shortlist indexed by first-ink-column signature (the
+legacy hashPixels idea) — deliberately NOT done now, since it interacts
+with pending/kern semantics and the constant-factor work already reached
+the target.
