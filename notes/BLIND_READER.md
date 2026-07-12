@@ -331,15 +331,32 @@ Repro: `node blind-read.mjs --pdf ../corpus/v4.pdf --tol 0 --quant --union
 --glyphs glyphs_times16.json,glyphs_timesbd16.json,glyphs_timesi16.json`
 
 **Same evening — v4 solved to tol 0 (`--quant`).** The ±2 deviations turned
-out to be PALETTE QUANTIZATION, not a foreign rasterizer: v4's page image is
-an `/Indexed` XObject whose palette keeps only 172 neutral levels; the law is
-`page = nearest available gray (ties darker)` on top of plain MuPDF bytes,
-byte-proven per value. `--quant` derives the available set from the page
-itself and routes every prediction through it (canvas stays unquantized —
-the producer quantized once, at the end). Full write-up:
-[V4_RENDERER_PROMPT.md](V4_RENDERER_PROMPT.md). Rule of thumb it adds: a
-document reading "almost but ±1" against a proven rasterizer = check for a
-palette before hunting renderers.
+out to be PALETTE QUANTIZATION, not a foreign rasterizer. The byte-proven
+model (this paragraph is the full record):
+
+1. The rasterizer is plain modern MuPDF — our fontgen Times rasters are its
+   rasters (75% of single-glyph ink pixels byte-exact before modeling step 2).
+2. v4's page image is an `/Indexed /DeviceRGB 255` XObject, 816×1056 native
+   (no rescale; 612×792 MediaBox → exactly 96 dpi); its 256-entry palette
+   keeps only **172 neutral (R=G=B) levels** plus the hyperlink blues.
+3. The law: `page = Q(orig)`, `Q(v)` = nearest neutral palette level, **ties
+   toward darker** — fitted per byte value over 566 glyphs / ~23k
+   single-glyph pixels, all 254 observed values conform (4 apparent
+   exceptions were colored-ink sums ≡ 0 mod 3 polluting the availability set).
+4. pdf.js is lossless here: the mode-2 raster cache (key `5df5c985891500ac`)
+   is byte-identical to decoding the palette image directly — 0 mismatches
+   over 861,696 pixels.
+
+`--quant` implements it with NO per-document fitting: the available-gray set
+is read off the (color-flooded) page histogram — every actual page byte is
+present by construction, and palette grays are fixpoints of Q — and every
+prediction-vs-page compare routes through Q while the scan canvas stays in
+ORIGINAL space (the producer composited first, quantized once at the end).
+Composite kern-junction pixels: MuPDF blend, then Q; no extra slack. Rule of
+thumb this adds: a document reading "almost but ±1" against a proven
+rasterizer = **check for a palette before hunting renderers** (`/Indexed` in
+the PDF, or a gappy gray histogram). Palettized page images are common in
+eDiscovery pipelines, so this should generalize far.
 
 Open: the app port (blindocr.js) lacks mode-2/union/strike/quant — the app
 sees the engine's (R+G+B)/3 buffer, but has canvas RGBA available so per-pixel

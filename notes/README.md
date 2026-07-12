@@ -26,7 +26,7 @@ but new work happens on the blind reader.
 | Glyph overlap compositing: `dst = (dst·(256−e))>>8`, `e = cov + (cov>>7)` | [SYNTHETIC_DICT.md](SYNTHETIC_DICT.md) |
 | Layout pens sit δ ∈ [0, 1/32 px] below ideal measureText positions; x0 = 45.0000 exactly; advances dyadic (1/128 px) | [MISSING_LETTER.md](MISSING_LETTER.md) |
 | report.pdf-family producer: MuPDF glyphs + own integer alpha compositor (`page = g+1` for raw g∈128..254; overlaps multiply in 255-space with floor) → the `*lin*` glyph sets | [REPORT_RENDERER_HUNT.md](REPORT_RENDERER_HUNT.md) |
-| v4.pdf-family producer: MuPDF glyphs + **palette quantization** (page image is /Indexed; page byte = nearest available gray, ties darker) → `--quant` | [V4_RENDERER_PROMPT.md](V4_RENDERER_PROMPT.md) |
+| v4.pdf-family producer: MuPDF glyphs + **palette quantization** (page image is /Indexed; page byte = nearest available gray, ties darker) → `--quant` | [BLIND_READER.md](BLIND_READER.md) 07-12 PM |
 | Color (mode-2) pages: plain black ink has R+G+B ≡ 0 (mod 3); non-neutral-connected ink components are flooded away before reading | [BLIND_READER.md](BLIND_READER.md) 07-12 PM |
 
 Rule of thumb: a new document reading "almost but ±1" against a proven
@@ -71,8 +71,9 @@ Legacy template-path gate: `dump-ocr.mjs` byte-compare (see bench/README.md).
   producer's linear law (SOLVED); its items 1–2 (box over-masking, false
   vrule) were fixed 07-12, item 3 (two ±5 junction pixels, read at --tol 1)
   stands.
-- [V4_RENDERER_PROMPT.md](V4_RENDERER_PROMPT.md) — v4's palette-quantization
-  law (SOLVED same-day; started as a hunt prompt, kept as the record).
+- [EMAIL_VRULE_PROMPT.md](EMAIL_VRULE_PROMPT.md) — NEXT SESSION: email.pdf
+  reads as one band (light-gray quote bar defeats object detection); root
+  cause confirmed, fix plan inside.
 - [MISSING_LETTER.md](MISSING_LETTER.md) — information-limit study: what a
   ¼-px bucket stream knows about an erased letter (L1 4.6% / L2 53% / L3
   bounded by the advance lattice). Also where δ and x0 were calibrated.
