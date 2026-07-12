@@ -14,8 +14,8 @@ from the pixels, and accepts a glyph only if it explains the page bytes
 through the renderer's proven blend law. Unknown ink becomes an honest `□`
 with exact coordinates — errors cannot pass silently. Glyph rasters come from
 fontgen (zero corpus pixels). The older grid/template path (templates/ dict +
-`reader.js`, see `../DOCUMENTATION.md`) still works and is regression-kept,
-but new work happens on the blind reader.
+reader.js) was REMOVED 2026-07-13 — the blind reader had strictly superseded
+it (BLIND_READER.md bottom sections record the removal and what replaced what).
 
 ## Proven physics (byte-exact facts — do not re-derive)
 
@@ -34,7 +34,7 @@ but new work happens on the blind reader.
 Rule of thumb: a new document reading "almost but ±1" against a proven
 rasterizer = **check for a palette before hunting renderers**.
 
-## The regression gate (run after any reader/template change)
+## The regression gate (run after any reader change)
 
 ```bash
 cd bench
@@ -79,7 +79,7 @@ raster cache (the PDF left corpus/); big/v3/v4 PDFs are local-only
 (.gitignored), caches under `bench/raster-cache/`.
 `--verify` per-line MuPDF re-render certificates need
 `..\ocr\tools\render_hypotheses.py` (Desktop/ocr workspace).
-Legacy template-path gate: `dump-ocr.mjs` byte-compare (see bench/README.md).
+Raster caches are populated once per document with `bench/rasterize.mjs`.
 
 ## Document map
 
@@ -98,8 +98,9 @@ Legacy template-path gate: `dump-ocr.mjs` byte-compare (see bench/README.md).
   ¼-px bucket stream knows about an erased letter (L1 4.6% / L2 53% / L3
   bounded by the advance lattice). Also where δ and x0 were calibrated.
 - [SYNTHETIC_DICT.md](SYNTHETIC_DICT.md) — zero-corpus-pixel template
-  dictionary recipe + the snap-boundary problem. Feeds the legacy path; the
-  fontgen glyph sets the blind reader uses come from the same identification.
+  dictionary recipe + the snap-boundary problem. Fed the (removed) legacy
+  path; the fontgen glyph sets the blind reader uses come from the same
+  identification.
 
 **Historical / superseded (kept for provenance)**
 - [MISSING_LETTER_PROMPT.md](MISSING_LETTER_PROMPT.md) — the session prompt
@@ -113,11 +114,9 @@ Legacy template-path gate: `dump-ocr.mjs` byte-compare (see bench/README.md).
 
 **Elsewhere**
 - `../README.md` — repo intro + quick start (app is Auto-OCR-first).
-- `../DOCUMENTATION.md` — the LEGACY grid/template app path (Config grid,
-  templates/ dict, matchAt/reader.js) — still accurate for that path.
-- `../bench/README.md` — every bench tool: blind reader + recreate certificate
-  up top; then the grid-path tools (dump-ocr, synth-templates, tracing,
-  pruning, metrics).
+- `../bench/README.md` — every bench tool: blind reader, rasterizer,
+  recreate certificate, app test. (The legacy grid-path tools and their
+  DOCUMENTATION.md were removed 2026-07-13 with the rest of that path.)
 - `..\ocr` workspace — renderer-hunt tooling (fontgen.py, export_glyphs.py,
   render_hypotheses.py, hunt_renderer.py); see its NOTES.md.
 - `../char_training-main/` — the ORIGINAL grid-NCC project this repo grew out

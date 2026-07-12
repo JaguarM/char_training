@@ -1,6 +1,6 @@
 // raster-cache-browser.js — browser half of the per-page raster cache.
 //
-// The matcher never looks at RGBA: TemplateEngine._pageFor reduces the page to one
+// The reader never looks at RGBA: PageEngine._pageFor reduces the page to one
 // grayscale Float32Array where each value is (R+G+B)/3 (see gray() in core.js). So
 // the cache stores the integer sums R+G+B — the float is reconstructed as sum/3,
 // the exact computation gray() performs, which makes the cached page BIT-IDENTICAL

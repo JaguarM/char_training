@@ -7,30 +7,26 @@ through real MuPDF as an independent certificate); anything unexplained is an
 honest `□` with exact coordinates. **Start with [notes/README.md](notes/README.md)**
 — the map of the proven physics, the regression gate, and all documentation.
 
-Two reading paths:
-
-- **Blind reader** (current) — no layout constants; bands, baselines, fonts,
-  spaces and non-text objects (redaction boxes, rules, strike-throughs) are
-  measured from the pixels. Headless: `bench/blind-read.mjs`; in the app: the
-  **Auto OCR** button (`blindocr.js`). Handles multiple fonts/compositors per
-  document, color pages, and palette-quantized producers.
-- **Grid/template path** (legacy, regression-kept) — manual row bands + a
-  hand/synth-harvested `templates/` dictionary, exact-pixel matching
-  (`ocr.js` + `reader.js`). Documented in [DOCUMENTATION.md](DOCUMENTATION.md);
-  in the app it lives in the collapsed "Legacy" panel.
+The reader is the **blind reader** — no layout constants; bands, baselines,
+fonts, spaces and non-text objects (redaction boxes, rules, strike-throughs)
+are measured from the pixels. Headless: `bench/blind-read.mjs`; in the app:
+the **Auto OCR** button (`blindocr.js`). Handles multiple fonts/compositors
+per document, color pages, and palette-quantized producers, at ~0.2 s/page.
+(The original grid/template path this project grew out of was removed
+2026-07-13 — history in [notes/BLIND_READER.md](notes/BLIND_READER.md); the
+original standalone tool survives outside the repo in `../char_training-main/`.)
 
 ## Files
 
 | File | Purpose |
 |---|---|
-| `training.html` / `training.js` / `training.css` | Browser UI: PDF viewing, Auto OCR (primary), glyph extraction, legacy grid tools |
+| `training.html` / `training.js` / `training.css` | Browser UI: PDF viewing, Auto OCR, text editing, glyph extraction |
 | `blindocr.js` | Browser port of the blind reader (Auto OCR / Auto OCR All / .txt + .json export) |
-| `ocr.js` / `reader.js` | Legacy path: template matching engine + grid line reader |
-| `core.js` | DOM-free logic (stem↔char maps, geometry, pixel math & hashing); unit-tested in Node (`node test.js`) |
-| `launch.py` | Local HTTP server; serves the UI, `/api/templates`, and the raster cache |
-| `templates/` | Legacy glyph dictionary (PNG per variant + `template_metrics.json`) |
-| `bench/` | All headless tooling — blind reader, recreation certificate, dumps, benchmarks, template tools: [bench/README.md](bench/README.md) |
-| `corpus/` | Test documents (PDFs .gitignored — local only) + certified transcriptions (`v3.txt`, `big.txt`) |
+| `ocr.js` | PageEngine: whole-page grayscale buffer + RGBA access the reader works from |
+| `core.js` | DOM-free logic (stem↔char maps, geometry, the gray() page law); unit-tested in Node (`node test.js`) |
+| `launch.py` | Local static HTTP server (UI, glyph sets, raster cache, corpus) |
+| `bench/` | Headless tooling — blind reader, rasterizer, recreation certificate, app test: [bench/README.md](bench/README.md) |
+| `corpus/` | Test documents (PDFs .gitignored — local only) + certified transcriptions (`*.txt`) |
 | `notes/` | Research record: proven physics, producer laws, session results — index in [notes/README.md](notes/README.md) |
 
 ## Quick start
@@ -49,21 +45,14 @@ cd bench
 node blind-read.mjs --pdf ../corpus/v3.pdf --all --truth ../corpus/v3.txt
 ```
 
-> Glyph saving (legacy path) uses the File System Access API — Chrome/Edge.
+Glyph rasters come from fontgen exports (`bench/glyphs_*.json`, gitignored) —
+regenerate with the `..\ocr` workspace's `fontgen.py` + `export_glyphs.py`.
 
-## Legacy template workflow
-
-Set up row bands + font in the Legacy panel, drag each line's purple anchor,
-type or Grid-OCR the line, double-click a character box to save it as a
-template PNG. Filename stems map to characters via `STEM_TO_CHAR` in
-`core.js` (`A_UPPER.png` → `A`, `eq.png` → `=`, `_2`/`_3` variants per subpixel
-slot; names containing `unmatched` are skipped). Details, layout model, and
-matching internals: [DOCUMENTATION.md](DOCUMENTATION.md).
+> Glyph-crop saving (double-click a box) uses the File System Access API —
+> Chrome/Edge.
 
 ## Verification discipline
 
-Any change to a reader or template set is gated on re-reading the full corpus
-and comparing against the certified transcriptions — the exact commands and
-expected numbers live in [notes/README.md](notes/README.md). For template-set
-changes additionally byte-compare whole-document dumps (`bench/dump-ocr.mjs`,
-see [bench/README.md](bench/README.md)).
+Any reader change is gated on re-reading the full corpus and comparing against
+the certified transcriptions — the exact commands and expected numbers live in
+[notes/README.md](notes/README.md).

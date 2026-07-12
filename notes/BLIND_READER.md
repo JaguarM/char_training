@@ -599,3 +599,33 @@ needed: candidate shortlist indexed by first-ink-column signature (the
 legacy hashPixels idea) — deliberately NOT done now, since it interacts
 with pending/kern semantics and the constant-factor work already reached
 the target.
+
+## 2026-07-13 (later) — legacy grid/template path removed
+
+With Auto OCR at full parity and 15–50× faster, the user retired the legacy
+path. Deleted: `templates/` (1,465 PNGs) + `templates_full_synth/`,
+`reader.js`, the app's Legacy panel + `matchAt` + grid-settings bindings,
+`DOCUMENTATION.md`, and the grid bench tools (dump-ocr, ocr-bench,
+synth-templates, trace/prune/merge-templates, measure-anchor/metrics/spaces,
+compare-dump, adopt-ocr-rows, fix-spaces, dump-layout, ttf.mjs).
+`launch.py` no longer serves `/api/templates`; readiness probes use
+`/training.html`.
+
+What replaced the one real dependency: **`bench/rasterize.mjs`** populates
+the raster cache (PDF → pdf.js embedded-image extraction → gray() → GRY1),
+which `dump-ocr.mjs` used to do as a side effect of legacy OCR. Proven
+byte-identical: deleted a cached courier_1 page, regenerated it through the
+new tool, `cmp` clean against the backup — existing caches stay valid (same
+key, same bytes).
+
+Slimmed survivors: `ocr.js` is now `PageEngine` (page buffer + `pageRGBA`
+only — buffer semantics unchanged), `core.js` keeps stem↔char maps /
+`makeRowBands` / `gray()` (the pixel-equality and hashing primitives left
+with the matcher), `test.js` trimmed accordingly (3/3 pass). The `Config`
+grid in `training.js` remains as the pre-OCR placeholder row model.
+
+Post-removal gate: byte-identical across all six documents and the app test
+(v3 `1785/122,865/2□/1779` · big `18,308/1,338,823/4□/18,271` · email
+`1908/113,599/0□` · report `34/2031/2□` · courier_1 `1552/114,816/1□` ·
+courier_2 `4899/374,461/1□`). The original standalone grid-NCC tool lives on
+outside the repo in `../char_training-main/` (reference only).
