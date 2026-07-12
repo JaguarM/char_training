@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>char_training — byte-exact Auto OCR</title>
+<link rel="stylesheet" href="training.css">
+  <script src="/assets/vendor/pdf.min.js"></script>
+</head>
+<body>
+
+<div id="toolbar">
+  <label id="pdf-label">
+    Pick PDF
+    <input type="file" id="pdf-input" accept="application/pdf">
+  </label>
+
+  <button class="btn" id="blind-ocr-btn" title="Grid-free OCR: measures bands, baselines, pens and spaces from the pixels; auto font + compositor pick; detects redaction boxes and rules; per-line byte certificates">Auto OCR</button>
+  <button class="btn" id="ocr-all-btn" title="Auto OCR every page of the document">Auto OCR All</button>
+  <button class="btn" id="download-txt-btn" disabled>Download .txt</button>
+  <button class="btn" id="download-json-btn" disabled title="Structured export: per-line baseline, font, certificate, tolerance + objects">.json</button>
+
+  <div class="page-controls" style="display: flex; gap: 8px; align-items: center; margin-left: 16px;">
+    <button class="btn" id="prev-page-btn" disabled>&lt;</button>
+    <select id="page-select" style="background: #333; color: white; border: 1px solid #555; padding: 4px 8px; border-radius: 4px;"></select>
+    <button class="btn" id="next-page-btn" disabled>&gt;</button>
+  </div>
+
+  <label class="line-field">
+    Line text:
+    <input type="text" id="line-input" spellcheck="false" autocomplete="off"
+           placeholder="click a line's start, then type its text…">
+  </label>
+
+  <div class="legend">
+    <div class="legend-item"><span class="swatch swatch-purple"></span> line start</div>
+    <div class="legend-item"><span class="swatch swatch-blue"></span> text rows</div>
+    <div class="legend-item"><span class="swatch swatch-green"></span> exact match</div>
+    <div class="legend-item"><span class="swatch swatch-orange"></span> placeholder</div>
+  </div>
+
+  <div id="info">No image loaded &nbsp;·&nbsp; Drag anchor = line start &nbsp;·&nbsp; Scroll = zoom &nbsp;·&nbsp; Drag = pan</div>
+</div>
+
+<div id="label-modal" class="hidden">
+  <div id="label-modal-inner">
+    <canvas id="label-preview"></canvas>
+    <input id="label-input" type="text" spellcheck="false" autocomplete="off" maxlength="64" placeholder="label…" />
+    <div id="label-hint">Enter &nbsp;=&nbsp; save &nbsp;·&nbsp; Esc &nbsp;=&nbsp; cancel</div>
+  </div>
+</div>
+
+<div id="main-content">
+  <div id="settings-panel">
+    <div class="settings-group">
+      <h3>How to use</h3>
+      <p class="settings-help"><b>Auto OCR</b> reads the page with no settings: line
+      positions, baselines, font, size and spacing are measured from the pixels, and
+      every line carries a byte-exactness certificate (green = certified). Redaction
+      boxes and rules are detected and shown as overlays. <b>Auto OCR All</b> +
+      Download .txt / .json export the whole document. Click a row to edit its text;
+      double-click any glyph box to extract it.</p>
+    </div>
+  </div>
+
+  <div id="canvas-wrap">
+    <canvas id="canvas"></canvas>
+  </div>
+</div>
+
+<script src="core.js"></script>
+<script src="ocr.js"></script>
+<script src="blindocr.js"></script>
+<script src="training.js"></script>
+</body>
+</html>

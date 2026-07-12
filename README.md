@@ -1,80 +1,61 @@
 # char_training
 
-Tools for extracting text from scanned PDFs where the content is encoded as monospaced Base64 printed on a rigid character grid.
+Byte-exact OCR for MuPDF-rendered document rasters. Accuracy is **certified,
+not sampled**: a line is accepted only when its glyphs explain the page's
+pixels exactly through the renderer's proven blend law (optionally re-rendered
+through real MuPDF as an independent certificate); anything unexplained is an
+honest `□` with exact coordinates. **Start with [docs/README.md](docs/README.md)**
+— the map of the proven physics, the regression gate, and all documentation.
 
-## Target documents
-
-The two PDFs this toolchain was built for are released FOIA productions from the Epstein investigation:
-
-| Document | ID |
-|---|---|
-| EFTA00382083 | FBI Epstein production |
-| EFTA00400459 | FBI Epstein production |
-
-Both can be downloaded from the DOJ FOIA reading room:
-**https://www.justice.gov/epstein/search**
-
----
-
-## How it works
-
-Each page of the scanned PDF contains a raster image. The image shows monospaced Base64 text printed on a fixed character grid:
-
-| Constant | Value | Meaning |
-|---|---|---|
-| `xStart` | `60` px | Left edge of the text block |
-| `xEnd` | `653` px | Right edge of the text block |
-| `nCols` | `76` | Characters per line |
-| `charPitch` | `≈ 7.80` px | Width of one character cell |
-| `rowHeight` | `15` px | Distance between text baselines |
-| `cellSize` | `7 × 11` px | Crop extracted per character for matching |
-
-For each cell the tool runs **Normalized Cross-Correlation (NCC)** against a library of 7×11 px reference glyphs. The best match above a confidence threshold is kept; rows where the average score falls below **0.40** are discarded as noise. After all pages are processed the tool scans the output for the Base64 header marker `JVBERi0xLj` (the PDF magic bytes in Base64) and extracts everything from that point onward as the recovered payload.
-
----
+The reader is the **blind reader** — no layout constants; bands, baselines,
+fonts, spaces and non-text objects (redaction boxes, rules, strike-throughs)
+are measured from the pixels. Headless: `tools/blind-read.mjs`; in the app:
+the **Auto OCR** button (`blindocr.js`). Handles multiple fonts/compositors
+per document, color pages, and palette-quantized producers, at ~0.2 s/page.
+(The original grid/template path this project grew out of was removed
+2026-07-13 — history in [docs/BLIND_READER.md](docs/BLIND_READER.md); the
+original standalone tool survives outside the repo in `../char_training-main/`.)
 
 ## Files
 
-```
-batch_ocr.html        — Main OCR tool (self-contained, open in Chrome/Edge)
-char_training/        — Template training tools (see char_training/README.md)
-DOCUMENTATION.md      — Deep-dive technical reference for the training UI
-```
-
----
-
-## batch_ocr.html — Quick start
-
-`batch_ocr.html` is fully self-contained. Open it directly in Chrome or Edge — no server required. Templates are baked in as inline Base64 by `char_training/bake_templates.py`.
-
-### Toolbar
-
-| Button | Action |
+| Path | Purpose |
 |---|---|
-| **Pick PDF** | Load a PDF file. Pages are processed lazily — each page's embedded raster image is extracted on demand. |
-| **Run OCR** | Process every page. Progress bar and live row count update during the run. |
-| **Save base64.txt** | Download the recovered Base64 string as a `.txt` file. |
-| **Decode PDF** | Decode the recovered Base64 directly in the browser and download the result as a `.pdf`. |
+| `src/training.html` · `training.js` · `training.css` | Browser UI: PDF viewing, Auto OCR, text editing, glyph extraction |
+| `src/blindocr.js` | Browser port of the blind reader (Auto OCR / Auto OCR All / .txt + .json export) |
+| `src/ocr.js` | PageEngine: whole-page grayscale buffer + RGBA access the reader works from |
+| `src/core.js` | DOM-free logic (stem↔char maps, geometry, the gray() page law); unit-tested in Node (`npm test`) |
+| `launch.py` | Local static HTTP server (UI, glyph sets, raster cache, corpus) |
+| `assets/` | `glyphs/` fontgen glyph sets (gitignored; shared by app + tools) · `vendor/pdf.min.js` |
+| `tools/` | Headless tooling — blind reader, rasterizer, recreation certificate, app test: [tools/README.md](tools/README.md) |
+| `test/` | Node unit tests for `core.js` (`npm test`) |
+| `corpus/` | Test documents (PDFs .gitignored — local only) + certified transcriptions (`*.txt`) |
+| `docs/` | Research record: proven physics, producer laws, session results — index in [docs/README.md](docs/README.md) |
 
-### Processing pipeline
+## Quick start
 
-1. **Extract** — for each PDF page, the embedded raster image is pulled from the PDF operator stream (`paintImageXObject` / `paintJpegXObject`).
-2. **Auto-detect row baseline** — `autoDetectBase` sweeps the row offset from 28 to 52 px and picks the value that maximises average NCC score on the last 10 rows. Falls back to 40 px if no sweep value clears the 0.40 threshold.
-3. **OCR** — each of the 65 row × 76 column cells is cropped to 7×11 px, converted to grayscale, and matched via NCC against the baked-in template set.
-4. **Filter** — rows where every cell is blank are dropped; rows where the mean non-blank score is below 0.40 are dropped.
-5. **Assemble** — all kept rows are joined. The tool searches for `JVBERi0xLj` and strips everything before it. All non-Base64 characters are removed.
-6. **Decode** — `atob()` converts the cleaned Base64 string to binary; the result is offered as a PDF download.
+```
+python launch.py                # serve on http://localhost:8765 and open the browser
+# or:  npm run serve            # same, via the root package.json
+```
 
----
+Open a PDF (**Pick PDF**), hit **Auto OCR** (or **Auto OCR All** + **Download
+.txt/.json**). Measured bands, per-glyph pens, detected objects and per-line
+byte-clean certificates come back without any layout setup. Headless
+equivalent:
 
-## char_training/ — Template library
+```
+cd tools
+node blind-read.mjs --pdf ../corpus/v3.pdf --all --truth ../corpus/v3.txt
+```
 
-See **[char_training/README.md](char_training/README.md)** for the full workflow.
+Glyph rasters come from fontgen exports (`assets/glyphs/glyphs_*.json`, gitignored) —
+regenerate with the `..\ocr` workspace's `fontgen.py` + `export_glyphs.py`.
 
-In brief: run `python char_training/launch.py`, pick one of the target PDFs in `training.html`, double-click any cell to label it, then run `python char_training/bake_templates.py` to embed the updated template set into `batch_ocr.html`.
+> Glyph-crop saving (double-click a box) uses the File System Access API —
+> Chrome/Edge.
 
----
+## Verification discipline
 
-## Browser requirements
-
-Chrome 86+ or Edge 86+. The File System Access API (`showDirectoryPicker`) is required for the training tool's direct-save workflow; `batch_ocr.html` itself has no such dependency.
+Any reader change is gated on re-reading the full corpus and comparing against
+the certified transcriptions — the exact commands and expected numbers live in
+[docs/README.md](docs/README.md).
