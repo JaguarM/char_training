@@ -11,7 +11,7 @@
 // ---------------------------------------------------------------------------
 const test = require('node:test');
 const assert = require('node:assert');
-const core = require('./core.js');
+const core = require('../src/core.js');
 
 test('charToStem / stemToChar round-trips', () => {
   // A–Z uppercase → <letter>_UPPER and back

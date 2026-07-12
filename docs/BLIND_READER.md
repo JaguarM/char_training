@@ -5,7 +5,7 @@
 
 ## Current state (2026-07-12)
 
-`bench/blind-read.mjs` (browser port `blindocr.js` = the app's Auto OCR) is
+`tools/blind-read.mjs` (browser port `blindocr.js` = the app's Auto OCR) is
 THE reader. Capabilities: measured bands/baselines/fonts (per-band auto-pick
 across glyph sets), byte-exact composite-aware scan, measured spaces,
 non-text objects (mode-voted box extents, rules, vrules), strike-through
@@ -13,7 +13,7 @@ voiding, mode-2 color pages (neutral-sum reading + colored-ink flood),
 `--union` mixed-font lines, `--tol N` for unidentified rasterizers,
 `--quant` for palette-quantized producers, `--verify` MuPDF re-render
 certificates, `--json` positions export (round-trip-proven by
-`bench/recreate.mjs`).
+`tools/recreate.mjs`).
 
 | Document | Producer / mode | Result (2026-07-12) |
 |---|---|---|
@@ -31,7 +31,7 @@ match-rate collapse, never silent errors.
 
 ## 2026-07-10 — the original design
 
-`bench/blind-read.mjs`: the generalization step. The main reader assumes the
+`tools/blind-read.mjs`: the generalization step. The main reader assumes the
 corpus grid (rows 40+18·r, baseline top+11, startX 45, measureText spacing);
 this one assumes NOTHING about layout and measures everything from the pixels:
 
@@ -147,10 +147,10 @@ In-app certificate: no Python in the app, so instead of the MuPDF re-render
 the port certifies a line as **byte-clean** when every non-object ink pixel
 of its band was explained byte-exactly through the blend law (fails = 0,
 residual = 0) — the same composition the bench cross-checks against real
-MuPDF. Glyph sets are fetched from `bench/glyphs_*.json` (any exported set
+MuPDF. Glyph sets are fetched from `assets/glyphs/glyphs_*.json` (any exported set
 joins the auto font pick).
 
-Headless test (`bench/test-blind-app.mjs`, real training.html + viewer):
+Headless test (`tools/test-blind-app.mjs`, real training.html + viewer):
 v3 P1 40 rows / 39 byte-clean (the □-flagged From-line shown honestly),
 v3 P2 54/54 rows byte-clean and exact vs v3.txt, hostile arial page 10/10
 byte-clean with arial auto-detected and space self-calibrated to 4.42 px
@@ -242,7 +242,7 @@ first-class output and there is a tool that PROVES the output is lossless:
   session) and the app's `.json` download both carry `glyphs: [[ch, pen], …]`
   per line alongside baseline / y-phase / font / certificate. A page is fully
   described by (glyph, pen, baseline, font, compositor) + objects.
-- **`bench/recreate.mjs`** — the round-trip certificate: reads a positions
+- **`tools/recreate.mjs`** — the round-trip certificate: reads a positions
   JSON, re-renders every page (mupdf-model lines through real MuPDF via the
   worker; linear-model lines composed in pure JS with the fitted producer
   law), and byte-compares against the cached truth outside objects/□ masks.
@@ -299,7 +299,7 @@ unchanged.
 
 v4.pdf (1 page, an email print: Times 16px, MuPDF-family but ±2/px off our
 rasters — reads at `--tol 2`) exercised three new reader capabilities
-(bench/blind-read.mjs only; not yet in blindocr.js):
+(tools/blind-read.mjs only; not yet in blindocr.js):
 
 - **Mode-2 (color) raster support** in `readGray`: pages are u16 R+G+B sums.
   Achromatic ink (plain black text) has sum ≡ 0 (mod 3) at every pixel, so
@@ -400,7 +400,7 @@ R==G==B would be even cleaner there.
    built.
 
 Reproduce:
-`node bench/blind-read.mjs --pdf ../corpus/v3.pdf --all --truth ../corpus/v3.txt --verify`
+`node tools/blind-read.mjs --pdf ../corpus/v3.pdf --all --truth ../corpus/v3.txt --verify`
 · hostile pages: `python ..\ocr\tools\make_hostile.py <dir>` then
 `--raster <dir>/hostile_arial.gray.gz --glyphs glyphs_times16.json,glyphs_arial16.json,glyphs_georgia16.json`.
 
@@ -408,7 +408,7 @@ Reproduce:
 
 Session prompt: [EMAIL_VRULE_PROMPT.md](EMAIL_VRULE_PROMPT.md). The confirmed
 quote-bar root cause was real but email.pdf hid three more; all four fixes
-landed in BOTH `bench/blind-read.mjs` and `blindocr.js` (kept in sync), and
+landed in BOTH `tools/blind-read.mjs` and `blindocr.js` (kept in sync), and
 the app port closed the whole feature gap (color pages, `--quant`, `--union`,
 strike suppression) — the "Open:" item of the previous section is done.
 
@@ -479,7 +479,7 @@ predicted; space calibration unaffected.
   48/54 letter-exact (6 = the classified truth rows) · email P2 54/54
   letter-exact` — the app reads email.pdf as cleanly as the bench.
 
-Gate after this session (update notes/README.md when these move):
+Gate after this session (update docs/README.md when these move):
 v3 `1785 / 122,865 / 2 □ / 1779 letter-exact` (unchanged) · big `18,308 /
 1,338,823 / 4 □ / 18,271 letter-exact` (+1 line +1 glyph: P211's clipped
 base64 "ix" row — an unread □ band before — now pins its baseline via fix 4
@@ -545,10 +545,10 @@ transcription, via the sizePx-grouped union pass (16px pool + cour13);
 
 **v4 retired from the gate** — raster cache removed at user request (the PDF
 had already left corpus/); last certified numbers recorded in
-notes/README.md. Full gate after this session: v3 `1785 / 122,865 / 2 □` ·
+docs/README.md. Full gate after this session: v3 `1785 / 122,865 / 2 □` ·
 big `18,308 / 1,338,823 / 4 □` · email `1908 / 113,599 / 0 □` · report-raster
 `34 / 2031 / 2 □` · courier_1 `1552 / 114,816 / 1 □` · courier_2 `4899 /
-374,461 / 1 □` — all green, expected numbers in notes/README.md.
+374,461 / 1 □` — all green, expected numbers in docs/README.md.
 
 ## 2026-07-13 — 15–50× speedup, byte-identical: big.pdf in 72 s
 
@@ -611,7 +611,7 @@ compare-dump, adopt-ocr-rows, fix-spaces, dump-layout, ttf.mjs).
 `launch.py` no longer serves `/api/templates`; readiness probes use
 `/training.html`.
 
-What replaced the one real dependency: **`bench/rasterize.mjs`** populates
+What replaced the one real dependency: **`tools/rasterize.mjs`** populates
 the raster cache (PDF → pdf.js embedded-image extraction → gray() → GRY1),
 which `dump-ocr.mjs` used to do as a side effect of legacy OCR. Proven
 byte-identical: deleted a cached courier_1 page, regenerated it through the

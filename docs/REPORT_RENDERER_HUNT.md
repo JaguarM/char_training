@@ -68,7 +68,7 @@ So: `fonts/*lin_*.npz` glyph sets = pymupdf render + `R` (fontgen.py
   the law canvas, per-glyph mupdf-law + shift: each fails at some verified
   overlap pixel. Only the model above survives all of them.
 
-## Status of the tol-0 blind read (bench/blind-read.mjs, sets *lin*)
+## Status of the tol-0 blind read (tools/blind-read.mjs, sets *lin*)
 
 `node blind-read.mjs --pdf ../corpus/report.pdf --all --tol 0 --glyphs
 glyphs_tnr8lin16.json,glyphs_timesbdlin16.json,glyphs_timesilin16.json,glyphs_timeslin16.json,glyphs_tnr8lin10.json`
@@ -77,7 +77,7 @@ glyphs_tnr8lin16.json,glyphs_timesbdlin16.json,glyphs_timesilin16.json,glyphs_ti
 with ~10 clusters; old sets at tol 0 gave 136+). All fi/fl/ffi words,
 superscript ordinals ("71st"), hex serials etc. read byte-exact. The
 reader's linear-set blend law + shift canvas + slack lives in
-bench/blind-read.mjs (grep `lin`).
+tools/blind-read.mjs (grep `lin`).
 
 ### Remaining 5 fail events — root-caused, all reader object-handling
 
@@ -122,7 +122,7 @@ the "fifth floor" docx guess was actually "first floor" on the page.)
 - FT DLL probes: `tools/ft_probe.py <freetype.dll>`.
 - Glyph set generation: `python tools/fontgen.py <font.ttf> <size_px>
   <out.npz> --linear`, export via `tools/export_glyphs.py <npz> <bench json>`.
-- Raster cache (`char_training/bench/raster-cache/fe9580296d53ee66/`) is the
+- Raster cache (`char_training/tools/raster-cache/fe9580296d53ee66/`) is the
   only byte-truth; never re-rasterize report.pdf.
 - **2026-07-12:** corpus/report.pdf was later replaced by a SINGLE page (the
   old p6, cache `a42927acc2aaca91`) and then removed from corpus/ entirely —

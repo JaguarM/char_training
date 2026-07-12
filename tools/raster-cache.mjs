@@ -1,7 +1,7 @@
 // raster-cache.mjs — node half of the per-page raster cache (browser half:
 // raster-cache-browser.js, which documents the record format).
 //
-// The cache lives at bench/raster-cache/<sha256[:16] of the PDF bytes>/ so it is
+// The cache lives at tools/raster-cache/<sha256[:16] of the PDF bytes>/ so it is
 // (a) keyed to the exact document — a swapped PDF gets a fresh directory — and
 // (b) under the repo root, so launch.py's static handler already serves it to the
 // page with no server changes. Node's only jobs are hashing the PDF, answering
@@ -23,7 +23,7 @@ export async function openRasterCache(pdfPath, repoRoot) {
       .on('error', rej);
   });
   const key = sha.slice(0, 16);
-  const dir = join(repoRoot, 'bench', 'raster-cache', key);
+  const dir = join(repoRoot, 'tools', 'raster-cache', key);
   mkdirSync(dir, { recursive: true });
   const metaPath = join(dir, 'meta.json');
   const meta = existsSync(metaPath) ? JSON.parse(readFileSync(metaPath, 'utf8')) : null;
@@ -31,7 +31,7 @@ export async function openRasterCache(pdfPath, repoRoot) {
   return {
     key,
     // URL path (relative to the served repo root) the browser fetches pages from.
-    urlBase: `bench/raster-cache/${key}`,
+    urlBase: `tools/raster-cache/${key}`,
     // numPages recorded by a previous completed run, or 0 if unknown.
     numPages: meta?.numPages ?? 0,
     pageName: pageFile,

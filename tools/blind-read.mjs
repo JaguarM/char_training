@@ -38,6 +38,7 @@ import { dirname, resolve, join, basename } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(__dirname, '..');
+const GLYPH_DIR = resolve(REPO, 'assets', 'glyphs');   // shared glyph sets (fontgen exports)
 
 // ---------------- args ----------------
 const o = { pdf: null, raster: null, page: 1, all: false, truth: null, out: null,
@@ -100,7 +101,7 @@ function readGray(path) {
 }
 function cachePages(pdfPath) {
   const key = createHash('sha256').update(readFileSync(pdfPath)).digest('hex').slice(0, 16);
-  const dir = join(REPO, 'bench', 'raster-cache', key);
+  const dir = join(REPO, 'tools', 'raster-cache', key);
   const meta = JSON.parse(readFileSync(join(dir, 'meta.json'), 'utf8'));
   return { numPages: meta.numPages,
     page: pno => readGray(join(dir, `page-${String(pno).padStart(4, '0')}.gray.gz`)) };
@@ -109,7 +110,7 @@ function cachePages(pdfPath) {
 // ---------------- glyph sets ----------------
 // per (ch, phx, phy): raster bytes + dx/dy + ink pixel list + first-ink column
 function loadSet(file) {
-  const j = JSON.parse(readFileSync(resolve(__dirname, file), 'utf8'));
+  const j = JSON.parse(readFileSync(resolve(GLYPH_DIR, file), 'utf8'));
   const byPhy = new Map();                       // phy -> [{ch, adv, phx, w,h,dx,dy,bytes,ink,inkLeft}]
   let maxAsc = 0, maxDesc = 0;
   for (const [ch, rec] of Object.entries(j.chars)) {

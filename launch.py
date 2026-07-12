@@ -1,10 +1,10 @@
 """
 launch.py
 ---------
-Serves the Auto OCR app (training.html) and the repo's static files
-(glyph sets under bench/, the raster cache, corpus PDFs).
+Serves the Auto OCR app (src/training.html) and the repo's static files
+(glyph sets under assets/glyphs/, the raster cache, corpus PDFs).
 
-  GET /                    → training.html
+  GET /                    → src/training.html
   GET /<path>              → static file from this directory
 
 Usage:
@@ -37,7 +37,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path in ("/", ""):
             self.send_response(302)
-            self.send_header("Location", "/training.html")
+            self.send_header("Location", "/src/training.html")
             self.send_header("Content-Length", "0")  # keep keep-alive in sync (HTTP/1.1)
             self.end_headers()
         else:

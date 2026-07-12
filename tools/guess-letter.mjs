@@ -1,11 +1,11 @@
 // guess-letter.mjs — stress-test the information limit of the ¼-px bucket stream:
 // erase ONE letter from a real corpus line and try to recover it from what
-// survives. Physics per notes/RENDERER_IDENTIFIED.md + notes/SYNTHETIC_DICT.md
+// survives. Physics per docs/RENDERER_IDENTIFIED.md + docs/SYNTHETIC_DICT.md
 // (MuPDF TNR 12pt @ 96dpi gray, integer baselines 40+18·row+11, pen x snapped
 // to ¼ px with boundaries at .125, layout = Chrome measureText from startX 45,
 // drawn pens sit δ ∈ [0, ~0.03] px BELOW the ideal measureText positions).
 //
-// Three evidence levels, reported separately (notes/MISSING_LETTER_PROMPT.md):
+// Three evidence levels, reported separately (docs/MISSING_LETTER_PROMPT.md):
 //   1 geometry-only : erase the glyph's full advance window ∪ its ink columns;
 //                     infer from the surviving glyphs' located ¼-px buckets via
 //                     interval intersection.
@@ -22,7 +22,7 @@
 //   node guess-letter.mjs --calibrate 80                        # δ + x0 floor stats
 //   (--pdf ../corpus/v3.pdf default; --pdf ../corpus/big.pdf for volume)
 //
-// Page rasters come exclusively from bench/raster-cache/ (never re-rasterized);
+// Page rasters come exclusively from tools/raster-cache/ (never re-rasterized);
 // glyph rasters from glyphs_times16.json (export_glyphs.py in the ocr workspace).
 
 import { createHash } from 'node:crypto';
@@ -37,6 +37,7 @@ import { findChrome } from './paths.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(__dirname, '..');
+const GLYPH_DIR = resolve(REPO, 'assets', 'glyphs');   // shared glyph sets (fontgen exports)
 
 // ---------------- proven layout constants ----------------
 const ROW_COUNT = 54, ROW_BASE = 40, ROW_PITCH = 18, BASE_OFF = 11;
@@ -49,7 +50,7 @@ const SNAP = x => Math.round(x * 4) / 4;   // ¼-px pen snap (boundaries at .125
 const DELTA_MAX_DEFAULT = 0.032;
 
 // Rows excluded from sampling (narrow-space styled rows under manual review —
-// notes/SPACE_REVIEW.md — plus P4 L36 redaction-box row and P5 L13 where
+// docs/SPACE_REVIEW.md — plus P4 L36 redaction-box row and P5 L13 where
 // v3.txt itself is truncated). Keyed by raster-cache key so a different PDF
 // never inherits the list. 'page-row', page 1-based, row 0-based.
 const SKIP_ROWS = {
@@ -99,7 +100,7 @@ function sha16(path) {
 }
 function openCache(pdfPath) {
   const key = sha16(pdfPath);
-  const dir = join(REPO, 'bench', 'raster-cache', key);
+  const dir = join(REPO, 'tools', 'raster-cache', key);
   const meta = JSON.parse(readFileSync(join(dir, 'meta.json'), 'utf8'));
   const pages = new Map();                                    // pno -> {w,h,gray}
   const order = [];
@@ -140,7 +141,7 @@ function loadSourcePages(path) {
 
 // ---------------- glyph set ----------------
 function loadGlyphs() {
-  const path = join(__dirname, 'glyphs_times16.json');
+  const path = join(GLYPH_DIR, 'glyphs_times16.json');
   if (!existsSync(path)) throw new Error(`missing ${path} — run ocr/tools/export_glyphs.py`);
   const j = JSON.parse(readFileSync(path, 'utf8'));
   const GS = new Map();

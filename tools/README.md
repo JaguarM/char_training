@@ -1,9 +1,9 @@
-# bench/ — headless tooling
+# tools/ — headless tooling
 
 The blind reader family — the whole system since the legacy grid/template
 tools were removed (2026-07-13; history in
-[../notes/BLIND_READER.md](../notes/BLIND_READER.md)). The map of proven
-physics and the full regression gate: [../notes/README.md](../notes/README.md).
+[../docs/BLIND_READER.md](../docs/BLIND_READER.md)). The map of proven
+physics and the full regression gate: [../docs/README.md](../docs/README.md).
 
 ---
 
@@ -65,7 +65,7 @@ port carries the full bench feature set (union pools, color, strike, quant).
 
 # Erased-letter information limit — `guess-letter.mjs`
 
-The stress-test tool behind [../notes/MISSING_LETTER.md](../notes/MISSING_LETTER.md)
+The stress-test tool behind [../docs/MISSING_LETTER.md](../docs/MISSING_LETTER.md)
 (erase one glyph, infer it back at three evidence levels; also `--calibrate`
 for the δ/x0 physics numbers).
 

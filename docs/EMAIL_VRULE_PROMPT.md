@@ -7,8 +7,8 @@
 > root causes found (palette-quantized P1, detached-ink bands):
 > [BLIND_READER.md](BLIND_READER.md), bottom section. Kept for provenance.
 
-Read `notes/README.md` first (physics + regression gate), then the
-`detectObjects` sections of `bench/blind-read.mjs` and `blindocr.js` (kept in
+Read `docs/README.md` first (physics + regression gate), then the
+`detectObjects` sections of `tools/blind-read.mjs` and `blindocr.js` (kept in
 sync — every fix lands in BOTH). Don't re-derive the root cause; it is
 measured and confirmed below.
 
@@ -70,11 +70,11 @@ Considerations:
   populated, never re-rasterize. Repro of the root-cause measurement: scan
   each column for its longest contiguous sub-255 run and print runs ≥100 rows
   with their min gray (a 10-line node script against the cache).
-- App path test: `bench/test-blind-app.mjs` (add an email page case once it
+- App path test: `tools/test-blind-app.mjs` (add an email page case once it
   reads).
-- Full regression gate + expected numbers: `notes/README.md`. Update those
+- Full regression gate + expected numbers: `docs/README.md`. Update those
   numbers there if the gate legitimately changes, and append results to
-  `notes/BLIND_READER.md` (newest at bottom).
+  `docs/BLIND_READER.md` (newest at bottom).
 
 ## Deliverables
 

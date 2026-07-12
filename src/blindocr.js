@@ -1,5 +1,5 @@
 // blindocr.js — self-calibrating byte-exact OCR core for the app (DOM-free,
-// browser port of bench/blind-read.mjs). No layout constants: ink bands,
+// browser port of tools/blind-read.mjs). No layout constants: ink bands,
 // per-band baseline/y-phase/font pinning, a left→right composite-aware scan
 // against fontgen glyph rasters, non-text object detection (redaction boxes,
 // rules/underlines), and spaces measured from pen gaps.
@@ -7,10 +7,10 @@
 // In-app certificate: a line is CLEAN when the scan explained every non-object
 // ink pixel of its band byte-exactly through the proven blend law
 // (dst = (dst·(256−e))>>8, e = cov + (cov>>7)) — fails = 0 and residual = 0.
-// (The bench's MuPDF re-render cross-check lives in bench/blind-read.mjs
+// (The bench's MuPDF re-render cross-check lives in tools/blind-read.mjs
 // --verify; this is the same composition law applied in reverse.)
 //
-// Glyph sets come from bench/glyphs_*.json (export_glyphs.py — pure synthetic
+// Glyph sets come from assets/glyphs/glyphs_*.json (export_glyphs.py — pure synthetic
 // fontgen rasters, 4 x-phases × 2 y-phases). Load with BlindOCR.loadSets().
 (function (root) {
   'use strict';
@@ -70,15 +70,15 @@
   async function loadSets(urls) {
     if (_sets) return _sets;
     const out = [];
-    for (const u of urls ?? ['bench/glyphs_times16.json', 'bench/glyphs_timesbd16.json',
-      'bench/glyphs_timesi16.json', 'bench/glyphs_tnr8_16.json',
-      'bench/glyphs_arial16.json', 'bench/glyphs_georgia16.json',
-      'bench/glyphs_cour13.json',                    // courier_1/2 body font
+    for (const u of urls ?? ['/assets/glyphs/glyphs_times16.json', '/assets/glyphs/glyphs_timesbd16.json',
+      '/assets/glyphs/glyphs_timesi16.json', '/assets/glyphs/glyphs_tnr8_16.json',
+      '/assets/glyphs/glyphs_arial16.json', '/assets/glyphs/glyphs_georgia16.json',
+      '/assets/glyphs/glyphs_cour13.json',                    // courier_1/2 body font
       // linear-compositor variants (eDiscovery producer — see blind-read.mjs);
       // the per-band auto-pick chooses whichever compositor matches the page
-      'bench/glyphs_timeslin16.json', 'bench/glyphs_timesbdlin16.json',
-      'bench/glyphs_timesilin16.json', 'bench/glyphs_tnr8lin16.json',
-      'bench/glyphs_tnr8lin10.json']) {
+      '/assets/glyphs/glyphs_timeslin16.json', '/assets/glyphs/glyphs_timesbdlin16.json',
+      '/assets/glyphs/glyphs_timesilin16.json', '/assets/glyphs/glyphs_tnr8lin16.json',
+      '/assets/glyphs/glyphs_tnr8lin10.json']) {
       try {
         const r = await fetch(u, { cache: 'no-store' });
         if (!r.ok) continue;
@@ -351,7 +351,7 @@
     return bands;
   }
 
-  // ---- the scanner (see bench/blind-read.mjs for the full derivation) ----
+  // ---- the scanner (see tools/blind-read.mjs for the full derivation) ----
   // TOL relaxes byte-exactness to |Δ|≤TOL per glyph-ink pixel (2×TOL on
   // composite pixels, where two curves' rasterizer deviations compound) — for
   // pages from a NEAR-identical rasterizer (e.g. an older FreeType). 0 = exact.
