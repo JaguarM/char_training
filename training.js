@@ -179,146 +179,10 @@ class CanvasViewer {
   }
 
   // ------------------------------------------------------------------
-  // Templates + OCR
-  //
-  // The OCR methods live in two mixins, both Object.assign'd onto this prototype
-  // at the bottom of this file (so `this` is the viewer, the line/font settings
-  // stay here):
-  //   • ocr.js    — CanvasViewerTemplates: template loading
-  //                 (autoLoadTemplatesFromHTTP, loadTemplates, reloadTemplates).
-  //   • reader.js — CanvasViewerReader: line reading, spacing & alignment
-  //                 (ocrRow, ocrAllRows, rescoreManualRow, refreshOcrAfterSave,
-  //                 _reportConfidence, plus the _nextInk / _matchNear helpers).
+  // OCR = Auto OCR only (blindocr.js below). The legacy grid/template path
+  // (matchAt template matching, reader.js line reader, templates/ dict) was
+  // removed 2026-07-13 — see notes/BLIND_READER.md for the record.
   // ------------------------------------------------------------------
-
-  // Identify the glyph at image column sx, row-band top sy.
-  //
-  // Two bugs in the old "first exact match wins" rule are fixed here:
-  //
-  // Bug 2 (double letter): a narrow template (e.g. i) can exactly match a slice of a
-  // wider glyph, so pass 1 collects ALL exact matches and returns the widest — the
-  // widest exact match is the one whose template truly owns this position.
-  //
-  // Bug 1 (poke-left): uppercase T V W Y … sometimes have their top row extend 1px
-  // further left than the template's bounding box, changing the anti-aliased edge pixel
-  // at col 0 of row 0. No whole-crop shift can align both the shifted top row and the
-  // unchanged body rows at the same time, so pass 2 retries with poke-left tolerance:
-  // rows 1..h-1 must match exactly; row 0 cols 1..w-1 must match exactly; col 0 of row
-  // 0 is allowed to differ. Widest poke-tolerant match wins; exact always beats poke.
-  //
-  // Pass 3 (stain tolerance): a redaction box overlapping the band from below covers
-  // the bottom rows of every glyph of that line (full black plus an anti-aliased
-  // edge row), and a box in the band below draws its AA edge line through row h−1 —
-  // either way the bottom 3 rows (the POKE_CROP margin) can be stained. A left
-  // neighbour's overhang (an f hook before = or <) can likewise stain the window's
-  // 2×2 top-left corner beyond what the harvested variant saw. Stained pixels only
-  // ever get DARKER (ink composites over the glyph), so pass 3 accepts a template
-  // whose stain-zone pixels are merely not lighter than the page while everything
-  // else matches exactly. Exact beats poke beats stain.
-  matchAt(sx, sy) {
-    let exactBest = null;
-    let pokeBest = null;
-    let stainBest = null;
-
-    // One whole-page buffer lookup per probe (identity-cached), plus a Uint32 view
-    // over the same floats for bit-pattern hashing, memoized on the page object.
-    const page = this.engine._pageFor(this.img);
-    const PW = page.w, PH = page.h, pg = page.gray;
-    const u32 = page.u32 ??
-      (page.u32 = new Uint32Array(pg.buffer, pg.byteOffset, pg.length));
-    const x0 = Math.round(sx + TEMPLATE_LEFT_CROP), y0 = Math.round(sy);
-
-    // Hash the in-page window ONCE per template height, incrementally column by
-    // column (column-major FNV, matching the mapCM/pokeMapCM keys built at load):
-    // the chain hash after w columns is exactly hashPixelsCM of the w-wide window,
-    // so every size group of this height reads its lookup key from a checkpoint of
-    // one shared sweep instead of re-hashing its own window. wMax caps the sweep at
-    // the page's right edge; wider groups fall back to the copying path below.
-    for (const plan of this.engine._chainPlans.values()) {
-      plan.wMax = (x0 >= 0 && y0 >= 0 && y0 + plan.h <= PH)
-        ? Math.min(plan.maxW, PW - x0) : 0;
-      let hE = 0x811c9dc5, hP = 0x811c9dc5, hSB = 0x811c9dc5, hSC = 0x811c9dc5;
-      for (let c = 0; c < plan.wMax; c++) {
-        let idx = y0 * PW + x0 + c;
-        for (let r = 0; r < plan.h; r++, idx += PW) {
-          const v = u32[idx];
-          hE = Math.imul(hE ^ v, 0x01000193);
-          if (c | r) hP = Math.imul(hP ^ v, 0x01000193);
-          if (r < plan.h - 3) {                         // stain chains skip the bottom 3 rows…
-            hSB = Math.imul(hSB ^ v, 0x01000193);
-            if (r >= 2 || c >= 2)                       // …and hSC the 2×2 corner too
-              hSC = Math.imul(hSC ^ v, 0x01000193);
-          }
-        }
-        plan.hE[c + 1] = hE;
-        plan.hP[c + 1] = hP;
-        plan.hSB[c + 1] = hSB;
-        plan.hSC[c + 1] = hSC;
-      }
-    }
-
-    for (const g of this.engine._sizes.values()) {
-      // Hash lookup instead of a scan over every template of the size: candidates are
-      // the (usually 0-1) templates whose pixel hash equals the window's; full pixel
-      // equality then confirms, so a hash collision can never produce a false match.
-      const plan = this.engine._chainPlans.get(g.h);
-      if (g.w <= plan.wMax) {
-        const cand = g.mapCM.get(plan.hE[g.w] >>> 0);
-        if (cand) for (const t of cand) {
-          if (pixelsEqualStrided(pg, PW, x0, y0, t.pixels, g.w, g.h) &&
-              (!exactBest || t.w > exactBest.w))
-            exactBest = { char: t.char, score: EXACT_MATCH, w: t.w, t };
-        }
-        if (g.h >= 2) {
-          const pcand = g.pokeMapCM.get(plan.hP[g.w] >>> 0);
-          if (pcand) for (const t of pcand) {
-            if (pixelsEqualPokeTolerantStrided(pg, PW, x0, y0, t.pixels, g.w, g.h) &&
-                (!pokeBest || t.w > pokeBest.w))
-              pokeBest = { char: t.char, score: EXACT_MATCH, w: t.w, t };
-          }
-        }
-        if (g.h >= 3) {
-          const corner = g.w >= 4;
-          const scand = g.stainMapCM.get((corner ? plan.hSC : plan.hSB)[g.w] >>> 0);
-          if (scand) for (const t of scand) {
-            if (pixelsEqualStainTolerantStrided(pg, PW, x0, y0, t.pixels, g.w, g.h, corner) &&
-                (!stainBest || t.w > stainBest.w))
-              stainBest = { char: t.char, score: EXACT_MATCH, w: t.w, t };
-          }
-        }
-        continue;
-      }
-      // Edge probe: the copying path keeps cropPixels' zero-padding of off-page pixels.
-      const px = this.engine.cropPixels(this.img, sx + TEMPLATE_LEFT_CROP, sy, g.w, g.h);
-      const cand = g.map.get(hashPixels(px, 0));
-      if (cand) for (const t of cand) {
-        if (pixelsEqual(px, t.pixels) && (!exactBest || t.w > exactBest.w))
-          exactBest = { char: t.char, score: EXACT_MATCH, w: t.w, t };
-      }
-      if (g.h >= 2) {
-        const pcand = g.pokeMap.get(hashPixels(px, 1));
-        if (pcand) for (const t of pcand) {
-          if (pixelsEqualPokeTolerant(px, t.pixels, g.w) && (!pokeBest || t.w > pokeBest.w))
-            pokeBest = { char: t.char, score: EXACT_MATCH, w: t.w, t };
-        }
-      }
-    }
-
-    return exactBest ?? pokeBest ?? stainBest ?? { char: PLACEHOLDER, score: 0, w: 0, t: null };
-  }
-
-  // ------------------------------------------------------------------
-  // Settings → geometry
-  // ------------------------------------------------------------------
-  applySettings() {
-    this.rowBands = this.config.makeRowBands();
-    this.rowPens = [];        // grid settings changed → leave blind-OCR mode
-    this.blindObjects = null;
-    this.ensureRows();
-    this.rebuildBoxes();
-    this.updateInfo();
-    this.render();
-  }
 
   // ------------------------------------------------------------------
   // Auto OCR (blind) — grid-free reading via blindocr.js: measured bands,
@@ -439,7 +303,6 @@ class CanvasViewer {
       return sc;
     });
     this.rowMode = res.lines.map(() => 'ocr');
-    this.rowStopX = res.lines.map(() => null);
     this.rowPens = res.lines.map(L => L.entries);
     this.blindObjects = res.objects;
     this.rebuildBoxes();
@@ -515,15 +378,6 @@ class CanvasViewer {
         score: scores[i] ?? null, row: r, i,
       });
     }
-    // An OCR row's trailing □ marks the glyph that stopped the line. Pin it to
-    // that glyph's real ink column (rowStopX) instead of the drifted space
-    // estimate, so it sits on the glyph and a double-click captures it cleanly.
-    const last = out[out.length - 1];
-    if (last && last.char === PLACEHOLDER && this.rowMode[r] === 'ocr' && this.rowStopX[r] != null) {
-      const w = last.x1 - last.x0;
-      last.x0 = this.rowStopX[r];
-      last.x1 = last.x0 + w;
-    }
     return out;
   }
 
@@ -556,8 +410,8 @@ class CanvasViewer {
   updateInfo() {
     if (!this.img) return;
     this.infoEl.textContent =
-      `${this.filename}  ·  ${this.img.width}×${this.img.height} px  ·  ${this.config.rowCount} rows  ·  ` +
-      `${this.config.fontSize}px ${this.config.fontFamily}  ·  Drag anchor=line start  Type=fill line  Dbl-click box=extract`;
+      `${this.filename}  ·  ${this.img.width}×${this.img.height} px  ·  ` +
+      `Auto OCR reads with no settings  ·  Type=fill line  Dbl-click box=extract`;
   }
 
   render() {
@@ -774,9 +628,7 @@ class CanvasViewer {
         const fh = await this.dirHandle.getFileHandle(filename, { create: true });
         const w2 = await fh.createWritable();
         await w2.write(blob); await w2.close();
-        await this.reloadTemplates();
-        this.refreshOcrAfterSave();
-        this.infoEl.textContent = `Saved: ${filename}  (${w}×${h}px) — re-OCR'd page.`;
+        this.infoEl.textContent = `Saved: ${filename}  (${w}×${h}px)`;
       } catch { this.infoEl.textContent = `Error saving ${filename}`; }
     } else {
       const filename = `${stem}.png`;
@@ -890,10 +742,6 @@ class CanvasViewer {
   }
 }
 
-// Mix the OCR methods onto CanvasViewer: template loading (CanvasViewerTemplates,
-// ocr.js) and line reading (CanvasViewerReader, reader.js) — both loaded first.
-Object.assign(CanvasViewer.prototype, CanvasViewerTemplates, CanvasViewerReader);
-
 
 // ---------------------------------------------------------------------------
 // App Initialization
@@ -967,50 +815,13 @@ document.addEventListener('DOMContentLoaded', () => {
   nextBtn.addEventListener('click', () => loadPage(currentPageIndex + 1));
   pageSelect.addEventListener('change', e => loadPage(parseInt(e.target.value, 10)));
 
-  // Live-bind every numeric / text setting input to the Config
-  const numericSettings = ['rowBase', 'rowHeight', 'rowPitch', 'rowCount', 'fontSize'];
-  for (const key of numericSettings) {
-    const el = document.getElementById(`set-${key}`);
-    if (!el) continue;
-    el.value = config[key];
-    el.addEventListener('input', () => {
-      const v = parseFloat(el.value);
-      if (!Number.isNaN(v)) { config[key] = v; viewer.applySettings(); }
-    });
-  }
-  const fontFamilyEl = document.getElementById('set-fontFamily');
-  if (fontFamilyEl) {
-    fontFamilyEl.value = config.fontFamily;
-    fontFamilyEl.addEventListener('input', () => {
-      config.fontFamily = fontFamilyEl.value || 'Times New Roman';
-      viewer.applySettings();
-    });
-  }
-
   // Line transcription input — type the line's text, boxes follow font widths
   const lineInput = document.getElementById('line-input');
   lineInput.addEventListener('input', () => viewer.setLineText(lineInput.value));
 
-  // Primary OCR = Auto OCR (grid-free, self-verifying). The legacy
-  // grid/template reader stays available from the Legacy panel — the bench
-  // (dump-ocr.mjs) still drives those code paths, so they are demoted in the
-  // UI, not removed. Templates now load on demand instead of at startup.
+  // OCR = Auto OCR (grid-free, self-verifying).
   document.getElementById('blind-ocr-btn').addEventListener('click',
     () => viewer.blindOcrPage().catch(e => { viewer.infoEl.textContent = `Auto OCR failed: ${e.message}`; }));
-  document.getElementById('templates-btn').addEventListener('click', () => viewer.loadTemplates());
-  document.getElementById('ocr-page-btn').addEventListener('click', async () => {
-    if (viewer.engine.templates.length === 0) {
-      viewer.infoEl.textContent = 'Loading templates for grid OCR…';
-      try { await viewer.autoLoadTemplatesFromHTTP(); } catch {}
-      if (viewer.engine.templates.length === 0) {
-        viewer.infoEl.textContent = 'Grid OCR needs templates — click Load Templates.';
-        return;
-      }
-    }
-    // grid OCR assumes the configured bands — leave blind mode first
-    if (viewer.rowPens && viewer.rowPens.some(Boolean)) viewer.applySettings();
-    viewer.ocrAllRows();
-  });
 
   // Auto OCR every page + download — the browser equivalent of
   // bench/blind-read.mjs --all. Text export strips □ (unreadable-cluster
