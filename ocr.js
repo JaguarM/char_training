@@ -163,6 +163,17 @@ class TemplateEngine {
     return this._page;
   }
 
+  // RGBA of the current page if it came through a real canvas draw — null for
+  // seeded cache pages ({width,height} stand-ins never touch the canvas). The
+  // blind reader uses it to spot colored ink exactly (R≠G≠B per pixel); see
+  // BlindOCR.whitenColored.
+  pageRGBA(img) {
+    if (!img || (img.getContext === undefined && img.naturalWidth === undefined)) return null;
+    const page = this._pageFor(img);
+    if (this._c.width !== page.w || this._c.height !== page.h) return null;
+    try { return this._ctx.getImageData(0, 0, page.w, page.h).data; } catch { return null; }
+  }
+
   // Grayscale crop of the source at native (w×h) — no resampling, so a
   // previously-cut glyph re-read at the same place is pixel-identical. Indexes
   // the whole-page buffer (_pageFor) rather than reading the canvas per crop.
