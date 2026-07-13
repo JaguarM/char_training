@@ -12,6 +12,9 @@ fonts, spaces and non-text objects (redaction boxes, rules, strike-throughs)
 are measured from the pixels. Headless: `tools/blind-read.mjs`; in the app:
 the **Auto OCR** button (`blindocr.js`). Handles multiple fonts/compositors
 per document, color pages, and palette-quantized producers, at ~0.2 s/page.
+The same engine ships inside the Recto PDF editor (`../Recto`) as its
+`ocr_tool` plugin — synced verbatim with `npm run sync:recto`, smoke-tested
+with `npm run recto-test`; the engine is developed only here.
 (The original grid/template path this project grew out of was removed
 2026-07-13 — history in [docs/BLIND_READER.md](docs/BLIND_READER.md); the
 original standalone tool survives outside the repo in `../char_training-main/`.)

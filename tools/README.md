@@ -81,3 +81,33 @@ other tool then works from the cache without the PDF.
 node rasterize.mjs --pdf ../corpus/doc.pdf            # all pages
 node rasterize.mjs --pdf ../corpus/doc.pdf --page 3   # one page
 ```
+
+# Recto plugin sync — `sync-recto.mjs`
+
+The engine also runs inside the **Recto PDF editor** (`../Recto`) as its
+`ocr_tool` plugin. This repo stays the ONLY place the engine is developed;
+Recto receives verbatim copies. After any engine change (and its corpus
+gate), push them over:
+
+```
+npm run sync:recto                 # src/{core,ocr,blindocr}.js + assets/glyphs/*.json
+node sync-recto.mjs --check        # report staleness only (exit 1 if stale)
+node sync-recto.mjs --recto <dir>  # non-default Recto location
+```
+
+Copies into `Recto/ocr_tool/static/ocr_tool/{engine,glyphs}/` (plus a
+`glyphs/index.json` listing and content-hash cache-busters in the plugin's
+`tool.py`; `*_OFF.json` sets are skipped). The plugin's Recto-side adapter
+(`ocr-tool.js`) is owned by Recto — see `Recto/guide/plugins/ocr-tool/`.
+
+# Recto plugin smoke test — `test-recto-app.mjs`
+
+End-to-end certificate that the SYNCED engine reads inside Recto: boots the
+Django app headless, waits for its bundled default document (Times-family
+eDiscovery raster), runs the plugin's Auto OCR on P1, and asserts byte-clean
+`ocr` boxes rendered into the unified text box system. Run after every sync
+and after Recto adapter edits.
+
+```
+npm run recto-test                 # or: node test-recto-app.mjs --recto <dir>
+```

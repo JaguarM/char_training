@@ -9,6 +9,8 @@
     "test": "node test/test.js",
     "bench": "node tools/blind-read.mjs",
     "rasterize": "node tools/rasterize.mjs",
-    "app-test": "node tools/test-blind-app.mjs"
+    "app-test": "node tools/test-blind-app.mjs",
+    "sync:recto": "node tools/sync-recto.mjs",
+    "recto-test": "node tools/test-recto-app.mjs"
   }
 }

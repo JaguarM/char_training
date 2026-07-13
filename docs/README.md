@@ -48,6 +48,8 @@ node blind-read.mjs --pdf ../corpus/courier_1.pdf --all \
 node blind-read.mjs --pdf ../corpus/courier_2.pdf --all \
   --glyphs glyphs_times16.json+glyphs_timesbd16.json+glyphs_timesi16.json,glyphs_cour13.json
 node test-blind-app.mjs        # the app's Auto OCR path (blindocr.js)
+node sync-recto.mjs --check    # Recto's embedded engine copy still current?
+node test-recto-app.mjs        # after a sync: the engine inside Recto's ocr_tool plugin
 ```
 
 Expected (2026-07-12 late): v3 `1785 lines / 122,865 glyphs / 2 □ / 1779 letter-exact`
@@ -114,6 +116,12 @@ Raster caches are populated once per document with `tools/rasterize.mjs`.
 
 **Elsewhere**
 - `../README.md` — repo intro + quick start (app is Auto-OCR-first).
+- `../Recto` — the Recto PDF editor (Django) embeds the engine as its
+  `ocr_tool` plugin: verbatim copies of `src/{core,ocr,blindocr}.js` +
+  glyph sets, pushed by `tools/sync-recto.mjs` (`npm run sync:recto`),
+  smoke-tested end-to-end by `tools/test-recto-app.mjs` (`npm run
+  recto-test`). THIS repo is the only place the engine is edited; the
+  Recto-side adapter and plugin docs live in `Recto/guide/plugins/ocr-tool/`.
 - `../tools/README.md` — every bench tool: blind reader, rasterizer,
   recreate certificate, app test. (The legacy grid-path tools and their
   DOCUMENTATION.md were removed 2026-07-13 with the rest of that path.)

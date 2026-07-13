@@ -198,50 +198,14 @@ class CanvasViewer {
     return this._blindSets;
   }
 
-  // Escalating passes, all BYTE-EXACT machinery first: plain per-band pick
-  // (both compositor models are in the set list), palette quantization
-  // (v4/email-P1-family producers palettize the final page), same-size
-  // mixed-font union pools (bold label + regular value on ONE line) — and
-  // only then per-pixel tolerances for producers with sub-model rounding
-  // stragglers, ±10 last for near-identical renderers we haven't modelled.
-  // Keeps the fewest-failures read at the earliest (weakest-machinery) pass;
-  // certificates are labelled accordingly, never silently weakened.
-  static blindPasses = [
-    { tol: 0 }, { tol: 0, quant: true },
-    { tol: 0, union: true }, { tol: 0, quant: true, union: true },
-    { tol: 1 }, { tol: 2 }, { tol: 10 },
-  ];
-
-  _passLabel(pass) {
-    return (pass.tol ? ` (±${pass.tol})` : '') + (pass.quant ? ' (palette)' : '') +
-      (pass.union ? ' (mixed-font)' : '');
-  }
-
+  // The escalation ladder itself (pass order, tie-breaks, early exits) lives
+  // in blindocr.js (BlindOCR.readPageAuto) so embedders share it; this
+  // wrapper only adds the app's status-line progress text.
   async _blindReadEscalating(page, label = 'Auto OCR', passHint = null) {
     const sets = await this._ensureBlindSets();
-    const ladder = CanvasViewer.blindPasses;
-    const key = p => `${p.tol}|${p.quant ? 1 : 0}|${p.union ? 1 : 0}`;
-    // a document's producer doesn't change page to page — try the previous
-    // page's winning pass first, then the full ladder (ties prefer the
-    // EARLIER, weaker pass so certificates never weaken without cause)
-    const passes = passHint ? [passHint, ...ladder.filter(p => key(p) !== key(passHint))] : ladder;
-    let best = null;
-    for (const pass of passes) {
-      const r = await BlindOCR.readPage(page, sets, { tol: pass.tol,
-        quant: pass.quant, union: pass.union,
-        progress: (d, t) => { this.infoEl.textContent =
-          `${label}${this._passLabel(pass)}: ${d}/${t} bands…`; },
-      });
-      const fails = r.lines.reduce((s, L) => s + L.fails.length, 0) +
-        r.lines.filter(L => !L.set).length;
-      const rank = ladder.findIndex(p => key(p) === key(pass));
-      if (!best || fails < best.fails || (fails === best.fails && rank < best.rank))
-        best = { res: r, pass, fails, rank };
-      if (best.fails === 0) break;                     // fully read — stop here
-      const glyphs = r.lines.reduce((s, L) => s + L.glyphs.length, 0);
-      if (pass.tol >= 2 && glyphs >= fails * 8) break; // good enough — stop escalating
-    }
-    return { res: best.res, pass: best.pass };
+    return BlindOCR.readPageAuto(page, sets, { passHint,
+      progress: (pass, d, t) => { this.infoEl.textContent =
+        `${label}${BlindOCR.passLabel(pass)}: ${d}/${t} bands…`; } });
   }
 
   // Whole-document Auto OCR. pageProvider(i) resolves to a canvas (or a
