@@ -14,9 +14,10 @@ plus template-level and page-level proofs below. Chrome/Skia, pdfium, Quartz,
 gamma-correct FreeType and hinted rendering are all ruled out by pixel values
 (MAD 7–22 gray levels at the same protocol; MuPDF = 0).
 
-Full evidence chain, tools, and proof images live in `C:\Users\yanni\Desktop\ocr`
-(see its `NOTES.md`; `tools/one_template.py` there recreates `B_UPPER_1.png`
-byte-for-byte — 0/105 pixels differ).
+Full evidence chain, tools, and proof images live in the archived ocr
+workspace zip (its `NOTES.md` is preserved as
+[RENDERER_HUNT_NOTES.md](RENDERER_HUNT_NOTES.md); `tools/one_template.py`
+there recreates `B_UPPER_1.png` byte-for-byte — 0/105 pixels differ).
 
 Minimal self-contained repro (needs `pip install pymupdf`):
 

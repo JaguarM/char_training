@@ -72,7 +72,7 @@ const o = {
   pdf: join(REPO, 'corpus', 'v3.pdf'), source: null, page: 0, row: -1, col: -1,
   sample: 0, targeted: false, seed: 1, levels: [1, 2, 3], deltaMax: DELTA_MAX_DEFAULT,
   calibrate: 0, out: null, chrome: process.env.CHROME || findChrome(),
-  worker: 'C:/Users/yanni/Desktop/ocr/tools/render_hypotheses.py',
+  worker: join(__dirname, 'fontgen', 'render_hypotheses.py'),
 };
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i], next = () => process.argv[++i];
@@ -142,7 +142,7 @@ function loadSourcePages(path) {
 // ---------------- glyph set ----------------
 function loadGlyphs() {
   const path = join(GLYPH_DIR, 'glyphs_times16.json');
-  if (!existsSync(path)) throw new Error(`missing ${path} — run ocr/tools/export_glyphs.py`);
+  if (!existsSync(path)) throw new Error(`missing ${path} — run tools/fontgen/export_glyphs.py`);
   const j = JSON.parse(readFileSync(path, 'utf8'));
   const GS = new Map();
   for (const [ch, rec] of Object.entries(j.chars)) {

@@ -16,7 +16,8 @@ from any corpus document** — every byte is a MuPDF render of Times New Roman
   v3.txt stops at "user" (it inherited an old reader stop at a then-missing '?').
   → v3.txt fix candidate.
 
-## Recipe (all tooling shareable; Python halves live in `..\ocr\tools\`)
+## Recipe (all tooling shareable; the `render_synth_*.py` halves live in the
+archived ocr workspace zip — fontgen/export_glyphs now in `tools/fontgen/`)
 
 1. `tools/dump-layout.mjs` — kern-correct glyph lefts for every row of v3.txt via
    Chrome measureText (startX 45) → `docs/layout_v3.json`. Pure layout, no pixels.

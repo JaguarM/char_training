@@ -52,7 +52,8 @@ node blind-read.mjs --pdf ../corpus/v3.pdf --all --truth ../corpus/v3.txt
 ```
 
 Glyph rasters come from fontgen exports (`assets/glyphs/glyphs_*.json`, gitignored) —
-regenerate with the `..\ocr` workspace's `fontgen.py` + `export_glyphs.py`.
+regenerate with `tools/fontgen/export_glyphs.py` from the committed
+`assets/fonts/*.npz` rasters (see `tools/README.md`).
 
 > Glyph-crop saving (double-click a box) uses the File System Access API —
 > Chrome/Edge.

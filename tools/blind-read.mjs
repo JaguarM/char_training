@@ -22,7 +22,7 @@
 //                        per-line 100% certificate (render_hypotheses.py).
 //
 // Multiple glyph sets may be given; the reader auto-picks per band (font
-// detection). Sets come from ../ocr/tools/export_glyphs.py (fontgen rasters —
+// detection). Sets come from fontgen/export_glyphs.py (fontgen rasters —
 // zero corpus pixels).
 //
 //   node blind-read.mjs --pdf ../corpus/v3.pdf --page 2 --verify
@@ -43,7 +43,7 @@ const GLYPH_DIR = resolve(REPO, 'assets', 'glyphs');   // shared glyph sets (fon
 // ---------------- args ----------------
 const o = { pdf: null, raster: null, page: 1, all: false, truth: null, out: null,
   json: null, glyphs: ['glyphs_times16.json'], verify: false, tol: 0,
-  worker: 'C:/Users/yanni/Desktop/ocr/tools/render_hypotheses.py' };
+  worker: join(__dirname, 'fontgen', 'render_hypotheses.py') };
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i], next = () => process.argv[++i];
   if (a === '--pdf') o.pdf = resolve(process.cwd(), next());

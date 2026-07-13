@@ -31,7 +31,7 @@ const REPO = resolve(__dirname, '..');
 const GLYPH_DIR = resolve(REPO, 'assets', 'glyphs');   // shared glyph sets (fontgen exports)
 
 const o = { json: null, pdf: null, page: null,
-  worker: 'C:/Users/yanni/Desktop/ocr/tools/render_hypotheses.py' };
+  worker: join(__dirname, 'fontgen', 'render_hypotheses.py') };
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i], next = () => process.argv[++i];
   if (a === '--json') o.json = resolve(process.cwd(), next());

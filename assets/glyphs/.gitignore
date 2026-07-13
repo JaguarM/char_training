@@ -1,3 +1,3 @@
-# Generated glyph sets — fontgen exports from the ../ocr workspace
-# (export_glyphs.py). Local runtime assets, regenerated, never pushed.
+# Generated glyph sets — fontgen exports (tools/fontgen/export_glyphs.py,
+# rasters in ../fonts). Local runtime assets, regenerated, never pushed.
 glyphs_*.json

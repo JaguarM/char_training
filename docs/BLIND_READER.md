@@ -187,8 +187,10 @@ from the corpus renderer, and the blind reader now reads it:
   "raw ∈ [128, 254] and the pixel still carries ink"; `gb − 1 = raw` is
   valid precisely on [129, 254]. Prose "128..254" (raw space) and code
   "≥129" (linear space) are the same set, one representation apart. The
-  renderer hunt itself is documented in the `..\ocr` workspace
-  (REPORT_RENDERER_HUNT — that session works from `C:\Users\yanni\Desktop\ocr`).
+  renderer hunt itself is documented in
+  [REPORT_RENDERER_HUNT.md](REPORT_RENDERER_HUNT.md) (the ocr workspace it
+  ran from is retired — history in
+  [RENDERER_HUNT_NOTES.md](RENDERER_HUNT_NOTES.md)).
 - **`--tol N` mode** (bench + app): glyph-ink pixels match within ±N (double
   on composite pixels — two curves' deviations compound at junctions like
   f-hook ∩ i-dot), the anchor scan and canvas bookkeeping stay exact, and
@@ -401,7 +403,7 @@ R==G==B would be even cleaner there.
 
 Reproduce:
 `node tools/blind-read.mjs --pdf ../corpus/v3.pdf --all --truth ../corpus/v3.txt --verify`
-· hostile pages: `python ..\ocr\tools\make_hostile.py <dir>` then
+· hostile pages: `python make_hostile.py <dir>` (archived ocr workspace zip) then
 `--raster <dir>/hostile_arial.gray.gz --glyphs glyphs_times16.json,glyphs_arial16.json,glyphs_georgia16.json`.
 
 ## 2026-07-12 (late) — email.pdf reads 0 □; Auto OCR reaches bench parity

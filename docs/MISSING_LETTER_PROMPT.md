@@ -52,9 +52,9 @@ where it lands empirically (is it the 0.025 δ band? 1/128?).
    top-1 accuracy.
 2. **+ neighbour bleed**: erase only the letter's own-ink columns; its
    neighbours' windows still contain the erased letter's kern-bleed columns
-   (and vice versa). Byte-compare candidate composites (the ocr workspace has
-   the exact blend law: `C:\Users\yanni\Desktop\ocr\tools\validate_pairs.py`,
-   `fontgen.py` glyph sets, `composite_check.py`).
+   (and vice versa). Byte-compare candidate composites (the exact blend law:
+   `fontgen.py` glyph sets, now in `tools/fontgen/`; `validate_pairs.py` /
+   `composite_check.py` in the archived ocr workspace zip).
 3. **Render-and-verify (generative)**: for each surviving candidate, render the
    full line hypothesis through MuPDF (see `render_synth_*.py` in the ocr
    workspace, mind the snap-boundary shift copies) and byte-compare everything

@@ -35,7 +35,7 @@ node blind-read.mjs --raster raster-cache/<key>/page-0001.gray.gz --glyphs …
 | `--tol N` | per-pixel tolerance for near-identical rasterizers (0 = byte-exact; keep 0 unless a producer is unidentified) |
 | `--quant` | palette-quantized producers (v4-family): snap every prediction to the page's available gray levels |
 | `--truth <txt>` | per-row letters/spaces comparison |
-| `--verify` | per-line byte-exact MuPDF re-render certificates (needs `..\ocr\tools\render_hypotheses.py`) |
+| `--verify` | per-line byte-exact MuPDF re-render certificates (bundled `fontgen/render_hypotheses.py`; needs Python with pymupdf) |
 | `--out` / `--json` | clean text / structured output (baselines, fonts, per-glyph ¼-px pens, objects, certificates, struck spans) |
 
 Mode-2 (color) pages: neutral ink (R=G=B) is read byte-exactly via sum/3;
@@ -69,6 +69,25 @@ The stress-test tool behind [../docs/MISSING_LETTER.md](../docs/MISSING_LETTER.m
 (erase one glyph, infer it back at three evidence levels; also `--calibrate`
 for the δ/x0 physics numbers).
 
+
+# Glyph-set generation — `fontgen/` (Python, needs pymupdf + freetype-py)
+
+The pipeline that produces every `assets/glyphs/glyphs_*.json` the reader
+runs on (zero corpus pixels; formerly the Desktop/ocr workspace, whose
+template-era remainder is archived as a zip):
+
+- `fontgen/fontgen.py <font.ttf> <sizePx> [--linear]` — render every char
+  through the byte-exact pipeline (text at size·0.75 pt → MuPDF 96 dpi gray)
+  at all 4×2 subpixel phases → `assets/fonts/<stem>[lin]_<size>.npz`.
+  `--linear` bakes in the eDiscovery producer's linear compositor remap.
+- `fontgen/export_glyphs.py <in.npz> <out.json>` — export an .npz GlyphSet
+  to JSON for the node/browser readers (`assets/glyphs/glyphs_*.json`,
+  gitignored — regenerate locally).
+- `fontgen/render_hypotheses.py` — the persistent MuPDF worker behind
+  `--verify` (blind-read, recreate) and guess-letter level 3.
+
+`assets/fonts/` holds the committed .npz rasters for all proven fonts plus
+`TimesNewRomanXP.ttf` (the tnr8 source face).
 
 # Rasterize a PDF into the cache — `rasterize.mjs`
 

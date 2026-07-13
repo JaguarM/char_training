@@ -65,8 +65,8 @@ letter-exact vs defect-carrying truth) + P2 54/54 letter-exact, courier_1 P1
 57/57 letter-exact`.
 courier_1/2 truth files (`corpus/courier_*.txt`) are the blind reader's own
 certified transcriptions (no external truth exists); `glyphs_cour13.json` =
-`fontgen.py C:/Windows/Fonts/cour.ttf 13` + `export_glyphs.py` (ocr
-workspace). In `--glyphs`, `+` joins sets into ONE union pool (mixed fonts on
+`fontgen.py C:/Windows/Fonts/cour.ttf 13` + `export_glyphs.py`
+(`tools/fontgen/`). In `--glyphs`, `+` joins sets into ONE union pool (mixed fonts on
 one line), `,` separates per-band-pick sets — pool only what really mixes:
 a global pool lets a foreign font byte-match glyph fragments (a times sliver
 ate courier 'e's).
@@ -79,8 +79,8 @@ any number is the signal, not the absolute. Speed (2026-07-13): ~0.2 s/page —
 big.pdf full doc 72 s, v3 5 s (15–50× vs before; BLIND_READER.md bottom). report.pdf exists only as its
 raster cache (the PDF left corpus/); big/v3/v4 PDFs are local-only
 (.gitignored), caches under `tools/raster-cache/`.
-`--verify` per-line MuPDF re-render certificates need
-`..\ocr\tools\render_hypotheses.py` (Desktop/ocr workspace).
+`--verify` per-line MuPDF re-render certificates use the bundled
+`tools/fontgen/render_hypotheses.py` (needs Python with pymupdf).
 Raster caches are populated once per document with `tools/rasterize.mjs`.
 
 ## Document map
@@ -105,6 +105,11 @@ Raster caches are populated once per document with `tools/rasterize.mjs`.
   identification.
 
 **Historical / superseded (kept for provenance)**
+- [RENDERER_HUNT_NOTES.md](RENDERER_HUNT_NOTES.md) — the living notes of the
+  Desktop/ocr forensics workspace (2026-07-07 → 07-12): one-letter/one-template
+  proofs, renderer identification, fontgen pipeline history. The workspace's
+  live core now lives in `tools/fontgen/` + `assets/fonts/`; the template-era
+  remainder is archived as a zip.
 - [MISSING_LETTER_PROMPT.md](MISSING_LETTER_PROMPT.md) — the session prompt
   that produced MISSING_LETTER.md (completed 2026-07-09).
 - [EMAIL_VRULE_PROMPT.md](EMAIL_VRULE_PROMPT.md) — the session prompt for
@@ -125,8 +130,10 @@ Raster caches are populated once per document with `tools/rasterize.mjs`.
 - `../tools/README.md` — every bench tool: blind reader, rasterizer,
   recreate certificate, app test. (The legacy grid-path tools and their
   DOCUMENTATION.md were removed 2026-07-13 with the rest of that path.)
-- `..\ocr` workspace — renderer-hunt tooling (fontgen.py, export_glyphs.py,
-  render_hypotheses.py, hunt_renderer.py); see its NOTES.md.
+- `tools/fontgen/` — the renderer-hunt workspace's live core (fontgen.py,
+  export_glyphs.py, render_hypotheses.py) + `assets/fonts/*.npz`; history in
+  [RENDERER_HUNT_NOTES.md](RENDERER_HUNT_NOTES.md). The rest of the old
+  Desktop/ocr workspace is archived as a zip (deleted 2026-07-13).
 - `../char_training-main/` — the ORIGINAL grid-NCC project this repo grew out
   of (courier base64 docs, 7×11 px templates, hardcoded grid: xStart 60,
   pitch 7.8026, rowHeight 15). Read `char_training-main/char_training/`
