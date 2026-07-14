@@ -89,6 +89,17 @@ template-era remainder is archived as a zip):
 `assets/fonts/` holds the committed .npz rasters for all proven fonts plus
 `TimesNewRomanXP.ttf` (the tnr8 source face).
 
+# First-look page diagnosis — `inspect-raster.mjs`
+
+Run on a cached page BEFORE the reader when a new document won't read: prints
+dims + mode (2 = color source), the gray-level histogram (palette producer?
+fractional grays?), and the ink-band list with pitch (bands present but
+nothing pins ⇒ wrong font size — compare pitch to the glyph set's em).
+
+```
+node inspect-raster.mjs raster-cache/<key>/page-0001.gray.gz
+```
+
 # Rasterize a PDF into the cache — `rasterize.mjs`
 
 Populates `raster-cache/<sha16>/page-NNNN.gray.gz` for a PDF, byte-identical

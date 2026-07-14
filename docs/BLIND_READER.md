@@ -631,3 +631,139 @@ Post-removal gate: byte-identical across all six documents and the app test
 `1908/113,599/0□` · report `34/2031/2□` · courier_1 `1552/114,816/1□` ·
 courier_2 `4899/374,461/1□`). The original standalone grid-NCC tool lives on
 outside the repo in `../char_training-main/` (reference only).
+
+## 2026-07-14 — redaction-aware masking + box fragments (NEW/ ladder session)
+
+NEW/times docs (FBI email efta00037366, Maxwell-case email EFTA00010016)
+exposed a family of defects around redaction boxes. All fixed in
+blind-read.mjs AND ported to blindocr.js; every change below is bench+app.
+
+1. **Adaptive mask padding.** The blanket ±2 mask pad silently swallowed real
+   glyphs pressed against boxes: a ',' between two boxes (byte-identical to
+   the phase-0.5 raster, zero box ink on it), the ':' of v3 "Karen cell:",
+   the '.' of "Bobbi C." above a black letterhead banner, the courier
+   From:-line '>'. Physics: object fill AA reaches at most ONE pixel beyond
+   the detected dark extent, and only as a near-CONSTANT light line (same
+   coverage every row/column — sideAA test: ≥90% of the side inked, median
+   ≥160, ≥60% of rows within ±3 of it; glyph composites may darken a
+   minority, corners lighten one). X sides: pad 1px only when that signature
+   holds. Y sides: boxes adaptive the same way; rules/vrules KEEP blanket ±2
+   (underline over/under rows are a legitimate glyph∩rule composite zone —
+   link rows regress if made adaptive).
+2. **Box halos + box fragments.** Redactors draw boxes from x-height up, so
+   ascender tips of the REDACTED text poke 1-3 rows above the box top, and a
+   half-swallowed trailing glyph pokes a few px past the side ('>' apex).
+   Unexplained ink confined to a box's ±4-col/±3-row halo is now reported as
+   a **box fragment** (JSON boxFrags per line, fragment-only bands dropped
+   as lines, console "N box fragments"), NOT a text □: that ink is destroyed
+   by the document, not unread by the reader. □ now means strictly "readable-
+   in-principle text the reader could not explain".
+3. **Component absorb + one □ per blob.** A fail used to absorb ink column-
+   range-wise to the next blank column, eating readable glyphs that merely
+   shared columns with the blob (the comma above; "Thank"/"r>" on v3 P6).
+   A fail now floods the 8-connected components through the fail column;
+   frag components absorb whole, fail components absorb only x ≤ col+2 so
+   intact kern-connected tail letters still get tries; one □ per blob via a
+   right-edge guard.
+4. **Probe anchor = densest ink cluster (xp).** All baseline probes window
+   [start, start+160]; a box-edge fragment at a band's left edge aimed that
+   window into the box span and the whole band went unread ("Jeff Pagliuca"
+   band). Probes now anchor at the start of the band's densest unmasked-ink
+   cluster (gaps ≤8px bridge).
+5. **0-glyph lines demote to unread bands.** With component-absorb, a
+   dot-only band above a real line could pin a shifted-but-equivalent
+   baseline (627/phy0 ≡ 626/phy0.5) through the probe's +20px window, then
+   read zero glyphs — creating a phantom line the explained-by-below filter
+   never saw (email P1 'i'-dot of "services."). Any line with zero glyphs is
+   now pushed as an unread band so the filter judges it.
+
+Gate (2026-07-14 final, docs/README.md updated): v3 1785/122,878/**1 □**/1
+frag (□ = P6 y303 blob head; "</a>&", "r>Thank", "Karen cell:" all newly
+read — the colon is truer than the truth file) · big 18,308/1,338,832/**3
+□**/1 frag (P211 clipped-base64 'i' row + P339 mailto tail characters poking
+past their redaction crossed by its underline rules; the old 4th is now a
+frag) · email 1908/113,599/0□/1898 UNCHANGED · report 34/**2032**/2□/1 frag
+(the x233 protrusion reclassified; +1 glyph = a newly readable glyph beside
+a box) · courier_1 1552/114,817/**0□** · courier_2 4899/374,462/**0□**/2
+frags — the From:-line '>' beside the redaction now READS on both (only the
+box's own AA column is masked; truth files regenerated with the '>') · NEW
+certified: efta00037366 17/544/0□ (was 2□), EFTA00010016 17/649/0□/17 frags
+(was 10□ — reads ", Jeff Pagliuca <", "BOBBI C. STERNHEIM, ESQ." '.', tips
+classified), EFTA00382108 1545/114,273/0□ (glyph-tip frag), EFTA00434905
+305/22,796/0□ · app test byte-clean everywhere, courier_1 P1 57/57
+letter-exact.
+
+## 2026-07-14 PM — mode-3 rasters (true colorness), JPEG jitter, French accents
+
+The times/ mode-2 color docs (EFTA00756043/928083/954445/10037/9865) exposed
+two information limits and a family of scan-order defects. All fixed in
+blind-read.mjs AND blindocr.js; gate green, app test byte-clean.
+
+1. **Mode-3 raster cache (u16 sums + u8 channel spread).** Sum-only mode 2 is
+   BLIND to colors whose sum ≡ 0 (mod 3): a pure-blue (0,0,237) mailto
+   underline reads as "neutral 79" and can never byte-match; and it floods
+   whole letters over ±1 channel jitter. rasterize.mjs now computes per-pixel
+   max−min from the canvas RGBA; rcEncodePage writes mode 3 whenever any
+   spread exists. Law (readGray mode 3 / rcFetchPage / whitenColored-rgba):
+   spread ≥ 4 = real color → whitening flood that spreads only through
+   pixels whose channels differ AT ALL (colored AA fringes) and never
+   through neutral ink — a redaction box touching a link underline survives
+   while the underline vanishes. Spread 1–3 = producer JPEG jitter, NOT
+   color: true gray = round(sum/3) (3g±1 rounds back exactly; two-channel
+   jitter lands within --tol 1). Legacy mode-2 caches keep the old law
+   byte-for-byte (certified docs untouched); the five affected docs were
+   re-rasterized. Jittered docs certify at --tol 1 (same posture as the
+   report-raster's tol-1 junction pixels).
+2. **sideAA at any darkness.** A box's constant edge row (value 27) missed
+   the ≥40px run detector by ONE corner pixel and the mode≥160 (then ≥64)
+   bound refused to pad it. A ≥90%-covered ±3-constant line adjacent to a
+   box cannot be text at ANY level (glyph AA never holds one value that
+   long) — the darkness bound is gone.
+3. **Scan-window clamp (bandTop/cTop).** The accent charset grew maxAsc past
+   the 18px line pitch: scan windows reached the previous line's descenders
+   and failed on their ink. Unexplained-ink accounting (unexpl, flood,
+   dust, residual) now starts at the band's own top; the window bottom
+   stays open ('_'-only bands below are still explained through).
+4. **Skip overlay + tail recovery.** Absorbed-fail pixels used to poison
+   later candidates (canvas=page ⇒ composite math): a word whose head fell
+   into box residue could never read from its tail. Absorbed pixels now
+   join a scan-local don't-care overlay (one combined array with the object
+   mask — single load in the hot loop), so "wrote:"/"TELL ME"/"r>Thank"
+   read past unexplainable heads.
+5. **Deferred fail/frag classification.** At fail time the flood cannot know
+   which connected ink a LATER try will read (a remnant kerned into "TELL
+   ME" measures 22px; its dead survivors span 8). Final scans record the
+   component and judge the survivors at line end: touches a box halo
+   (rect ±2 cols/±3 rows, box top/bottom 'rule' slices count as the box)
+   AND narrow (< 13px — under two glyph widths) = box fragment; touch
+   chains across a remnant's disconnected letters (≤ 4px gaps). Probes
+   never pass halos and keep immediate fails.
+6. **Phantom-line demotion.** With flood-absorb, an 'i'-dot band above a
+   real line could pin that line's baseline through the +20px window
+   (627/phy0 ≡ 626/phy0.5) and "read" the line's own 'i' as a 1-glyph
+   phantom (double-counting ink the explained-filter never saw). Lines
+   that read nothing demote to unread bands; BELOW-band picks whose
+   explained ink lies mostly below their band demote too (real below-band
+   picks — separator rows, a lone '>' — explain ink inside their band).
+7. **French accents.** fontgen DEFAULT_CHARS now carries Western-European
+   accents (Envoyé, à — 171 chars); times/timesbd/timesi/arial 16px
+   regenerated + arialbd16/timesbd17/timesbd18/times13/cour11/cour12
+   exported. Existing rasters are unchanged by regeneration (grid slots
+   append), but the bigger candidate set costs ~15% page time (big.pdf
+   95s ≈ 0.28 s/page).
+
+Gate (2026-07-14 PM, docs/README.md updated): **v3 0 □** (first time — P6
+y303's "<br>" head reads via tail recovery) · **big 0 □**, 18,307 lines
+(−1: a pre-existing phantom line left the count), 34 diff rows ·
+email/courier_1/courier_2/report unchanged-or-equal · NEW certified at
+tol 0: courier/EFTA00434905+EFTA00382108, times/efta00037366+EFTA00010016+
+EFTA00161526 (arial16 body)+EFTA00009888; at tol 1 (JPEG jitter):
+times/EFTA00756043 (60 lines, 11 frags). All seven truths round-trip
+0-diff. Still open: times/EFTA00928083 (36 □) + EFTA00010037 (25 □) +
+EFTA00009865 (68 □) — same jitter family, remaining fails not yet
+root-caused; times/EFTA00954445 2 □ (big-print "From" header face
+unidentified — not timesbd16/17/18/arialbd16 — and a mid-line wisp);
+NEW/courier 7516xx block: DIGITAL renders (perfectly vertical constant
+frames), one 816×1056 DeviceGray image per page + Courier ~8.8pt OCR
+overlay, ~12px-em serif-ish digits — face unidentified (not cour11/12/13/16,
+not times13), needs its own renderer hunt; calibri/ + segoe/ untouched.

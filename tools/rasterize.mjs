@@ -66,7 +66,18 @@ async function rasterPageInPage({ pno }) {
   for (const c of imgs) if (c.width * c.height > canvas.width * canvas.height) canvas = c;
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-  const page_ = { w: canvas.width, h: canvas.height, gray: gray(data, canvas.width * canvas.height) };
+  const n = canvas.width * canvas.height;
+  // per-pixel channel spread (max−min): real colorness for the mode-3 cache
+  // (sum-only mode 2 is blind to colors whose sum is a multiple of 3)
+  let spread = new Uint8Array(n), any = false;
+  for (let i = 0; i < n; i++) {
+    const r = data[i * 4], g_ = data[i * 4 + 1], b = data[i * 4 + 2];
+    const mx = r > g_ ? (r > b ? r : b) : (g_ > b ? g_ : b);
+    const mn = r < g_ ? (r < b ? r : b) : (g_ < b ? g_ : b);
+    if ((spread[i] = mx - mn)) any = true;
+  }
+  if (!any) spread = null;
+  const page_ = { w: canvas.width, h: canvas.height, gray: gray(data, n), spread };
   return { dims: { w: canvas.width, h: canvas.height }, cachePut: await rcEncodePage(page_) };
 }
 

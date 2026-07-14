@@ -119,11 +119,47 @@
   function whitenColored(page, rgba) {
     const { w, h } = page, n = w * h, g = page.gray;
     const colored = new Uint8Array(n), stack = [];
+    let jitter = null;
+    if (rgba) {
+      // channel spread ≥ 4 = real color; the flood below spreads only
+      // through pixels whose channels differ at all (colored AA fringes),
+      // never through neutral ink — a redaction box touching a blue link
+      // underline survives while the underline vanishes. Spread 1-3 away
+      // from color is producer JPEG jitter, NOT color: its true gray is
+      // round((R+G+B)/3) (±1 single-channel jitter rounds back exactly;
+      // heavier jitter lands within tol 1).
+      const spread = new Uint8Array(n);
+      for (let i = 0; i < n; i++) {
+        if (g[i] >= 255) continue;
+        const r = rgba[i * 4], gr = rgba[i * 4 + 1], b = rgba[i * 4 + 2];
+        const mx = r > gr ? (r > b ? r : b) : (gr > b ? gr : b);
+        const mn = r < gr ? (r < b ? r : b) : (gr < b ? gr : b);
+        spread[i] = mx - mn;
+        if (spread[i] >= 4) { colored[i] = 1; stack.push(i); }
+      }
+      if (!stack.length && !spread.some(v => v)) return page;
+      const gray = Float32Array.from(g);
+      while (stack.length) {                           // flood through colored px only
+        const i = stack.pop(), x = i % w, y = (i / w) | 0;
+        for (let dy = -1; dy <= 1; dy++)
+          for (let dx = -1; dx <= 1; dx++) {
+            const nx = x + dx, ny = y + dy;
+            if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+            const j = ny * w + nx;
+            if (!colored[j] && spread[j]) { colored[j] = 1; stack.push(j); }
+          }
+      }
+      let removed = 0;
+      for (let i = 0; i < n; i++) {
+        if (colored[i]) { gray[i] = 255; removed++; }
+        else if (spread[i]) gray[i] = Math.round(gray[i]);   // jitter → neutral
+      }
+      return { w, h, gray, colorRemoved: removed };
+    }
+    // no RGBA (cached page): fractional gray = non-neutral (sum-only law)
     for (let i = 0; i < n; i++) {
       if (g[i] >= 255) continue;
-      const non = rgba ? (rgba[i * 4] !== rgba[i * 4 + 1] || rgba[i * 4 + 1] !== rgba[i * 4 + 2])
-                       : g[i] !== Math.floor(g[i]);
-      if (non) { colored[i] = 1; stack.push(i); }
+      if (g[i] !== Math.floor(g[i])) { colored[i] = 1; stack.push(i); }
     }
     if (!stack.length) return page;
     const gray = Float32Array.from(g);
@@ -322,12 +358,40 @@
           cov += Math.max(0, Math.min(o.y1, b.y1) - Math.max(o.y0, b.y0));
       if (cov > 0.6 * (o.y1 - o.y0)) objects.splice(i, 1);
     }
+    // Mask X sides adaptively: dark AA (<160) is already inside the detected
+    // extent; a fractional edge's LIGHT AA line is near-constant along the
+    // whole side (mode ≥160 over ≥90% coverage — glyph composites can darken
+    // a minority of rows). A side whose adjacent column is blank or carries
+    // sparse varying ink gets NO padding — that ink is glyph evidence, not
+    // the object's (a blanket ±2 pad swallowed real "," ":" "." ">" pressed
+    // against redaction boxes). Y keeps the blanket ±2: rules live UNDER
+    // text (underlines) and their over/under rows are a legitimate
+    // glyph∩rule composite zone.
+    const sideAA = (vals) => {
+      const ink = vals.filter(v => v < 255);
+      if (!ink.length || ink.length < 0.9 * vals.length) return false;
+      ink.sort((a, b) => a - b);
+      const mode = ink[ink.length >> 1];
+      return ink.filter(v => Math.abs(v - mode) <= 3).length >= 0.6 * vals.length;
+    };
+    // BOXES get the same adaptive treatment in Y (text pressed above a black
+    // letterhead banner is the comma-problem rotated 90°). RULES/VRULES keep
+    // the blanket ±2 in Y: underlines live UNDER text and their over/under
+    // rows are a legitimate glyph∩rule composite zone.
     const mask = new Uint8Array(w * h);
     for (const o of objects) {
       o.type = o.vr ? 'vrule' : o.y1 - o.y0 <= 4 ? 'rule' : 'box';
       delete o.vr;
-      for (let y = Math.max(0, o.y0 - 2); y < Math.min(h, o.y1 + 2); y++)
-        for (let x = Math.max(0, o.x0 - 2); x < Math.min(w, o.x1 + 2); x++)
+      const col = x => { const v = []; for (let y = o.y0; y < o.y1; y++) v.push(gray[y * w + x]); return v; };
+      const row = y => { const v = []; for (let x = o.x0; x < o.x1; x++) v.push(gray[y * w + x]); return v; };
+      const x0 = o.x0 > 0 && sideAA(col(o.x0 - 1)) ? o.x0 - 1 : o.x0;
+      const x1 = o.x1 < w && sideAA(col(o.x1)) ? o.x1 + 1 : o.x1;
+      const y0 = o.type === 'box' ? (o.y0 > 0 && sideAA(row(o.y0 - 1)) ? o.y0 - 1 : o.y0)
+        : Math.max(0, o.y0 - 2);
+      const y1 = o.type === 'box' ? (o.y1 < h && sideAA(row(o.y1)) ? o.y1 + 1 : o.y1)
+        : Math.min(h, o.y1 + 2);
+      for (let y = y0; y < y1; y++)
+        for (let x = x0; x < x1; x++)
           mask[y * w + x] = 1;
     }
     return { mask, objects };
@@ -361,10 +425,11 @@
   // which in linear-set bytes is gb ∈ [129,254] with raw = gb−1 (gb 255 =
   // raw 254 is erased to white by the +1 and drops out of the ink mask).
   // A per-pixel shift count keeps the raw canvas recoverable from page space.
-  function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs, maxFails, TOL, QUANT) {
+  function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs, maxFails, TOL, QUANT, halos, bandTop) {
     if (maxGlyphs === undefined) maxGlyphs = Infinity;
     if (maxFails === undefined) maxFails = Infinity;
     TOL = TOL || 0;
+    const inHalo = (x, y) => halos && halos.some(h => x >= h[0] && x < h[1] && y >= h[2] && y < h[3]);
     const q = QUANT ? v => QUANT[v] : v => v;         // palette law (see quantMap)
     const lin = set.linear;
     const W = page.w, cands = set.byPhy.get(phy) ?? [];
@@ -372,22 +437,34 @@
     const bw = xTo - xFrom, bh = y1 - y0;
     if (bw <= 0 || bh <= 0) return { glyphs: [], fails: [], residual: 0, canvas: null, y0, y1, xFrom, xTo };
     const canvas = new Float32Array(bw * bh).fill(255);
+    // skip = window-local don't-care overlay: object mask pixels PLUS
+    // absorbed-fail pixels (see the bench comment — a word whose head fell
+    // into unexplainable residue must still read from its intact tail)
+    const skip = new Uint8Array(bw * bh);
     const pageAt = (x, y) => page.gray[y * W + x];
-    const masked = (x, y) => mask[y * W + x];
+    const masked = (x, y) => skip[(y - y0) * bw + (x - xFrom)];
     const canAt = (x, y) => canvas[(y - y0) * bw + (x - xFrom)];
     const shifts = lin ? new Uint8Array(bw * bh) : null;   // producer +1 count per pixel
     const shAt = (x, y) => (lin ? shifts[(y - y0) * bw + (x - xFrom)] : 0);
     const addSh = (x, y, s) => { if (lin) shifts[(y - y0) * bw + (x - xFrom)] += s; };
     for (let y = y0; y < y1; y++)
       for (let x = xFrom; x < xTo; x++)
-        if (mask[y * W + x]) canvas[(y - y0) * bw + (x - xFrom)] = pageAt(x, y);
+        if (mask[y * W + x]) {
+          canvas[(y - y0) * bw + (x - xFrom)] = pageAt(x, y);
+          skip[(y - y0) * bw + (x - xFrom)] = 1;
+        }
     // per-column count of unexplained pixels (page ≠ q(canvas)), maintained on
     // every canvas write — nextUnexplained becomes a pointer walk instead of
     // rescanning the band window after every glyph (was 80%+ of read time)
+    // unexplained-ink accounting starts at the BAND top, not the window top:
+    // ink above the band belongs to the PREVIOUS line (its descenders) —
+    // accented capitals grew maxAsc past the line pitch. Window bottom stays
+    // open (a '_'-only band below is deliberately explained through).
+    const cTop = bandTop === undefined || bandTop === null ? y0 : Math.max(y0, bandTop);
     const unexpl = new Int32Array(bw);
     for (let x = xFrom; x < xTo; x++) {
       let n = 0;
-      for (let y = y0; y < y1; y++)
+      for (let y = cTop; y < y1; y++)
         if (pageAt(x, y) !== q(canAt(x, y))) n++;
       unexpl[x - xFrom] = n;
     }
@@ -397,7 +474,7 @@
       const before = pv !== q(canvas[i]);
       canvas[i] = v;
       const after = pv !== q(v);
-      if (before !== after) unexpl[x - xFrom] += after ? 1 : -1;
+      if (y >= cTop && before !== after) unexpl[x - xFrom] += after ? 1 : -1;
     };
 
     const nextUnexplained = (fromX) => {
@@ -406,7 +483,8 @@
       return -1;
     };
 
-    const glyphs = [], fails = [];
+    const glyphs = [], fails = [], frags = [], records = [];
+    let failGuard = -1;                   // right edge of the last failed blob
     const accepted = new Set();
     let cursor = xFrom;
     while (glyphs.length < maxGlyphs) {
@@ -427,7 +505,7 @@
           for (let k = 0; k < nInk; k++) {
             const cc = inkC[k], rr = inkR[k];
             const pOff = rowBase + rr * W + cc;
-            if (mask[pOff]) { skipped++; continue; }
+            if (skip[canBase + rr * bw + cc]) { skipped++; continue; }
             const gb = inkB[k], pv = page.gray[pOff], cv = canvas[canBase + rr * bw + cc];
             // fresh-canvas fast path (the overwhelmingly common case, non-
             // linear law): every e in INV[gb] reproduces gb from white by
@@ -494,20 +572,47 @@
             continue;
           }
         }
-        if (!fails.length || col > fails[fails.length - 1] + 4) fails.push(col);
-        let x = col;
-        for (; x < xTo; x++) {
-          let anyInk = false;
-          for (let y = y0; y < y1; y++) {
-            // object pixels are don't-care: without this a fail beside a
-            // redaction box absorbs every word sharing columns with the box
-            if (pageAt(x, y) < 255 && !masked(x, y)) anyInk = true;
-            setCan(x, y, pageAt(x, y));
+        // Flood the connected components of unexplained ink through the fail
+        // column (a column-range absorb swallows readable glyphs that merely
+        // share columns with the blob — a byte-clean comma right of a
+        // box-edge fragment was eaten that way); absorb only x ≤ col+2 into
+        // the skip overlay so intact kern-connected tail letters get their
+        // own tries. One □ per blob. Fail/frag classification is DEFERRED to
+        // line end (see below) — at fail time the flood cannot know which
+        // connected ink a LATER try will read.
+        let compRight = col;
+        const stack = [];
+        for (let y = cTop; y < y1; y++)
+          if (pageAt(col, y) !== q(canAt(col, y)) && !masked(col, y)) stack.push(col << 16 | y);
+        const seen = new Set();
+        while (stack.length) {
+          const k = stack.pop();
+          if (seen.has(k)) continue;
+          seen.add(k);
+          const px = k >> 16, py = k & 0xffff;
+          if (px > compRight) compRight = px;
+          for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+            const nx = px + dx, ny = py + dy;
+            if (nx < xFrom || nx >= xTo || ny < cTop || ny >= y1 || seen.has(nx << 16 | ny)) continue;
+            if (pageAt(nx, ny) < 255 && !masked(nx, ny) && pageAt(nx, ny) !== q(canAt(nx, ny)))
+              stack.push(nx << 16 | ny);
           }
-          if (!anyInk && x > col) break;
         }
-        cursor = x;
-        if (fails.length >= maxFails) break;
+        for (const k of seen) {
+          const px = k >> 16, py = k & 0xffff;
+          if (px <= col + 2) {
+            setCan(px, py, pageAt(px, py));
+            skip[(py - y0) * bw + (px - xFrom)] = 1;
+          }
+        }
+        if (halos) {
+          if (col > failGuard) records.push({ col, comp: seen });
+        } else if (col > failGuard && (!fails.length || col > fails[fails.length - 1] + 4)) {
+          fails.push(col);
+        }
+        failGuard = Math.max(failGuard, compRight);
+        cursor = col;
+        if (fails.length + records.length >= maxFails) break;
         continue;
       }
       const { g, pi, gx, gy } = best;
@@ -539,17 +644,43 @@
       accepted.add(g.ch + '@' + (pi + g.phx));
       cursor = col + 1;
     }
+    // Deferred fail/frag classification (final scans only — probes never
+    // pass halos): judge each recorded component by its DEAD survivors
+    // (pixels a later try explained don't count). A survivor set that
+    // TOUCHES a box halo and is NARROW (< 13px — under two glyph widths) is
+    // a fragment of the box's own REDACTED content — a box fragment, not a
+    // text □. Touch chains through the previous fragment when the gap is
+    // under a space width (a remnant's letters are disconnected components).
+    let lastFragRight = -1;
+    for (const r of records) {
+      let minX = Infinity, maxX = -1, touch = false;
+      for (const k of r.comp) {
+        const px = k >> 16, py = k & 0xffff;
+        if (!skip[(py - y0) * bw + (px - xFrom)]) continue;
+        if (px < minX) minX = px;
+        if (px > maxX) maxX = px;
+        if (!touch && inHalo(px, py)) touch = true;
+      }
+      if (maxX < 0) continue;                          // fully read by later tries
+      const frag = maxX - minX < 13 &&
+        (touch || (lastFragRight >= 0 && minX - lastFragRight <= 4));
+      if (frag) {
+        lastFragRight = Math.max(lastFragRight, maxX);
+        if (!frags.length || r.col > frags[frags.length - 1] + 4) frags.push(r.col);
+      } else if (!fails.length || r.col > fails[fails.length - 1] + 4) fails.push(r.col);
+    }
     // coverage certificate: any non-object band pixel the composition law
-    // could not reproduce byte-exactly?
+    // could not reproduce byte-exactly? (counted from the band top — ink
+    // above it belongs to the previous line)
     let residual = 0;
-    for (let y = y0; y < y1; y++)
+    for (let y = cTop; y < y1; y++)
       for (let x = xFrom; x < xTo; x++)
         if (!masked(x, y) && pageAt(x, y) !== q(canAt(x, y))) residual++;
-    return { glyphs, fails, residual, canvas, y0, y1, xFrom, xTo };
+    return { glyphs, fails, frags, residual, canvas, y0, y1, xFrom, xTo };
   }
 
-  function probeBaseline(page, mask, set, phy, baseline, x0, x1, tol, quant) {
-    const line = scanLine(page, mask, set, phy, baseline, x0, Math.min(x1, x0 + 160), 4, 2, tol, quant);
+  function probeBaseline(page, mask, set, phy, baseline, x0, x1, tol, quant, bandTop) {
+    const line = scanLine(page, mask, set, phy, baseline, x0, Math.min(x1, x0 + 160), 4, 2, tol, quant, null, bandTop);
     return line.glyphs.reduce((s, g) => s + g.exact, 0) - line.fails.length * 20;
   }
 
@@ -612,6 +743,15 @@
     const quant = opts?.quant ? quantMap(page) : null;
     const q = quant ? v => quant[v] : v => v;
     const { mask, objects } = detectObjects(page);
+    // box halos (rect ±2 cols / ±3 rows): an unexplained cluster that
+    // TOUCHES a halo and is NARROW (< 13px) is a fragment of the box's own
+    // redacted content, not unread text (see scanLine's deferred
+    // classification). Thin top/bottom slices of a segmented box come out
+    // typed 'rule' — still the box for halo purposes.
+    const isBoxSlice = o => o.type === 'rule' && objects.some(b => b.type === 'box' &&
+      o.y1 >= b.y0 - 2 && o.y0 <= b.y1 + 2 && Math.min(o.x1, b.x1) > Math.max(o.x0, b.x0));
+    const halos = objects.filter(o => o.type === 'box' || isBoxSlice(o))
+      .map(o => [o.x0 - 2, o.x1 + 2, o.y0 - 3, o.y1 + 3]);
     const bands = findBands(page, mask);
     const lines = [];
     // ink already explained by an earlier line's scan window: a line without
@@ -626,15 +766,32 @@
         await new Promise(r => setTimeout(r, 0));
       }
       let x0 = page.w, x1 = 0, fresh = false;
+      const colInk = new Uint8Array(page.w);
       for (let y = top; y < bot; y++) {
         const off = y * page.w;
         for (let x = 0; x < page.w; x++)
           if (page.gray[off + x] < 255 && !mask[off + x]) {
             if (x < x0) x0 = x; if (x > x1) x1 = x;
+            colInk[x] = 1;
             if (!explained[off + x]) fresh = true;
           }
       }
       if (x1 >= x0 && !fresh) continue;                // fully explained by a line above
+      // probe anchor = start of the band's DENSEST unmasked-ink cluster (gaps
+      // ≤8px bridge): the probes below window only [start, start+160], and a
+      // glyph fragment protruding from a redaction box at the band's left
+      // edge must not aim that window into the box span
+      let xp = x0;
+      {
+        let bestN = -1, s = -1, nn = 0, gap = 0;
+        for (let x = x0; x <= x1 + 9; x++) {
+          if (x <= x1 && colInk[x]) { if (s < 0) { s = x; nn = 0; } nn++; gap = 0; }
+          else if (s >= 0 && ++gap > 8) {
+            if (nn > bestN) { bestN = nn; xp = s; }
+            s = -1;
+          }
+        }
+      }
       const lineObjects = objects.filter(ob => ob.y0 < bot + 4 && ob.y1 > top - 4);
       // fast path: most documents use ONE (font, y-phase) throughout — try the
       // previous band's winner first and accept it when its probe fully reads;
@@ -643,7 +800,7 @@
       if (last) {
         for (let yb = bot; yb >= bot - last.set.maxDesc && yb > top && !pick; yb--) {
           const probe = scanLine(page, mask, last.set, last.phy, yb,
-            Math.max(0, x0 - 2), Math.min(page.w, Math.max(0, x0 - 2) + 160), 4, 0, tol, quant);
+            Math.max(0, xp - 2), Math.min(page.w, Math.max(0, xp - 2) + 160), 4, 0, tol, quant, null, top);
           if (probe.glyphs.length >= 3 && probe.fails.length === 0)
             pick = { set: last.set, phy: last.phy, yb,
               score: probe.glyphs.reduce((s, g) => s + g.exact, 0) };
@@ -653,7 +810,7 @@
         for (const set of sets)
           for (const phy of set.byPhy.keys())
             for (let yb = bot; yb >= bot - set.maxDesc && yb > top; yb--) {
-              const score = probeBaseline(page, mask, set, phy, yb, Math.max(0, x0 - 2), Math.min(page.w, x1 + 20), tol, quant);
+              const score = probeBaseline(page, mask, set, phy, yb, Math.max(0, xp - 2), Math.min(page.w, x1 + 20), tol, quant, top);
               if (score > 0 && (!pick || score > pick.score)) pick = { set, phy, yb, score };
             }
       // glyphs whose ink sits entirely above the baseline (a row of '-' or '*':
@@ -663,17 +820,49 @@
         for (const set of sets)
           for (const phy of set.byPhy.keys())
             for (let yb = bot + 1; yb <= bot + set.maxAsc && yb <= page.h; yb++) {
-              const score = probeBaseline(page, mask, set, phy, yb, Math.max(0, x0 - 2), Math.min(page.w, x1 + 20), tol, quant);
-              if (score > 0 && (!pick || score > pick.score)) pick = { set, phy, yb, score };
+              const score = probeBaseline(page, mask, set, phy, yb, Math.max(0, xp - 2), Math.min(page.w, x1 + 20), tol, quant, top);
+              if (score > 0 && (!pick || score > pick.score)) pick = { set, phy, yb, score, below: true };
             }
       if (pick) last = { set: pick.set, phy: pick.phy };
-      if (!pick) {
-        lines.push({ top, bot, baseline: null, glyphs: [], fails: x1 >= x0 ? [x0] : [],
+      const pushUnread = () => {
+        // a band whose every ink pixel sits inside box halos is redaction
+        // spill (ascender tips above a box top), not an unread text line
+        let fragOnly = halos.length > 0 && x1 >= x0;
+        for (let y = top; y < bot && fragOnly; y++) {
+          const off = y * page.w;
+          for (let x = x0; x <= x1 && fragOnly; x++)
+            if (page.gray[off + x] < 255 && !mask[off + x] &&
+                !halos.some(h => x >= h[0] && x < h[1] && y >= h[2] && y < h[3])) fragOnly = false;
+        }
+        lines.push({ top, bot, baseline: null, glyphs: [],
+          fails: fragOnly || x1 < x0 ? [] : [x0], fragOnly,
           residual: 0, boxes: lineObjects.map(ob => [ob.x0 - 2, ob.x1 + 2]), objects: lineObjects, set: null });
-        continue;
-      }
+      };
+      if (!pick) { pushUnread(); continue; }
       const L = scanLine(page, mask, pick.set, pick.phy, pick.yb,
-        Math.max(0, x0 - 2), Math.min(page.w, x1 + 4), Infinity, Infinity, tol, quant);
+        Math.max(0, x0 - 2), Math.min(page.w, x1 + 4), Infinity, Infinity, tol, quant, halos, top);
+      // a "line" that read NOTHING has no certified baseline — it is an
+      // unread band (a dot-only band above a real line probes into that
+      // line's glyphs through the +20px window, picks a shifted-but-
+      // equivalent baseline, then reads zero glyphs in its own narrow span;
+      // the explained-by-below filter must get the chance to drop it once
+      // the real line reads the ink)
+      if (!L.glyphs.length) { pushUnread(); continue; }
+      // A BELOW-band pick whose explained ink lies mostly BELOW the band is
+      // a phantom wearing glyphs (an 'i'-dot band pins the line below through
+      // the window and reads that line's 'i'); real below-band picks
+      // ('-'/'*' separators, a lone '>') explain ink INSIDE their band.
+      if (pick.below) {
+        let inBand = 0, below = 0;
+        const lw = L.xTo - L.xFrom;
+        for (let y = L.y0; y < L.y1; y++)
+          for (let x = L.xFrom; x < L.xTo; x++) {
+            const v = L.canvas[(y - L.y0) * lw + (x - L.xFrom)];
+            if (v < 255 && page.gray[y * page.w + x] === q(v) && !mask[y * page.w + x])
+              (y < bot ? inBand++ : below++);
+          }
+        if (below > inBand) { pushUnread(); continue; }
+      }
       for (let y = L.y0; y < L.y1; y++)                // record explained ink
         for (let x = L.xFrom; x < L.xTo; x++)
           if (page.gray[y * page.w + x] < 255 &&
@@ -754,7 +943,7 @@
         quant: pass.quant, union: pass.union,
         progress: opts?.progress && ((d, t) => opts.progress(pass, d, t)) });
       const fails = r.lines.reduce((s, L) => s + L.fails.length, 0) +
-        r.lines.filter(L => !L.set).length;
+        r.lines.filter(L => !L.set && !L.fragOnly).length;
       const rank = blindPasses.findIndex(p => key(p) === key(pass));
       if (!best || fails < best.fails || (fails === best.fails && rank < best.rank))
         best = { res: r, pass, fails, rank };

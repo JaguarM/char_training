@@ -52,17 +52,31 @@ node sync-recto.mjs --check    # Recto's embedded engine copy still current?
 node test-recto-app.mjs        # after a sync: the engine inside Recto's ocr_tool plugin
 ```
 
-Expected (2026-07-12 late): v3 `1785 lines / 122,865 glyphs / 2 □ / 1779 letter-exact`
-· big `18,308 / 1,338,823 / 4 □ / 18,271` (P211's clipped base64 "ix" row now
-yields its 'i' beside the □) · email `1908 / 113,599 / 0 □ /
-1898 letter-exact` (10 diff rows = truth defects + deliberately-blank
-hyperlink spans) · report-raster `34 / 2031 / 2 □` · courier_1 `1552 / 114,816
-/ 1 □` · courier_2 `4899 / 374,461 / 1 □` (each doc's □ = the redacted
-`From:` line on P1 where a '>' is overlapped by the redaction box itself —
-glyph pixels composited with box ink can't byte-match glyph-on-white) ·
-app test `v3 P1 40/40 + P2 54/54 byte-clean, email P1 54 byte-clean (48/54
-letter-exact vs defect-carrying truth) + P2 54/54 letter-exact, courier_1 P1
-57/57 letter-exact`.
+Expected (2026-07-14 PM — redaction-aware masking, box fragments, mode-3
+rasters; see BLIND_READER.md bottom. "box fragments" = unexplained ink
+confined to a box's halo, reported separately because it is the box's own
+REDACTED content, not unread text):
+v3 `1785 lines / 122,883 glyphs / 0 □ / 1 frag / 1779 letter-exact` (6 diff
+rows incl. "Karen cell:" — the reader reads a real colon the truth file
+lacks) · big `18,307 / 1,338,832 / 0 □ / 2 frags / 18,273` (34 diff rows;
+line count dropped by one when a pre-existing phantom dot-band line was
+demoted) · email `1908 / 113,599 / 0 □ / 1898 letter-exact` (10 diff rows =
+truth defects + deliberately-blank hyperlink spans) · report-raster `34 /
+2033 / 2 □ / 1 frag` (tol-1 hex junction + small footer digits; frag = a
+redacted name's first-letter AA at the box's left edge) · courier_1 `1552 /
+114,817 / 0 □` · courier_2 `4899 / 374,462 / 0 □` (the From:-line '>'
+beside the redaction box READS; truth files regenerated 2026-07-14) · app
+test `all pages byte-clean; v3 P1 38 in-truth ("Karen cell:" + pre-existing
+AmEx row), email P1 48/54 letter-exact vs defect-carrying truth, courier_1
+P1 57/57 letter-exact`.
+NEW/ certified (truths beside the PDFs; all round-trip 0-diff): courier/
+EFTA00434905 `305/22,796/0□`, courier/EFTA00382108 `1545/114,273/0□`,
+times/efta00037366 `17/544/0□`, times/EFTA00010016 `17/649/0□/17 frags`,
+times/EFTA00161526 `12/534/0□` (arial16 body lines), times/EFTA00009888
+`6/112/0□`, times/EFTA00756043 `60/1958/0□/11 frags` at **--tol 1** (the
+producer JPEG-compresses its pages — ±1 channel jitter; same tol-1 posture
+as the report-raster junction pixels). Speed after the accent charset grew
+the candidate sets: big.pdf ~0.28 s/page (95 s full doc).
 courier_1/2 truth files (`corpus/courier_*.txt`) are the blind reader's own
 certified transcriptions (no external truth exists); `glyphs_cour13.json` =
 `fontgen.py C:/Windows/Fonts/cour.ttf 13` + `export_glyphs.py`

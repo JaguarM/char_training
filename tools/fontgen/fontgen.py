@@ -17,7 +17,11 @@ import numpy as np
 PHASES_X = (0.0, 0.25, 0.5, 0.75)
 PHASES_Y = (0.0, 0.5)
 DEFAULT_CHARS = ("".join(chr(c) for c in range(33, 127))  # printable ASCII, no space
-                 + "‘’“”–—…•§¶©ﬁﬂ")  # ‘ ’ “ ” – — … •
+                 + "‘’“”–—…•§¶©ﬁﬂ"   # ‘ ’ “ ” – — … •
+                 # Western-European accents (French corpus emails: "Envoyé",
+                 # "à" — 2026-07-14); adding chars only ADDS candidates, the
+                 # existing rasters are unchanged by regeneration
+                 + "àâäçèéêëìîïòôöùûüÿñæœÀÂÄÇÈÉÊËÌÎÏÒÔÖÙÛÜŸÑÆŒáíóúýÁÍÓÚÝßãõÃÕ°±²³€£¥")
 
 class GlyphSet:
     def __init__(self, meta, glyphs, advances):

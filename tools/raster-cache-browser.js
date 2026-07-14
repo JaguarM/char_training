@@ -13,7 +13,11 @@
 //   u32 magic 'GRY1' (0x31595247) · u32 mode · u32 w · u32 h · payload
 //   mode 0: page had no embedded image (no payload)
 //   mode 1: every sum divisible by 3 (R=G=B scans) → u8 per pixel, value = sum/3
-//   mode 2: u16le per pixel, value = sum
+//   mode 2: u16le per pixel, value = sum (legacy color pages: colorness only
+//           recoverable via sum%3 — blind to colors whose sum is ≡0 mod 3)
+//   mode 3: u16le sums + u8 per-pixel channel spread (max−min): true
+//           colorness survives the cache. Written when any pixel has
+//           spread > 0 and the rasterizer supplied a spread plane.
 //
 // Plain script (no modules): the bench injects it with addScriptTag, and a future
 // browser-only app can load it with a <script> tag. Uses only web APIs
@@ -39,6 +43,31 @@ async function rcFetchPage(url) {
   } else if (mode === 2) {
     const s = new Uint16Array(buf, 16, n);
     for (let i = 0; i < n; i++) gray[i] = s[i] / 3;      // same op as gray(): identical f32
+  } else if (mode === 3) {
+    // sums + spread: real color (spread ≥ 4) seeds a whitening flood that
+    // spreads only through pixels whose channels differ at all (colored AA
+    // fringes), never through neutral ink; remaining spread 1-3 pixels are
+    // producer JPEG jitter — their true gray is round(sum/3). Mirrors the
+    // node bench (blind-read.mjs readGray mode 3) and the live-RGBA law in
+    // blindocr.js whitenColored.
+    const s = new Uint16Array(buf, 16, n);
+    const sp = new Uint8Array(buf, 16 + 2 * n, n);
+    const colored = new Uint8Array(n), stack = [];
+    for (let i = 0; i < n; i++) {
+      gray[i] = s[i] >= 765 ? 255 : Math.round(s[i] / 3);
+      if (sp[i] >= 4) { colored[i] = 1; stack.push(i); }
+    }
+    while (stack.length) {
+      const i = stack.pop(), x = i % w, y = (i / w) | 0;
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++) {
+          const nx = x + dx, ny = y + dy;
+          if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+          const j = ny * w + nx;
+          if (!colored[j] && sp[j]) { colored[j] = 1; stack.push(j); }
+        }
+    }
+    for (let i = 0; i < n; i++) if (colored[i]) gray[i] = 255;
   } else throw new Error(`raster cache: unknown mode ${mode} in ${url}`);
   return { w, h, gray };
 }
@@ -60,11 +89,17 @@ async function rcEncodePage(page) {
       sums[i] = s;
       if (s % 3) mod3 = false;
     }
-    raw = new Uint8Array(16 + (mod3 ? n : 2 * n));
+    let anySpread = false;
+    if (page.spread) for (let i = 0; i < n; i++) if (page.spread[i]) { anySpread = true; break; }
+    const mode = anySpread ? 3 : mod3 ? 1 : 2;
+    raw = new Uint8Array(16 + (mode === 1 ? n : mode === 2 ? 2 * n : 3 * n));
     const hdr = new Uint32Array(raw.buffer, 0, 4);
-    hdr[0] = RC_MAGIC; hdr[1] = mod3 ? 1 : 2; hdr[2] = page.w; hdr[3] = page.h;
-    if (mod3) for (let i = 0; i < n; i++) raw[16 + i] = sums[i] / 3;
-    else raw.set(new Uint8Array(sums.buffer), 16);
+    hdr[0] = RC_MAGIC; hdr[1] = mode; hdr[2] = page.w; hdr[3] = page.h;
+    if (mode === 1) for (let i = 0; i < n; i++) raw[16 + i] = sums[i] / 3;
+    else {
+      raw.set(new Uint8Array(sums.buffer), 16);
+      if (mode === 3) raw.set(page.spread, 16 + 2 * n);
+    }
   }
   const gz = await new Response(
     new Blob([raw]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer();
