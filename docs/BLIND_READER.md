@@ -767,3 +767,27 @@ NEW/courier 7516xx block: DIGITAL renders (perfectly vertical constant
 frames), one 816×1056 DeviceGray image per page + Courier ~8.8pt OCR
 overlay, ~12px-em serif-ish digits — face unidentified (not cour11/12/13/16,
 not times13), needs its own renderer hunt; calibri/ + segoe/ untouched.
+
+## 2026-07-14 late — union font attribution + 7516xx findings (user feedback)
+
+**Times headings displayed as Courier (and vice versa).** The multi-font
+email docs read correctly, but per-line font IDENTITY was lost whenever a
+union pool was involved: L.font was the pool's name and Recto's
+ocrFontFromSetName took `split('+')[0]` — the first set in load order — so
+every union-pass line displayed as one family. Union candidates now carry
+their source set (`src`), accepted glyphs keep it, and each line's L.font
+is the MAJORITY VOTE over its byte-certified glyphs. EFTA00434905 P1 now
+reports timesbd16 ("From:"/"To:" are bold!), times16 (Subject/Date), cour13
+(body) — and Recto shows the same (recto-test status: "timesbd16 times16
+arial16"). Bench JSON `font` + per-glyph `src` updated; metadata-only, gate
+numbers unchanged.
+
+**EFTA00751637 (the framed 7516xx block).** The 2px page frame is correctly
+objectified (vrules x31-33/x783-785, rules y38/y1023) and banding is fine
+(72 bands, 12-13px pitch) — the block is NOT blocked on line detection.
+Body advance measures 6.0009765625 px = **Courier New 10px em exactly**;
+but the rasterizer is foreign: 'D' is 7 rows tall vs MuPDF-cour10's 6,
+much darker (2-col stems 118+227 vs single 152). Excluded so far: MuPDF
+cour10/11/12/13/16, times13, PIL hinted-freetype 10. Headings are likely
+Times (per user). Next: REPORT_RENDERER_HUNT methodology at 10px (GDI,
+Ghostscript, supersampled downscale, freetype hint modes).

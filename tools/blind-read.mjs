@@ -195,7 +195,7 @@ function unionSets(sets) {
     maxAsc = Math.max(maxAsc, s.maxAsc); maxDesc = Math.max(maxDesc, s.maxDesc);
     for (const [phy, arr] of s.byPhy) {
       if (!byPhy.has(phy)) byPhy.set(phy, []);
-      for (const g of arr) byPhy.get(phy).push({ ...g, lin: s.linear });
+      for (const g of arr) byPhy.get(phy).push({ ...g, lin: s.linear, src: s.name });
     }
   }
   return { name: sets.map(s => s.name).join('+'), sizePx: sets[0].sizePx,
@@ -745,7 +745,8 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
     }
     if (process.env.BR_LINE && +process.env.BR_LINE === baseline && maxGlyphs === Infinity)
       console.log(`    accept '${g.ch}' pen ${pi + g.phx} exact ${best.exact} pend ${best.pending} (anchor ${col})`);
-    glyphs.push({ ch: g.ch, pen: pi + g.phx, adv: g.adv, exact: best.exact, pending: best.pending });
+    glyphs.push({ ch: g.ch, pen: pi + g.phx, adv: g.adv, exact: best.exact, pending: best.pending,
+      ...(g.src ? { src: g.src } : {}) });
     accepted.add(`${g.ch}@${pi + g.phx}`);
     cursor = col + 1;   // pending overlap columns right of col are revisited; the
   }                     // accepted-set guard prevents re-accepting the same glyph
@@ -975,6 +976,16 @@ async function readPage(page, sets, worker, useQuant) {
             page.gray[y * page.w + x] === q(L.canvas[(y - L.y0) * (L.xTo - L.xFrom) + (x - L.xFrom)]))
           explained[y * page.w + x] = 1;
     L.top = top; L.bot = bot; L.baseline = pick.yb; L.set = pick.set; L.phy = pick.phy;
+    // a union pool has no per-band font identity — recover it per LINE by
+    // majority vote over the byte-certified glyphs' source sets (a Times
+    // heading in a Courier email must not display as the union's first name)
+    {
+      const votes = new Map();
+      for (const g of L.glyphs) if (g.src) votes.set(g.src, (votes.get(g.src) ?? 0) + 1);
+      L.font = votes.size
+        ? [...votes.entries()].sort((a, b) => b[1] - a[1])[0][0]
+        : pick.set.name;
+    }
     L.boxes = lineObjects.map(ob => [ob.x0 - 2, ob.x1 + 2]);
     L.objects = lineObjects;
     // strike-through: a rule crossing the line's x-height voids the struck
@@ -1065,7 +1076,7 @@ async function main() {
         if (L.verified !== undefined) { verTried++; if (L.verified) verified++; }
         const sp = withSpaces(L, spaceAdv);
         outLines.push(sp.text);
-        jsonLines.push({ baseline: L.baseline, phy: L.phy, font: L.set.name,
+        jsonLines.push({ baseline: L.baseline, phy: L.phy, font: L.font,
           text: sp.text, verified: L.verified ?? null, fails: L.fails.length,
           failCols: L.fails, boxes: L.boxes, oddGaps: sp.oddGaps,
           ...(L.frags?.length ? { boxFrags: L.frags } : {}),

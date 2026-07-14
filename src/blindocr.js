@@ -100,7 +100,7 @@
       maxAsc = Math.max(maxAsc, s.maxAsc); maxDesc = Math.max(maxDesc, s.maxDesc);
       for (const [phy, arr] of s.byPhy) {
         if (!byPhy.has(phy)) byPhy.set(phy, []);
-        for (const g of arr) byPhy.get(phy).push({ ...g, lin: s.linear });
+        for (const g of arr) byPhy.get(phy).push({ ...g, lin: s.linear, src: s.name });
       }
     }
     return { name: sets.map(s => s.name).join('+'), sizePx: sets[0].sizePx,
@@ -640,7 +640,8 @@
         }
         setCan(x, y, val);
       }
-      glyphs.push({ ch: g.ch, pen: pi + g.phx, adv: g.adv, exact: best.exact, pending: best.pending });
+      glyphs.push({ ch: g.ch, pen: pi + g.phx, adv: g.adv, exact: best.exact, pending: best.pending,
+        ...(g.src ? { src: g.src } : {}) });
       accepted.add(g.ch + '@' + (pi + g.phx));
       cursor = col + 1;
     }
@@ -869,7 +870,18 @@
               page.gray[y * page.w + x] === q(L.canvas[(y - L.y0) * (L.xTo - L.xFrom) + (x - L.xFrom)]))
             explained[y * page.w + x] = 1;
       L.top = top; L.bot = bot; L.baseline = pick.yb; L.phy = pick.phy;
-      L.set = pick.set; L.font = pick.set.name;
+      L.set = pick.set;
+      // a union pool has no per-band font identity — recover it per LINE by
+      // majority vote over the byte-certified glyphs' source sets (a Times
+      // heading in a Courier email must not display as the union's first
+      // name — Recto maps L.font to the shown family)
+      {
+        const votes = new Map();
+        for (const g of L.glyphs) if (g.src) votes.set(g.src, (votes.get(g.src) ?? 0) + 1);
+        L.font = votes.size
+          ? [...votes.entries()].sort((a, b) => b[1] - a[1])[0][0]
+          : pick.set.name;
+      }
       L.boxes = lineObjects.map(ob => [ob.x0 - 2, ob.x1 + 2]);
       L.objects = lineObjects;
       // strike-through: a rule crossing the line's x-height voids the struck
