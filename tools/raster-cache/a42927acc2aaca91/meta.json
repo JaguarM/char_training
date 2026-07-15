@@ -1,0 +1,6 @@
+{
+  "pdf": "report.pdf",
+  "sha256": "a42927acc2aaca91865613bd1a488fc60e9e0fba11942a3c2025d989ce58bd15",
+  "numPages": 1,
+  "format": "gzip(GRY1 header + u8 sum/3 | u16le R+G+B sums) — see raster-cache-browser.js"
+}

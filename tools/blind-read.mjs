@@ -16,23 +16,18 @@
 //                        ink; pens come out on the ¼-px lattice for free;
 //   4. spaces          : measured pen gaps vs advances — space width is
 //                        self-calibrated from the gap histogram, narrow styled
-//                        spaces become measurements instead of model errors;
-//   5. --verify        : re-render every line through real MuPDF at the
-//                        recovered pens and byte-compare the whole band — a
-//                        per-line 100% certificate (render_hypotheses.py).
+//                        spaces become measurements instead of model errors.
 //
 // Multiple glyph sets may be given; the reader auto-picks per band (font
-// detection). Sets come from fontgen/export_glyphs.py (fontgen rasters —
-// zero corpus pixels).
+// detection). Sets come from the committed fontgen rasters (assets/fonts/*.npz,
+// zero corpus pixels), exported by export-glyphs.mjs.
 //
-//   node blind-read.mjs --pdf ../corpus/v3.pdf --page 2 --verify
+//   node blind-read.mjs --pdf ../corpus/v3.pdf --page 2
 //   node blind-read.mjs --pdf ../corpus/v3.pdf --all --truth ../corpus/v3.txt
 //   node blind-read.mjs --raster <page.gray.gz> --glyphs glyphs_times16.json,glyphs_arial16.json
 import { createHash } from 'node:crypto';
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
-import { spawn } from 'node:child_process';
-import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve, join, basename } from 'node:path';
 
@@ -42,8 +37,7 @@ const GLYPH_DIR = resolve(REPO, 'assets', 'glyphs');   // shared glyph sets (fon
 
 // ---------------- args ----------------
 const o = { pdf: null, raster: null, page: 1, all: false, truth: null, out: null,
-  json: null, glyphs: ['glyphs_times16.json'], verify: false, tol: 0,
-  worker: join(__dirname, 'fontgen', 'render_hypotheses.py') };
+  json: null, glyphs: ['glyphs_times16.json'], tol: 0 };
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i], next = () => process.argv[++i];
   if (a === '--pdf') o.pdf = resolve(process.cwd(), next());
@@ -55,10 +49,8 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === '--json') o.json = resolve(process.cwd(), next());
   else if (a === '--tol') o.tol = parseInt(next(), 10);
   else if (a === '--glyphs') o.glyphs = next().split(',');
-  else if (a === '--verify') o.verify = true;
   else if (a === '--union') o.union = true;
   else if (a === '--quant') o.quant = true;
-  else if (a === '--worker') o.worker = next();
   else { console.error(`unknown arg ${a}`); process.exit(2); }
 }
 
@@ -187,7 +179,7 @@ function loadSet(file) {
 // --union: one merged candidate pool over all sets, so a single line may mix
 // fonts (bold "From:" label + regular value). Per-glyph `lin` keeps each
 // candidate on its own compositor law. Byte-exact matching keeps cross-font
-// false hits out; per-band font detection (and --verify) don't apply.
+// false hits out; per-band font detection doesn't apply.
 function unionSets(sets) {
   const byPhy = new Map();
   let maxAsc = 0, maxDesc = 0;
@@ -224,10 +216,10 @@ const INV = (() => {
 // ---------------- non-text objects (rules, redaction boxes) ----------------
 // Long near-solid horizontal ink runs cannot be glyphs. Thin groups (≤4 rows)
 // are rules/underlines, tall groups are boxes. Their pixels (padded for AA
-// edges) become a page-level don't-care mask: banding ignores them, the
-// scanner neither fails on them nor hallucinates glyphs inside them, and the
-// verify certificate excludes them. Underlined text therefore reads normally,
-// with the underline reported as a separate object.
+// edges) become a page-level don't-care mask: banding ignores them, and the
+// scanner neither fails on them nor hallucinates glyphs inside them.
+// Underlined text therefore reads normally, with the underline reported as a
+// separate object.
 function detectObjects(page) {
   const { w, h, gray } = page;
   // light rules (HTML blockquote quote bars, decorative separators): a long
@@ -819,29 +811,8 @@ function withSpaces(L, spaceAdv) {
   return { text: out, oddGaps: flags };
 }
 
-// ---------------- MuPDF verify worker ----------------
-function startWorker(py) {
-  const proc = spawn('python', [py], { stdio: ['pipe', 'pipe', 'inherit'] });
-  const pending = new Map();
-  let nextId = 1;
-  createInterface({ input: proc.stdout }).on('line', l => {
-    if (!l.trim()) return;
-    const r = JSON.parse(l);
-    const p = pending.get(r.id);
-    if (p) { pending.delete(r.id); p(Buffer.from(r.b64, 'base64')); }
-  });
-  return {
-    render(glyphs, baseline, y0, y1, font) {
-      const id = nextId++;
-      return new Promise(res => { pending.set(id, res);
-        proc.stdin.write(JSON.stringify({ id, glyphs, baseline, y0, y1, font }) + '\n'); });
-    },
-    close() { try { proc.stdin.write('{"cmd":"quit"}\n'); } catch {} try { proc.kill(); } catch {} },
-  };
-}
-
 // ---------------- per-page driver ----------------
-async function readPage(page, sets, worker, useQuant) {
+async function readPage(page, sets, useQuant) {
   const quant = useQuant ? quantMap(page) : null;
   const q = quant ? v => quant[v] : v => v;
   const { mask, objects } = detectObjects(page);
@@ -1002,18 +973,6 @@ async function readPage(page, sets, worker, useQuant) {
       L.fails = L.fails.filter(c => !strikes.some(sb => c >= sb.x0 - 4 && c < sb.x1 + 4));
       L.struck = strikes.map(sb => [sb.x0, sb.x1]);
     }
-    // verification certificate: byte-exact re-render of the whole band
-    // (detected non-text boxes are reported objects, excluded from the compare)
-    if (worker && L.glyphs.length && !L.fails.length) {
-      const y0 = Math.max(0, pick.yb - pick.set.maxAsc), y1 = Math.min(page.h, pick.yb + pick.set.maxDesc);
-      const band = await worker.render(L.glyphs.map(g => [g.ch, g.pen]),
-        pick.yb + pick.phy, y0, y1, pick.set.fontFile);
-      let ok = true;
-      for (let y = y0; y < y1 && ok; y++)
-        for (let x = 0; x < page.w; x++)
-          if (band[(y - y0) * page.w + x] !== page.gray[y * page.w + x] && !mask[y * page.w + x]) { ok = false; break; }
-      L.verified = ok;
-    }
     lines.push(L);
   }
   // an unread band may be explained by a line BELOW it (an 'i' dot separated
@@ -1042,68 +1001,63 @@ async function main() {
     return parts.length > 1 ? unionSets(parts.map(loadSet)) : loadSet(g);
   });
   if (o.union && sets.length > 1) sets = [unionSets(sets)];
-  const worker = o.verify ? startWorker(o.worker) : null;
   const t0 = Date.now();
-  try {
-    let pages;                                        // [{pno, page}]
-    if (o.raster) pages = [{ pno: 0, page: readGray(o.raster) }];
-    else {
-      if (!o.pdf) { console.error('need --pdf or --raster'); process.exit(1); }
-      const cache = cachePages(o.pdf);
-      const list = o.all ? Array.from({ length: cache.numPages }, (_, i) => i + 1) : [o.page];
-      pages = list.map(pno => ({ pno, page: cache.page(pno) }));
-    }
-    const truth = o.truth ? readFileSync(o.truth, 'utf8').replace(/\r/g, '').split('\n') : null;
+  let pages;                                        // [{pno, page}]
+  if (o.raster) pages = [{ pno: 0, page: readGray(o.raster) }];
+  else {
+    if (!o.pdf) { console.error('need --pdf or --raster'); process.exit(1); }
+    const cache = cachePages(o.pdf);
+    const list = o.all ? Array.from({ length: cache.numPages }, (_, i) => i + 1) : [o.page];
+    pages = list.map(pno => ({ pno, page: cache.page(pno) }));
+  }
+  const truth = o.truth ? readFileSync(o.truth, 'utf8').replace(/\r/g, '').split('\n') : null;
 
-    let totLines = 0, totGlyphs = 0, totFails = 0, totFrags = 0, verified = 0, verTried = 0;
-    let rowExact = 0, rowDiff = 0, spacedExact = 0;
-    const diffs = [];
-    const outLines = [];
-    const jsonPages = [];
-    for (const { pno, page } of pages) {
-      if (!page) continue;
-      const { lines, objects } = await readPage(page, sets, worker, o.quant);
-      const spaceAdv = spaceCalib(lines);
-      const jsonLines = [];
-      jsonPages.push({ pno, spaceAdv, objects, lines: jsonLines });
-      for (const L of lines) {
-        if (!L.set) {
-          if (L.fragOnly) { totFrags++; jsonLines.push({ top: L.top, fragOnly: true }); continue; }
-          totFails++; outLines.push(''); jsonLines.push({ top: L.top, text: '', unread: true }); continue;
-        }
-        totLines++; totGlyphs += L.glyphs.length; totFails += L.fails.length;
-        totFrags += (L.frags ?? []).length;
-        if (L.verified !== undefined) { verTried++; if (L.verified) verified++; }
-        const sp = withSpaces(L, spaceAdv);
-        outLines.push(sp.text);
-        jsonLines.push({ baseline: L.baseline, phy: L.phy, font: L.font,
-          text: sp.text, verified: L.verified ?? null, fails: L.fails.length,
-          failCols: L.fails, boxes: L.boxes, oddGaps: sp.oddGaps,
-          ...(L.frags?.length ? { boxFrags: L.frags } : {}),
-          ...(L.struck ? { struck: L.struck } : {}),
-          glyphs: L.glyphs.map(g => [g.ch, g.pen]) });
-        if (truth) {
-          // row index from baseline is unknown to the reader — compare against
-          // the truth row whose letters match (letters-only first, then spaced)
-          const letters = sp.text.replace(/ /g, '');
-          const hit = truth.find(t => t.trim() && t.replace(/ /g, '') === letters);
-          if (hit !== undefined) { rowExact++; if (hit.trimEnd() === sp.text.trimEnd()) spacedExact++; }
-          else { rowDiff++; if (diffs.length < 12) diffs.push({ pno, base: L.baseline, got: sp.text.slice(0, 70) }); }
-        }
+  let totLines = 0, totGlyphs = 0, totFails = 0, totFrags = 0;
+  let rowExact = 0, rowDiff = 0, spacedExact = 0;
+  const diffs = [];
+  const outLines = [];
+  const jsonPages = [];
+  for (const { pno, page } of pages) {
+    if (!page) continue;
+    const { lines, objects } = await readPage(page, sets, o.quant);
+    const spaceAdv = spaceCalib(lines);
+    const jsonLines = [];
+    jsonPages.push({ pno, spaceAdv, objects, lines: jsonLines });
+    for (const L of lines) {
+      if (!L.set) {
+        if (L.fragOnly) { totFrags++; jsonLines.push({ top: L.top, fragOnly: true }); continue; }
+        totFails++; outLines.push(''); jsonLines.push({ top: L.top, text: '', unread: true }); continue;
       }
-      process.stderr.write(`\r  page ${pno}: ${lines.length} bands`);
+      totLines++; totGlyphs += L.glyphs.length; totFails += L.fails.length;
+      totFrags += (L.frags ?? []).length;
+      const sp = withSpaces(L, spaceAdv);
+      outLines.push(sp.text);
+      jsonLines.push({ baseline: L.baseline, phy: L.phy, font: L.font,
+        text: sp.text, fails: L.fails.length,
+        failCols: L.fails, boxes: L.boxes, oddGaps: sp.oddGaps,
+        ...(L.frags?.length ? { boxFrags: L.frags } : {}),
+        ...(L.struck ? { struck: L.struck } : {}),
+        glyphs: L.glyphs.map(g => [g.ch, g.pen]) });
+      if (truth) {
+        // row index from baseline is unknown to the reader — compare against
+        // the truth row whose letters match (letters-only first, then spaced)
+        const letters = sp.text.replace(/ /g, '');
+        const hit = truth.find(t => t.trim() && t.replace(/ /g, '') === letters);
+        if (hit !== undefined) { rowExact++; if (hit.trimEnd() === sp.text.trimEnd()) spacedExact++; }
+        else { rowDiff++; if (diffs.length < 12) diffs.push({ pno, base: L.baseline, got: sp.text.slice(0, 70) }); }
+      }
     }
-    process.stderr.write('\n');
-    console.log(`\n${totLines} lines, ${totGlyphs} glyphs, ${totFails} unreadable clusters (□)` +
-      (totFrags ? `, ${totFrags} box fragments` : '') +
-      `, ${((Date.now() - t0) / 1000).toFixed(1)}s`);
-    if (verTried) console.log(`verify certificates: ${verified}/${verTried} lines byte-exact re-render`);
-    if (truth) {
-      console.log(`vs truth: ${rowExact} rows letter-exact (${spacedExact} also space-exact), ${rowDiff} rows differ`);
-      for (const d of diffs) console.log(`  P${d.pno} y${d.base}: ${JSON.stringify(d.got)}`);
-    }
-    if (o.out) { writeFileSync(o.out, outLines.join('\n') + '\n'); console.log(`wrote ${o.out}`); }
-    if (o.json) { writeFileSync(o.json, JSON.stringify({ pages: jsonPages }, null, 1)); console.log(`wrote ${o.json}`); }
-  } finally { worker?.close(); }
+    process.stderr.write(`\r  page ${pno}: ${lines.length} bands`);
+  }
+  process.stderr.write('\n');
+  console.log(`\n${totLines} lines, ${totGlyphs} glyphs, ${totFails} unreadable clusters (□)` +
+    (totFrags ? `, ${totFrags} box fragments` : '') +
+    `, ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+  if (truth) {
+    console.log(`vs truth: ${rowExact} rows letter-exact (${spacedExact} also space-exact), ${rowDiff} rows differ`);
+    for (const d of diffs) console.log(`  P${d.pno} y${d.base}: ${JSON.stringify(d.got)}`);
+  }
+  if (o.out) { writeFileSync(o.out, outLines.join('\n') + '\n'); console.log(`wrote ${o.out}`); }
+  if (o.json) { writeFileSync(o.json, JSON.stringify({ pages: jsonPages }, null, 1)); console.log(`wrote ${o.json}`); }
 }
 main().catch(e => { console.error(e); process.exit(1); });

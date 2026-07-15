@@ -5,10 +5,11 @@
   "description": "Byte-exact OCR for MuPDF-rendered document rasters — certified per line, not sampled.",
   "license": "MIT",
   "scripts": {
-    "serve": "python launch.py",
+    "serve": "node tools/serve.mjs",
     "test": "node test/test.js",
     "bench": "node tools/blind-read.mjs",
     "rasterize": "node tools/rasterize.mjs",
+    "glyphs-check": "node tools/export-glyphs.mjs --check",
     "app-test": "node tools/test-blind-app.mjs",
     "sync:recto": "node tools/sync-recto.mjs",
     "recto-test": "node tools/test-recto-app.mjs"

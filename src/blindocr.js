@@ -10,7 +10,7 @@
 // (The bench's MuPDF re-render cross-check lives in tools/blind-read.mjs
 // --verify; this is the same composition law applied in reverse.)
 //
-// Glyph sets come from assets/glyphs/glyphs_*.json (export_glyphs.py — pure synthetic
+// Glyph sets come from assets/glyphs/glyphs_*.json (tools/export-glyphs.mjs — pure synthetic
 // fontgen rasters, 4 x-phases × 2 y-phases). Load with BlindOCR.loadSets().
 (function (root) {
   'use strict';

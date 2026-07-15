@@ -3,7 +3,7 @@
 //
 // The cache lives at tools/raster-cache/<sha256[:16] of the PDF bytes>/ so it is
 // (a) keyed to the exact document — a swapped PDF gets a fresh directory — and
-// (b) under the repo root, so launch.py's static handler already serves it to the
+// (b) under the repo root, so serve.mjs's static handler already serves it to the
 // page with no server changes. Node's only jobs are hashing the PDF, answering
 // "is page N cached?", and writing the bytes the browser hands back; all
 // encode/decode logic is front-end JS.

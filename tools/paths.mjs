@@ -5,17 +5,30 @@
 import { existsSync, readdirSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-// First Chrome/Edge that exists, or '' if none (caller errors with a clear message).
+// First Chrome/Chromium/Edge that exists, or '' if none (caller errors with a
+// clear message; CHROME=<path> / --chrome always win in the callers).
 export function findChrome() {
-  const pf = process.env['ProgramFiles'] || 'C:/Program Files';
-  const px = process.env['ProgramFiles(x86)'] || 'C:/Program Files (x86)';
-  const la = process.env['LOCALAPPDATA'] || '';
-  return [
-    `${px}/Google/Chrome/Application/chrome.exe`,
-    `${pf}/Google/Chrome/Application/chrome.exe`,
-    `${la}/Google/Chrome/Application/chrome.exe`,
-    `${pf}/Microsoft/Edge/Application/msedge.exe`,
-    `${px}/Microsoft/Edge/Application/msedge.exe`,
+  if (process.platform === 'win32') {
+    const pf = process.env['ProgramFiles'] || 'C:/Program Files';
+    const px = process.env['ProgramFiles(x86)'] || 'C:/Program Files (x86)';
+    const la = process.env['LOCALAPPDATA'] || '';
+    return [
+      `${px}/Google/Chrome/Application/chrome.exe`,
+      `${pf}/Google/Chrome/Application/chrome.exe`,
+      `${la}/Google/Chrome/Application/chrome.exe`,
+      `${pf}/Microsoft/Edge/Application/msedge.exe`,
+      `${px}/Microsoft/Edge/Application/msedge.exe`,
+    ].find(existsSync) || '';
+  }
+  if (process.platform === 'darwin') return [
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    '/Applications/Chromium.app/Contents/MacOS/Chromium',
+    '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+  ].find(existsSync) || '';
+  return [                                   // linux
+    '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable',
+    '/usr/bin/chromium', '/usr/bin/chromium-browser', '/snap/bin/chromium',
+    '/usr/bin/microsoft-edge',
   ].find(existsSync) || '';
 }
 

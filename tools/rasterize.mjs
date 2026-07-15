@@ -86,8 +86,8 @@ async function main() {
   if (!o.pdf || !existsSync(o.pdf)) { console.error('No PDF (pass --pdf <path>)'); process.exit(1); }
   const port = await freePort();
   const base = `http://localhost:${port}`;
-  const server = spawn(process.platform === 'win32' ? 'python' : 'python3',
-    ['launch.py', '--no-browser', '--port', String(port)], { cwd: REPO, stdio: 'ignore' });
+  const server = spawn(process.execPath,
+    ['tools/serve.mjs', '--no-browser', '--port', String(port)], { cwd: REPO, stdio: 'ignore' });
   const cachePromise = openRasterCache(o.pdf, REPO);
   let browser;
   try {

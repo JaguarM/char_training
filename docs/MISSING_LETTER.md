@@ -3,8 +3,9 @@
 Stress-test from `MISSING_LETTER_PROMPT.md`: erase ONE letter from a real
 corpus line and try to recover it from the surviving pixels. Tool:
 `tools/guess-letter.mjs` (single trial `--page/--row/--col`, batch
-`--sample N [--targeted]`, physics `--calibrate`; Python halves
-`export_glyphs.py` / `render_hypotheses.py` in `tools/fontgen/`). All numbers
+`--sample N [--targeted]`, physics `--calibrate`; the Python halves it used —
+`export_glyphs.py` / `render_hypotheses.py` — retired 2026-07-15, tag
+`python-era`; levels 1–2 rerun Python-free). All numbers
 below are measured on the real `corpus/v3.pdf` and `corpus/big.pdf` rasters
 from `tools/raster-cache/` — nothing re-rasterized, no template dictionary
 involved (glyph rasters come straight from fontgen).
@@ -199,8 +200,9 @@ A single erased letter in this pipeline is recoverable:
   advance 8.0 stood here": 1 of 27 equal possibilities. Language priors (never
   used above) are the only remaining channel.
 
-Reproduce: `node tools/guess-letter.mjs --sample 300 --seed 11` ·
+Reproduce (levels 1–2): `node tools/guess-letter.mjs --sample 300 --seed 11` ·
 `--pdf ../corpus/big.pdf --sample 600 --seed 13` · `--targeted` variants ·
 `--calibrate 80`. `assets/glyphs/glyphs_times16.json` regenerates via
-`python tools/fontgen/export_glyphs.py`; the level-3 worker is
-`tools/fontgen/render_hypotheses.py` (`--worker` to relocate).
+`node tools/export-glyphs.mjs`; level 3 (MuPDF re-render worker) retired with
+the Python tooling 2026-07-15 — its numbers above stand as recorded (tag
+`python-era` has the code).

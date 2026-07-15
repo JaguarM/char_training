@@ -2,10 +2,10 @@
 
 Byte-exact OCR for MuPDF-rendered document rasters. Accuracy is **certified,
 not sampled**: a line is accepted only when its glyphs explain the page's
-pixels exactly through the renderer's proven blend law (optionally re-rendered
-through real MuPDF as an independent certificate); anything unexplained is an
-honest `□` with exact coordinates. **Start with [docs/README.md](docs/README.md)**
-— the map of the proven physics, the regression gate, and all documentation.
+pixels exactly through the renderer's proven blend law; anything unexplained
+is an honest `□` with exact coordinates. **Start with
+[docs/README.md](docs/README.md)** — the map of the proven physics, the
+regression gate, and all documentation.
 
 The reader is the **blind reader** — no layout constants; bands, baselines,
 fonts, spaces and non-text objects (redaction boxes, rules, strike-throughs)
@@ -19,6 +19,10 @@ with `npm run recto-test`; the engine is developed only here.
 2026-07-13 — history in [docs/BLIND_READER.md](docs/BLIND_READER.md); the
 original standalone tool survives outside the repo in `../char_training-main/`.)
 
+Everything runs on stock **Node** (and a browser) — no npm install, no
+Python, no native dependencies. The last Python tooling was retired
+2026-07-15 (tag `python-era` marks the final revision that carried it).
+
 ## Files
 
 | Path | Purpose |
@@ -27,18 +31,18 @@ original standalone tool survives outside the repo in `../char_training-main/`.)
 | `src/blindocr.js` | Browser port of the blind reader (Auto OCR / Auto OCR All / .txt + .json export) |
 | `src/ocr.js` | PageEngine: whole-page grayscale buffer + RGBA access the reader works from |
 | `src/core.js` | DOM-free logic (stem↔char maps, geometry, the gray() page law); unit-tested in Node (`npm test`) |
-| `launch.py` | Local static HTTP server (UI, glyph sets, raster cache, corpus) |
-| `assets/` | `glyphs/` fontgen glyph sets (gitignored; shared by app + tools) · `vendor/pdf.min.js` |
-| `tools/` | Headless tooling — blind reader, rasterizer, recreation certificate, app test: [tools/README.md](tools/README.md) |
+| `tools/serve.mjs` | Local static HTTP server (UI, glyph sets, raster cache, corpus) — `npm run serve` |
+| `assets/` | `glyphs/` glyph-set JSONs (committed; app + tools) · `fonts/` the .npz rasters they derive from · `vendor/pdf.min.js` |
+| `tools/` | Headless tooling — blind reader, rasterizer, glyph exporter, app test: [tools/README.md](tools/README.md) |
 | `test/` | Node unit tests for `core.js` (`npm test`) |
-| `corpus/` | Test documents (PDFs .gitignored — local only) + certified transcriptions (`*.txt`) |
+| `corpus/` | Test documents (PDFs committed) + certified transcriptions (`*.txt`) |
 | `docs/` | Research record: proven physics, producer laws, session results — index in [docs/README.md](docs/README.md) |
 
 ## Quick start
 
 ```
-python launch.py                # serve on http://localhost:8765 and open the browser
-# or:  npm run serve            # same, via the root package.json
+npm run serve                   # http://localhost:8765, opens the browser
+# or:  node tools/serve.mjs
 ```
 
 Open a PDF (**Pick PDF**), hit **Auto OCR** (or **Auto OCR All** + **Download
@@ -51,9 +55,21 @@ cd tools
 node blind-read.mjs --pdf ../corpus/v3.pdf --all --truth ../corpus/v3.txt
 ```
 
-Glyph rasters come from fontgen exports (`assets/glyphs/glyphs_*.json`, gitignored) —
-regenerate with `tools/fontgen/export_glyphs.py` from the committed
-`assets/fonts/*.npz` rasters (see `tools/README.md`).
+The headless reader works from per-page raster caches. On a fresh clone,
+build a document's cache once (the only step that needs anything beyond bare
+Node — puppeteer-core + a local Chrome/Chromium/Edge, auto-detected or
+`CHROME=<path>`):
+
+```
+cd tools && npm install
+node rasterize.mjs --pdf ../corpus/v3.pdf
+```
+
+Glyph rasters are committed (`assets/glyphs/glyphs_*.json`) and derive from
+the committed `assets/fonts/*.npz` fontgen rasters — regenerate any set with
+`node tools/export-glyphs.mjs <in.npz> <out.json>`; `npm run glyphs-check`
+proves every committed set reproducible from its .npz (see
+`tools/README.md`).
 
 > Glyph-crop saving (double-click a box) uses the File System Access API —
 > Chrome/Edge.

@@ -13,9 +13,9 @@
 //                     composite pixels and kern-bleed survive — byte-compare
 //                     candidate composites (blend law dst=(dst*(256-e))>>8,
 //                     e = cov + (cov>>7)).
-//   3 render-verify : render the full line hypothesis through real MuPDF
-//                     (render_hypotheses.py worker) at the OBSERVED buckets and
-//                     byte-compare everything except the erased window.
+//   (a third level — full-line re-render through real MuPDF — was retired with
+//   the Python tooling on 2026-07-15; its results stand in MISSING_LETTER.md
+//   ("L3 ≈ L1", bounded by the advance lattice). Tag `python-era` has it.)
 //
 //   node guess-letter.mjs --page 3 --row 12 --col 17            # one glyph, verbose
 //   node guess-letter.mjs --sample 300 [--targeted] [--out r.json]
@@ -23,13 +23,11 @@
 //   (--pdf ../corpus/v3.pdf default; --pdf ../corpus/big.pdf for volume)
 //
 // Page rasters come exclusively from tools/raster-cache/ (never re-rasterized);
-// glyph rasters from glyphs_times16.json (export_glyphs.py in the ocr workspace).
+// glyph rasters from glyphs_times16.json (tools/export-glyphs.mjs).
 
 import { createHash } from 'node:crypto';
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
-import { spawn } from 'node:child_process';
-import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve, join, basename } from 'node:path';
 import puppeteer from 'puppeteer-core';
@@ -70,9 +68,8 @@ const KERN_PAIRS = new Set(['AV','AW','AT','AY','Av','Aw','Ay','FA','LT','LV','L
 // ---------------- args ----------------
 const o = {
   pdf: join(REPO, 'corpus', 'v3.pdf'), source: null, page: 0, row: -1, col: -1,
-  sample: 0, targeted: false, seed: 1, levels: [1, 2, 3], deltaMax: DELTA_MAX_DEFAULT,
+  sample: 0, targeted: false, seed: 1, levels: [1, 2], deltaMax: DELTA_MAX_DEFAULT,
   calibrate: 0, out: null, chrome: process.env.CHROME || findChrome(),
-  worker: join(__dirname, 'fontgen', 'render_hypotheses.py'),
 };
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i], next = () => process.argv[++i];
@@ -89,8 +86,12 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === '--calibrate') o.calibrate = parseInt(next(), 10) || 60;
   else if (a === '--out') o.out = resolve(process.cwd(), next());
   else if (a === '--chrome') o.chrome = next();
-  else if (a === '--worker') o.worker = next();
   else { console.error(`unknown arg ${a}`); process.exit(2); }
+}
+if (o.levels.includes(3)) {
+  console.error('level 3 (MuPDF re-render) was retired with the Python tooling — ' +
+    'see docs/MISSING_LETTER.md for its recorded results, tag python-era for the code');
+  process.exit(2);
 }
 if (!o.source) o.source = join(dirname(o.pdf), basename(o.pdf).replace(/\.pdf$/i, '.txt'));
 
@@ -142,7 +143,7 @@ function loadSourcePages(path) {
 // ---------------- glyph set ----------------
 function loadGlyphs() {
   const path = join(GLYPH_DIR, 'glyphs_times16.json');
-  if (!existsSync(path)) throw new Error(`missing ${path} — run tools/fontgen/export_glyphs.py`);
+  if (!existsSync(path)) throw new Error(`missing ${path} — run tools/export-glyphs.mjs`);
   const j = JSON.parse(readFileSync(path, 'utf8'));
   const GS = new Map();
   for (const [ch, rec] of Object.entries(j.chars)) {
@@ -298,30 +299,6 @@ async function startMeasure(chromePath) {
   };
 }
 
-// ---------------- MuPDF render worker (level 3) ----------------
-function startWorker(py) {
-  const proc = spawn('python', [py], { stdio: ['pipe', 'pipe', 'inherit'] });
-  const pending = new Map();
-  let nextId = 1;
-  createInterface({ input: proc.stdout }).on('line', l => {
-    if (!l.trim()) return;
-    const r = JSON.parse(l);
-    const p = pending.get(r.id);
-    if (p) { pending.delete(r.id); p(Buffer.from(r.b64, 'base64')); }
-  });
-  return {
-    proc,
-    render(glyphs, baseline, y0, y1) {
-      const id = nextId++;
-      return new Promise(res => {
-        pending.set(id, res);
-        proc.stdin.write(JSON.stringify({ id, glyphs, baseline, y0, y1 }) + '\n');
-      });
-    },
-    close() { try { proc.stdin.write('{"cmd":"quit"}\n'); } catch {} try { proc.kill(); } catch {} },
-  };
-}
-
 // ---------------- helpers ----------------
 // buckets a drawn pen may occupy given ideal q and δ ∈ [0, deltaMax]
 function bucketOptions(q, deltaMax) {
@@ -378,7 +355,7 @@ function mulberry32(seed) {
 
 // ---------------- one trial ----------------
 async function runTrial(ctx, pno, row, col, verbose) {
-  const { cache, srcPages, GS, measure, worker, alphabet, deltaMax, levels } = ctx;
+  const { cache, srcPages, GS, measure, alphabet, deltaMax, levels } = ctx;
   const text = srcPages[pno - 1]?.[row] ?? '';
   const baseline = ROW_BASE + ROW_PITCH * row + BASE_OFF;
   const truth = text[col];
@@ -541,50 +518,8 @@ async function runTrial(ctx, pno, row, col, verbose) {
     } else { T.A2 = r2.set; T.l2Note = `bleed-skipped-${unpinnedNear}-unpinned-near`; T.l2Gate = r2.set.includes(truth); }
   }
 
-  // ---- level 3: MuPDF render-and-verify over A1 survivors ----
-  // Pinned glyphs render at their OBSERVED buckets (exact ¼-px pens — the snap
-  // is a no-op, so no snap-boundary risk). Unpinned glyphs are omitted from the
-  // render and their plausible ink columns excluded from the byte-compare
-  // (don't-care columns), so no bucket enumeration is ever needed.
-  if (levels.includes(3) && !T.cause && T.A1) {
-    const yTop = Math.max(0, baseline - MAX_ASC), yBot = Math.min(page.h, baseline + MAX_DESC + 1);
-    const unpinnedIdx = glyphs.map((g, gi) => gi).filter(gi => gi !== kk && loc0[gi].bucket === null);
-    const compare = (band, excl) => {
-      for (let y = yTop; y < yBot; y++) {
-        const rowOff = (y - yTop) * page.w, pOff = y * page.w;
-        for (let x = 0; x < page.w; x++) {
-          if (hole.has(x) || excl.has(x)) continue;
-          if (band[rowOff + x] !== page.gray[pOff + x]) return false;
-        }
-      }
-      return true;
-    };
-    const A3 = [];
-    for (const c of T.A1) {
-      const m = candSuffix.get(c);
-      const excl = new Set();
-      for (const gi of unpinnedIdx) {
-        const ideal = gi > kk ? m.get(glyphs[gi].i) : glyphs[gi].pen;
-        const { penInt, ras } = rasterFor(GS, glyphs[gi].ch, SNAP(ideal));
-        for (let x = penInt + ras.dx - 2; x < penInt + ras.dx + ras.w + 2; x++) excl.add(x);
-      }
-      let pass = false;
-      for (const bc of bucketOptions(m.get(col), deltaMax)) {
-        const gl = [];
-        glyphs.forEach((g, gi) => {
-          if (gi === kk) gl.push([c, bc]);
-          else if (loc0[gi].bucket !== null) gl.push([g.ch, loc0[gi].bucket]);
-        });
-        const band = await worker.render(gl, baseline, yTop, yBot);
-        if (compare(band, excl)) { pass = true; break; }
-      }
-      if (pass) A3.push(c);
-    }
-    T.A3 = A3;
-    if (unpinnedIdx.length) T.l3Note = `${unpinnedIdx.length}-unpinned-cols-excluded`;
-    T.l3Gate = A3.includes(truth);
-    if (!T.l3Gate) T.l3Valid = false;     // render gate failed (box/false pin/styled leak)
-  }
+  // (level 3 — MuPDF render-and-verify over A1 survivors — retired with the
+  // Python tooling; recorded result: bounded by the advance lattice, ≈ L1.)
 
   T.ok = !T.cause;
   if (verbose) printTrial(T, glyphs, loc0, kk);
@@ -600,8 +535,6 @@ function printTrial(T, glyphs, loc0, kk) {
   console.log(`  hole cols [${T.hole}] · suffix observations ${T.suffixObs} · feasible-interval width ${T.width?.toFixed(4)} px`);
   if (T.A1) console.log(`  L1 geometry : |A1|=${T.A1.length}  {${T.A1.join('')}}  true∈A1=${T.l1Gate}`);
   if (T.A2) console.log(`  L2 +bleed   : |A2|=${T.A2.length}  {${T.A2.join('')}}  ${T.l2Note ?? ''}`);
-  if (T.A3) console.log(`  L3 render   : |A3|=${T.A3.length}  {${T.A3.join('')}}  ` +
-    `${T.l3Valid === false ? 'GATE-FAILED (level excluded) ' : ''}${T.l3Note ?? ''}`);
   if (T.cause) console.log(`  ✗ ${T.cause}`);
   if (T.gateDetail) console.log(`  gate residuals (ideal−bucket per suffix glyph): ${T.gateDetail.join(' ')}`);
 }
@@ -713,9 +646,8 @@ async function main() {
   console.log(`${basename(o.pdf)}: ${cache.numPages} raster pages (key ${cache.key}), ` +
     `${srcPages.length} source pages, δmax ${o.deltaMax}, levels [${o.levels}]`);
   const measure = await startMeasure(o.chrome);
-  const worker = o.levels.includes(3) && !o.calibrate ? startWorker(o.worker) : null;
   const alphabet = [...GS.keys()];
-  const ctx = { cache, srcPages, GS, measure, worker, alphabet, deltaMax: o.deltaMax,
+  const ctx = { cache, srcPages, GS, measure, alphabet, deltaMax: o.deltaMax,
     levels: o.levels, skip };
   try {
     if (o.calibrate) { await calibrate(ctx, o.calibrate); return; }
@@ -774,9 +706,8 @@ async function main() {
     console.log(`\n${trials.length} trials, ${trials.length - bad.length} clean, ` +
       `${bad.length} excluded by cause: ${JSON.stringify(causes)}`);
     const l2bad = trials.filter(t => t.ok && t.l2Valid === false).length;
-    const l3bad = trials.filter(t => t.ok && t.l3Valid === false).length;
-    if (l2bad || l3bad) console.log(
-      `per-level gate failures (level excluded, trial kept): L2 ${l2bad} · L3 ${l3bad}`);
+    if (l2bad) console.log(
+      `per-level gate failures (level excluded, trial kept): L2 ${l2bad}`);
     const widths = trials.filter(t => t.ok && isFinite(t.width)).map(t => t.width).sort((a, b) => a - b);
     if (widths.length) {
       const qw = p => widths[Math.min(widths.length - 1, Math.floor(p * widths.length))];
@@ -807,7 +738,6 @@ async function main() {
     }
   } finally {
     await measure.browser.close();
-    worker?.close();
   }
 }
 

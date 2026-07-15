@@ -11,9 +11,10 @@ across glyph sets), byte-exact composite-aware scan, measured spaces,
 non-text objects (mode-voted box extents, rules, vrules), strike-through
 voiding, mode-2 color pages (neutral-sum reading + colored-ink flood),
 `--union` mixed-font lines, `--tol N` for unidentified rasterizers,
-`--quant` for palette-quantized producers, `--verify` MuPDF re-render
-certificates, `--json` positions export (round-trip-proven by
-`tools/recreate.mjs`).
+`--quant` for palette-quantized producers, `--json` positions export
+(round-trip-proven in the 07-11 hunt session by the since-retired
+`recreate.mjs`; the MuPDF `--verify` re-render certificate also retired with
+the Python tooling 2026-07-15 — tag `python-era`).
 
 | Document | Producer / mode | Result (2026-07-12) |
 |---|---|---|
@@ -49,15 +50,18 @@ this one assumes NOTHING about layout and measures everything from the pixels:
 5. **spaces are measured** — gap = pen gap − advance; the one-space width is
    self-calibrated from the document's own gap histogram. Narrow "styled"
    spaces stop being model errors and become measurements;
-6. **`--verify` certificate** — every clean line is re-rendered through real
-   MuPDF (font-aware `render_hypotheses.py`) at the recovered pens and
-   byte-compared against the page. A line either re-renders EXACTLY or it is
-   flagged. This is the mechanism that makes "100% accuracy" an honest claim
-   at scale: the system never silently guesses.
+6. **`--verify` certificate** *(retired 2026-07-15 with the Python tooling —
+   tag `python-era`)* — every clean line was re-rendered through real MuPDF
+   (font-aware `render_hypotheses.py`) at the recovered pens and
+   byte-compared against the page; it certified v3 1758/1758. The honesty
+   mechanism it provided lives on in the reader's own gray-law byte
+   acceptance (a glyph is only accepted if it explains the page bytes
+   exactly), which is what the whole regression gate runs on.
 
-Glyph sets are pure fontgen renders (`export_glyphs.py`, zero corpus pixels),
-now exported at all 4 x-phases × both y-phases; times16 / arial16 / georgia16
-are checked in as regenerable artifacts.
+Glyph sets are pure fontgen renders (zero corpus pixels), exported from the
+committed `assets/fonts/*.npz` at all 4 x-phases × both y-phases by
+`tools/export-glyphs.mjs`; the committed sets are proven reproducible from
+the committed rasters (`npm run glyphs-check`).
 
 ## Results
 
@@ -384,11 +388,13 @@ R==G==B would be even cleaner there.
    Ghostscript) need their own identification pass — same methodology that
    unmasked MuPDF (RENDERER_IDENTIFIED.md); match-rate collapse makes
    mismatches self-announcing, never silent.
-2. **Fonts/sizes**: adding one = one fontgen run (`fontgen.py <ttf> <px>` +
-   `export_glyphs.py`). Auto-pick already works per band; a first-band font
-   census per document would prune the candidate list for speed. Sizes other
-   than 16 px and bold/italic variants (timesbd/timesi npz already exist)
-   are the immediate next exports.
+2. **Fonts/sizes**: every proven font's rasters are committed
+   (`assets/fonts/*.npz`) — a new SET from an existing .npz is one
+   `tools/export-glyphs.mjs` run. Rendering rasters for a brand-NEW font/size
+   needs the retired Python generator (tag `python-era`,
+   `tools/fontgen/fontgen.py`). Auto-pick already works per band; a
+   first-band font census per document would prune the candidate list for
+   speed.
 3. **Speed**: ~2 s/page naive is ~8 days/million pages on one core — already
    parallelizable to days on a small machine pool. The scan is embarrassingly
    optimizable (candidate indexing by first-column profile, the strided-match

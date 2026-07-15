@@ -44,8 +44,8 @@ async function waitForServer(base, timeoutMs = 15000) {
 async function run() {
   const port = await freePort();
   const base = `http://localhost:${port}`;
-  const server = spawn(process.platform === 'win32' ? 'python' : 'python3',
-    ['launch.py', '--no-browser', '--port', String(port)], { cwd: REPO, stdio: 'ignore' });
+  const server = spawn(process.execPath,
+    ['tools/serve.mjs', '--no-browser', '--port', String(port)], { cwd: REPO, stdio: 'ignore' });
   let browser;
   try {
     await waitForServer(base);

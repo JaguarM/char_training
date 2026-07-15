@@ -20,7 +20,7 @@ reported as objects; strike-through spans are voided; unknown ink = honest
 producer's linear compositor).
 
 ```
-node blind-read.mjs --pdf ../corpus/v3.pdf --all --truth ../corpus/v3.txt --verify
+node blind-read.mjs --pdf ../corpus/v3.pdf --all --truth ../corpus/v3.txt
 node blind-read.mjs --pdf ../corpus/v4.pdf --tol 0 --quant --union \
   --glyphs glyphs_times16.json,glyphs_timesbd16.json,glyphs_timesi16.json
 node blind-read.mjs --raster raster-cache/<key>/page-0001.gray.gz --glyphs …
@@ -35,25 +35,12 @@ node blind-read.mjs --raster raster-cache/<key>/page-0001.gray.gz --glyphs …
 | `--tol N` | per-pixel tolerance for near-identical rasterizers (0 = byte-exact; keep 0 unless a producer is unidentified) |
 | `--quant` | palette-quantized producers (v4-family): snap every prediction to the page's available gray levels |
 | `--truth <txt>` | per-row letters/spaces comparison |
-| `--verify` | per-line byte-exact MuPDF re-render certificates (bundled `fontgen/render_hypotheses.py`; needs Python with pymupdf) |
-| `--out` / `--json` | clean text / structured output (baselines, fonts, per-glyph ¼-px pens, objects, certificates, struck spans) |
+| `--out` / `--json` | clean text / structured output (baselines, fonts, per-glyph ¼-px pens, objects, struck spans) |
 
 Mode-2 (color) pages: neutral ink (R=G=B) is read byte-exactly via sum/3;
 ink components connected to non-neutral pixels (hyperlink blue) are flooded
 away before reading. Debug envs: `BR_DEBUG=1` (fail pixels), `BR_LINE=<baseline>`
 (accept trace), `BR_PIX=<col>` (per-pixel rejection detail).
-
-# Source recreation — `recreate.mjs`
-
-The round-trip certificate: rebuild page rasters from a blind-read `--json`
-(pens + baselines + fonts + compositor law) and byte-compare against the
-cached truth outside objects/□ masks — the proof that the JSON losslessly
-describes the page text.
-
-```
-node blind-read.mjs --pdf ../corpus/v3.pdf --page 2 --json p2.json
-node recreate.mjs --json p2.json --pdf ../corpus/v3.pdf --page 2
-```
 
 # App Auto-OCR test — `test-blind-app.mjs`
 
@@ -66,28 +53,41 @@ port carries the full bench feature set (union pools, color, strike, quant).
 # Erased-letter information limit — `guess-letter.mjs`
 
 The stress-test tool behind [../docs/MISSING_LETTER.md](../docs/MISSING_LETTER.md)
-(erase one glyph, infer it back at three evidence levels; also `--calibrate`
-for the δ/x0 physics numbers).
+(erase one glyph, infer it back at evidence levels 1–2; also `--calibrate`
+for the δ/x0 physics numbers). The former level 3 — full-line re-render
+through real MuPDF — went with the Python tooling; its recorded result
+("L3 ≈ L1", advance-lattice bound) stands in the doc.
 
+# Static server — `serve.mjs`
 
-# Glyph-set generation — `fontgen/` (Python, needs pymupdf + freetype-py)
+Zero-dependency HTTP server behind `npm run serve`: serves the repo root
+(app, glyph sets, raster caches, corpus), redirects `/` to
+`src/training.html`, picks a free port if the preferred one is taken.
+`--port N`, `--no-browser` (used headless by `rasterize.mjs` and
+`test-blind-app.mjs`).
 
-The pipeline that produces every `assets/glyphs/glyphs_*.json` the reader
-runs on (zero corpus pixels; formerly the Desktop/ocr workspace, whose
-template-era remainder is archived as a zip):
+# Glyph-set export — `export-glyphs.mjs`
 
-- `fontgen/fontgen.py <font.ttf> <sizePx> [--linear]` — render every char
-  through the byte-exact pipeline (text at size·0.75 pt → MuPDF 96 dpi gray)
-  at all 4×2 subpixel phases → `assets/fonts/<stem>[lin]_<size>.npz`.
-  `--linear` bakes in the eDiscovery producer's linear compositor remap.
-- `fontgen/export_glyphs.py <in.npz> <out.json>` — export an .npz GlyphSet
-  to JSON for the node/browser readers (`assets/glyphs/glyphs_*.json`,
-  gitignored — regenerate locally).
-- `fontgen/render_hypotheses.py` — the persistent MuPDF worker behind
-  `--verify` (blind-read, recreate) and guess-letter level 3.
+Exports a fontgen GlyphSet (`assets/fonts/*.npz` — committed, zero corpus
+pixels) to the JSON the node/browser readers consume
+(`assets/glyphs/glyphs_*.json`, committed):
 
-`assets/fonts/` holds the committed .npz rasters for all proven fonts plus
-`TimesNewRomanXP.ttf` (the tnr8 source face).
+```
+node export-glyphs.mjs ../assets/fonts/cour_13.npz ../assets/glyphs/glyphs_cour13.json
+node export-glyphs.mjs --check      # every committed set ⇔ its .npz (npm run glyphs-check)
+```
+
+`--check` regenerates every committed set in memory and deep-compares —
+proof the JSONs are pure derivations of the .npz rasters (the port itself
+was certified identical against the Python exporter's output, 31/31).
+
+The GENERATOR that renders a new font/size into an .npz (PDF text at
+size·0.75 pt → MuPDF 96 dpi gray at all 4×2 subpixel phases, exact FreeType
+advances) was Python (pymupdf + freetype-py) and was retired 2026-07-15 with
+the rest of the Python tooling — tag `python-era` has `fontgen/fontgen.py`
+if a NEW font raster set is ever needed; every proven font's rasters are
+already committed in `assets/fonts/` (plus `TimesNewRomanXP.ttf`, the tnr8
+source face).
 
 # First-look page diagnosis — `inspect-raster.mjs`
 

@@ -1,2 +1,6 @@
 node_modules/
-raster-cache/
+# raster caches are regenerated from corpus PDFs (rasterize.mjs) — except the
+# report-producer page, whose source PDF no longer exists: that cache IS the
+# document, so it stays tracked.
+raster-cache/*
+!raster-cache/a42927acc2aaca91
