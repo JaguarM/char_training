@@ -104,6 +104,21 @@ async function run() {
       };
     });
 
+    // The OCR-text visibility toggle must actually hide/show the rendered
+    // groups (drive the real button, like the run button above).
+    const visibleOcrGroups = () => page.evaluate(() =>
+      [...document.querySelectorAll('.utb-group[data-type="ocr"]')]
+        .filter(g => getComputedStyle(g).display !== 'none').length);
+    await page.click('#ocr-toggle-text');
+    const hiddenCount = await visibleOcrGroups();
+    await page.click('#ocr-toggle-text');
+    const shownCount = await visibleOcrGroups();
+    if (!(hiddenCount === 0 && shownCount > 0)) {
+      console.error(`  FAIL: ocr-toggle-text — ${hiddenCount} visible while hidden, ` +
+        `${shownCount} after re-show`);
+      failed = true;
+    }
+
     console.log(`Recto ocr_tool: ${r.boxes} ocr boxes (${r.clean} byte-clean, ` +
       `${r.unread} unread), ${r.redactions} redaction boxes, ${r.rendered} rendered`);
     console.log(`  status: ${r.status}`);
