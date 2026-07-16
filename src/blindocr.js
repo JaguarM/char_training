@@ -802,17 +802,27 @@
   // between bands; the read yields to the event loop so the UI stays alive.
   async function readPage(page, sets, opts) {
     const tol = opts?.tol || 0;
+    // opts.carry = cross-page layout hints for sequential whole-document
+    // reads (see tools/blind-read.mjs): certified picks keyed by BASELINE y,
+    // plus the last (set, phy) and the built union pools, carried page to
+    // page. Callers scope one carry per (document, pass config) — mixing
+    // pass configs would smuggle e.g. a union pool into a stricter pass.
+    const carry = opts?.carry;
     // union pools group by PIXEL SIZE, not into one global pool: fonts mixed
     // within a line (bold label + regular value) share their size, while a
     // global pool lets a foreign-size font byte-match glyph fragments and
     // steal pixels (a times sliver ate courier 'e's — measured on courier_1)
     if (opts?.union && sets.length > 1) {
-      const bySize = new Map();
-      for (const s of sets) {
-        if (!bySize.has(s.sizePx)) bySize.set(s.sizePx, []);
-        bySize.get(s.sizePx).push(s);
+      if (carry?.usets) sets = carry.usets;
+      else {
+        const bySize = new Map();
+        for (const s of sets) {
+          if (!bySize.has(s.sizePx)) bySize.set(s.sizePx, []);
+          bySize.get(s.sizePx).push(s);
+        }
+        sets = [...bySize.values()].map(g => g.length > 1 ? unionSets(g) : g[0]);
+        if (carry) carry.usets = sets;
       }
-      sets = [...bySize.values()].map(g => g.length > 1 ? unionSets(g) : g[0]);
     }
     const quant = opts?.quant ? quantMap(page) : null;
     const q = quant ? v => quant[v] : v => v;
@@ -833,7 +843,9 @@
     // as their own blank-row-separated band, though the line's scan (which
     // spans baseline+maxDesc) read and reported them — such a band is not a □
     const explained = new Uint8Array(page.w * page.h);
-    let n = 0, last = null;                 // previous band's winning (set, phy)
+    // previous band's winning (set, phy) — carried ACROSS pages: a
+    // document's font rarely changes at a page break, the fast path verifies
+    let n = 0, last = carry?.last ?? null;
     for (const [top, bot] of bands) {
       if (++n % 6 === 0) {
         opts?.progress?.(n, bands.length);
@@ -871,7 +883,26 @@
       // previous band's winner first and accept it when its probe fully reads;
       // fall back to the full sweep otherwise (font/style changes, headings)
       let pick = null;
-      if (last) {
+      // cross-page layout hint: repeating documents lay page n out on page
+      // n−1's BASELINE grid (band tops/bottoms shift with ascender/descender
+      // content, baselines don't), so earlier pages' picks whose baseline
+      // falls in this band's range are each tried as a single probe.
+      // Accepted only when the probe fully reads — a stale hint costs one
+      // probe and certification never rests on the assumption (a cached
+      // measurement, not a layout constant: every acceptance is still
+      // byte-proven on THIS page).
+      if (carry?.picks)
+        for (const [yb, hint] of carry.picks) {
+          if (pick) break;
+          if (hint.below ? (yb <= bot || yb > bot + hint.set.maxAsc)
+                         : (yb <= top || yb > bot)) continue;
+          const probe = scanLine(page, mask, hint.set, hint.phy, yb,
+            Math.max(0, xp - 2), Math.min(page.w, Math.max(0, xp - 2) + 160), 4, 0, tol, quant, null, top);
+          if (probe.glyphs.length >= 3 && probe.fails.length === 0)
+            pick = { set: hint.set, phy: hint.phy, yb, below: hint.below,
+              score: probe.glyphs.reduce((s, g) => s + g.exact, 0) };
+        }
+      if (!pick && last) {
         for (let yb = bot; yb >= bot - last.set.maxDesc && yb > top && !pick; yb--) {
           const probe = scanLine(page, mask, last.set, last.phy, yb,
             Math.max(0, xp - 2), Math.min(page.w, Math.max(0, xp - 2) + 160), 4, 0, tol, quant, null, top);
@@ -972,8 +1003,12 @@
         L.struck = strikes.map(sb => [sb.x0, sb.x1]);
       }
       L.clean = L.fails.length === 0 && L.residual === 0;
+      // remember this baseline's certified pick for the next page's hint
+      if (carry) (carry.picks ??= new Map()).set(pick.yb,
+        { set: pick.set, phy: pick.phy, below: pick.below });
       lines.push(L);
     }
+    if (carry) carry.last = last;
     // an unread band may be explained by a line BELOW it (an 'i' dot separated
     // from its stem by a blank row precedes its own line's band): re-check
     // against the final explained map before calling it a □
@@ -1015,17 +1050,25 @@
   }
 
   // Run the ladder on one page: { res, pass } — the fewest-failures read at
-  // the earliest pass. opts: { passHint, progress(pass, done, total) }. A
-  // document's producer doesn't change page to page — pass the previous
-  // page's winning pass back in as passHint to try it first.
+  // the earliest pass. opts: { passHint, carry, progress(pass, done, total) }.
+  // A document's producer doesn't change page to page — pass the previous
+  // page's winning pass back in as passHint to try it first. opts.carry is a
+  // caller-owned per-DOCUMENT object for sequential whole-document reads
+  // (cross-page baseline hints); it is scoped per pass config here so a
+  // hint can never carry one pass's machinery (a union pool, a palette
+  // read) into a stricter pass and weaken its certificate label.
   async function readPageAuto(page, sets, opts) {
     const key = p => `${p.tol}|${p.quant ? 1 : 0}|${p.union ? 1 : 0}`;
     const hint = opts?.passHint;
     const passes = hint ? [hint, ...blindPasses.filter(p => key(p) !== key(hint))] : blindPasses;
+    const doc = opts?.carry;
+    if (doc) doc.passes ??= new Map();
     let best = null;
     for (const pass of passes) {
+      let carry = doc?.passes.get(key(pass));
+      if (doc && !carry) doc.passes.set(key(pass), carry = {});
       const r = await readPage(page, sets, { tol: pass.tol,
-        quant: pass.quant, union: pass.union,
+        quant: pass.quant, union: pass.union, carry,
         progress: opts?.progress && ((d, t) => opts.progress(pass, d, t)) });
       const fails = r.lines.reduce((s, L) => s + L.fails.length, 0) +
         r.lines.filter(L => !L.set && !L.fragOnly).length;

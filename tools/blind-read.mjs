@@ -909,7 +909,7 @@ function withSpaces(L, spaceAdv) {
 }
 
 // ---------------- per-page driver ----------------
-async function readPage(page, sets, useQuant) {
+async function readPage(page, sets, useQuant, carry) {
   const quant = useQuant ? quantMap(page) : null;
   const q = quant ? v => quant[v] : v => v;
   const { mask, objects } = detectObjects(page);
@@ -933,7 +933,9 @@ async function readPage(page, sets, useQuant) {
   // as their own blank-row-separated band, though the line's scan (which spans
   // baseline+maxDesc) read and reported them — such a band is not a □
   const explained = new Uint8Array(page.w * page.h);
-  let last = null;                        // previous band's winning (set, phy)
+  // (set, phy) of the previous band — carried ACROSS pages: a document's
+  // font rarely changes at a page break, and the fast path verifies anyway
+  let last = carry?.last ?? null;
   for (const [top, bot] of bands) {
     // leftmost/rightmost non-object ink of the band
     let x0 = page.w, x1 = 0, fresh = false;
@@ -971,7 +973,26 @@ async function readPage(page, sets, useQuant) {
     // throughout — try the previous band's winner first and accept it when
     // its probe fully reads; fall back to the full sweep otherwise
     let pick = null;
-    if (last) {
+    // cross-page layout hint: repeating documents lay page n out on page
+    // n−1's BASELINE grid (band tops/bottoms shift with ascender/descender
+    // content, baselines don't), so earlier pages' picks whose baseline
+    // falls in this band's range are each tried as a single probe.
+    // Accepted only when the probe fully reads — a stale hint costs one
+    // probe and certification never rests on the assumption (a cached
+    // measurement, not a layout constant: every acceptance is still
+    // byte-proven on THIS page).
+    if (carry)
+      for (const [yb, hint] of carry.picks) {
+        if (pick) break;
+        if (hint.below ? (yb <= bot || yb > bot + hint.set.maxAsc)
+                       : (yb <= top || yb > bot)) continue;
+        const probe = scanLine(page, mask, hint.set, hint.phy, yb,
+          Math.max(0, xp - 2), Math.min(page.w, Math.max(0, xp - 2) + 160), 4, 0, quant, null, top);
+        if (probe.glyphs.length >= 3 && probe.fails.length === 0)
+          pick = { set: hint.set, phy: hint.phy, yb, below: hint.below,
+            score: probe.glyphs.reduce((s, g) => s + g.exact, 0) };
+      }
+    if (!pick && last) {
       for (let yb = bot; yb >= bot - last.set.maxDesc && yb > top && !pick; yb--) {
         const probe = scanLine(page, mask, last.set, last.phy, yb,
           Math.max(0, xp - 2), Math.min(page.w, Math.max(0, xp - 2) + 160), 4, 0, quant, null, top);
@@ -1070,8 +1091,11 @@ async function readPage(page, sets, useQuant) {
       L.fails = L.fails.filter(c => !strikes.some(sb => c >= sb.x0 - 4 && c < sb.x1 + 4));
       L.struck = strikes.map(sb => [sb.x0, sb.x1]);
     }
+    // remember this baseline's certified pick for the next page's hint
+    if (carry) carry.picks.set(pick.yb, { set: pick.set, phy: pick.phy, below: pick.below });
     lines.push(L);
   }
+  if (carry) carry.last = last;
   // an unread band may be explained by a line BELOW it (an 'i' dot separated
   // from its stem by a blank row precedes its own line's band): re-check
   // against the final explained map before calling it a □
@@ -1108,15 +1132,24 @@ async function main() {
     pages = list.map(pno => ({ pno, page: cache.page(pno) }));
   }
   const truth = o.truth ? readFileSync(o.truth, 'utf8').replace(/\r/g, '').split('\n') : null;
+  // letters-only -> first matching truth row (the per-line linear find was
+  // O(rows²) — ~20s of big.pdf's gate run was spent HERE, not reading)
+  const truthByLetters = truth && new Map();
+  if (truth) for (const t of truth) {
+    if (!t.trim()) continue;
+    const k = t.replace(/ /g, '');
+    if (!truthByLetters.has(k)) truthByLetters.set(k, t);
+  }
 
   let totLines = 0, totGlyphs = 0, totFails = 0, totFrags = 0;
   let rowExact = 0, rowDiff = 0, spacedExact = 0;
   const diffs = [];
   const outLines = [];
   const jsonPages = [];
+  const carry = { last: null, picks: new Map() };   // cross-page layout hints
   for (const { pno, page } of pages) {
     if (!page) continue;
-    const { lines, objects } = await readPage(page, sets, o.quant);
+    const { lines, objects } = await readPage(page, sets, o.quant, carry);
     const spaceAdv = spaceCalib(lines);
     const jsonLines = [];
     jsonPages.push({ pno, spaceAdv, objects, lines: jsonLines });
@@ -1139,7 +1172,7 @@ async function main() {
         // row index from baseline is unknown to the reader — compare against
         // the truth row whose letters match (letters-only first, then spaced)
         const letters = sp.text.replace(/ /g, '');
-        const hit = truth.find(t => t.trim() && t.replace(/ /g, '') === letters);
+        const hit = truthByLetters.get(letters);
         if (hit !== undefined) { rowExact++; if (hit.trimEnd() === sp.text.trimEnd()) spacedExact++; }
         else { rowDiff++; if (diffs.length < 12) diffs.push({ pno, base: L.baseline, got: sp.text.slice(0, 70) }); }
       }

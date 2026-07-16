@@ -830,3 +830,54 @@ byte-identical in their middle 7 columns (phase identity lives in the
 outermost AA columns) — 200 □ on v3; N≤4 confuses identities ('.=' swaps);
 N≤2 collapses. Storage cannot be cut at all: an accepted glyph must explain
 ALL its ink or the remainder floods the line with □s.
+
+## 2026-07-16 late — cross-page baseline hints + truth-index (bench)
+
+**User insight: "assume every page is the same as the last one."** Kept
+certification-safe by making it a HINT, not an assumption: readPage now
+takes a cross-page `carry` — every certified line stores its pick keyed by
+BASELINE y (band tops/bottoms shift with ascender/descender content;
+baselines repeat page to page), and the next page tries any stored pick
+whose baseline falls inside the new band FIRST, as a single 160px probe.
+Accepted only when the probe fully reads (≥3 glyphs, 0 fails) — a stale
+hint costs one probe and falls back to the previous-band fast path, then
+the full (set × phy × yb) sweep. `last` (set, phy) also carries across the
+page break. A cached measurement, not a layout constant: every acceptance
+is still byte-proven on the page it reads.
+
+**Truth-index.** The gate's per-line `truth.find(...)` was O(rows²) —
+~20s of big.pdf's run was the COMPARISON, not the reading. Now a Map from
+letters-only text to first matching truth row (identical semantics,
+including first-match ties).
+
+**Certified** — whole gate byte-identical transcripts: big 61.9→33.4s
+(pure read ~33s, 0.09 s/page; was 104s this morning), v3 4.5→3.5s, email
+4.6→3.9s, courier_1 2.5→~2.4s, courier_2 7.0→6.5s, report + EFTA00756043
+(tol 1) unchanged.
+
+**Label drift (known, accepted).** The y-phase 0.5 rasters are dy-shifted
+byte-duplicates of phase 0, so (yb, phy 0) and (yb−1, phy 0.5) are the SAME
+read with two names. The full sweep always lands on one canonical label;
+a hint propagates whichever label the previous page certified — 1682 v3
+lines / 6 big lines carry the other name in --json (baseline ±1, phy
+swapped). Text, glyph pens, fonts, fails: byte-identical. If canonical
+labels ever matter, normalize at store time or drop the redundant 0.5
+phase from candidate pools (would also halve them).
+
+**App: ported same day (user: both projects must behave the same — Recto
+already HAS the bulk flow, its "Read all pages" button).** readPage takes
+`opts.carry`; readPageAuto takes a caller-owned per-DOCUMENT carry and
+scopes it per pass config internally, so a hint can never carry one pass's
+machinery (a union pool, a palette read) into a stricter pass and weaken
+its certificate label. The carry also reuses the built union pools across
+pages (readPage used to rebuild them — and their anchor-column groups —
+every call). Wired identically in both embedders: char_training
+blindOcrDocument and Recto ocrRun(allPages) create one carry per
+sequential document read; the single-page buttons (training "Auto OCR" =
+Recto "Read this Page") stay stateless so a page's labels never depend on
+what was read before it. Parity fix found during the audit: training's
+Auto OCR button re-ran the whole pass ladder on every press while Recto
+remembered the winning pass — training now keeps `_blindPassHint` across
+presses, reset on image load (Recto resets on document:loaded). Certified:
+test-blind-app (document API runs THROUGH the carry, 94/94 byte-clean,
+unchanged), sync-recto, test-recto-app PASS.

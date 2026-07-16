@@ -132,6 +132,7 @@ class CanvasViewer {
   loadCanvas(canvas, label) {
     this.img = canvas;
     this.filename = label;
+    this._blindPassHint = null;    // new page image: forget the learned pass (Recto parity)
     this.resetLine();
     this.updateInfo();
     this.resetFit();
@@ -201,9 +202,9 @@ class CanvasViewer {
   // The escalation ladder itself (pass order, tie-breaks, early exits) lives
   // in blindocr.js (BlindOCR.readPageAuto) so embedders share it; this
   // wrapper only adds the app's status-line progress text.
-  async _blindReadEscalating(page, label = 'Auto OCR', passHint = null) {
+  async _blindReadEscalating(page, label = 'Auto OCR', passHint = null, carry = null) {
     const sets = await this._ensureBlindSets();
-    return BlindOCR.readPageAuto(page, sets, { passHint,
+    return BlindOCR.readPageAuto(page, sets, { passHint, carry,
       progress: (pass, d, t) => { this.infoEl.textContent =
         `${label}${BlindOCR.passLabel(pass)}: ${d}/${t} bands…`; } });
   }
@@ -216,6 +217,7 @@ class CanvasViewer {
     const pages = [];
     const totals = { lines: 0, clean: 0, fails: 0 };
     let passHint = null;                   // learned from the previous page
+    const carry = {};                      // cross-page baseline hints (this document read)
     for (let i = 0; i < numPages; i++) {
       const src = await pageProvider(i);
       if (!src) { pages.push(null); continue; }
@@ -224,7 +226,7 @@ class CanvasViewer {
       // back to the fractional-gray signal (see BlindOCR.whitenColored)
       const page = src.gray ? BlindOCR.whitenColored(src)
         : BlindOCR.whitenColored(this.engine._pageFor(src), this.engine.pageRGBA(src));
-      const { res, pass } = await this._blindReadEscalating(page, `Auto OCR ${i + 1}/${numPages}`, passHint);
+      const { res, pass } = await this._blindReadEscalating(page, `Auto OCR ${i + 1}/${numPages}`, passHint, carry);
       passHint = pass;
       for (const L of res.lines) {
         if (L.set) totals.lines++;
@@ -253,10 +255,13 @@ class CanvasViewer {
     try {
       page = BlindOCR.whitenColored(this.engine._pageFor(this.img),
         this.engine.pageRGBA(this.img));
-      out = await this._blindReadEscalating(page);
+      // remember the winning pass across presses (Recto's "Read this Page"
+      // does the same via ocrToolState.passHint) — reset on image load
+      out = await this._blindReadEscalating(page, 'Auto OCR', this._blindPassHint);
     }
     catch (e) { this.infoEl.textContent = `Auto OCR: ${e.message}`; return; }
     const { res, pass } = out;
+    this._blindPassHint = pass;
     this.rowBands = res.lines.map(L => ({ y0: L.top, y1: L.bot }));
     this.activeRow = 0;
     this.rowStartX = res.lines.map(L => L.entries[0]?.pen ?? this.config.startX);
