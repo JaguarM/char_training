@@ -8,8 +8,10 @@ current). Last full revision: 2026-07-12.
 
 The project reads MuPDF-rendered document rasters **byte-exactly** — accuracy
 is *certified per line*, not sampled. The current reader is the **blind
-reader** (`tools/blind-read.mjs`, browser port `blindocr.js` = the app's
-"Auto OCR"): it assumes NO layout constants, measures bands/baselines/fonts
+reader**: one shared matcher core, `src/ocr-engine.js` (ink bands, baseline
+pinning, the composite-aware scan, object detection), consumed by both the
+Node CLI (`tools/blind-read.mjs`) and the browser/Recto app (`blindocr.js` =
+the app's "Auto OCR"). It assumes NO layout constants, measures bands/baselines/fonts
 from the pixels, and accepts a glyph only if it explains the page bytes
 through the renderer's proven blend law. Unknown ink becomes an honest `□`
 with exact coordinates — errors cannot pass silently. Glyph rasters come from

@@ -21,6 +21,14 @@ reported as objects; strike-through spans are voided; unknown ink = honest
 `assets/glyphs/glyphs.bin` (fontgen rasters, zero corpus pixels; `*lin*`
 sets carry the eDiscovery producer's linear compositor).
 
+The scanning physics above live in ONE place, `../src/ocr-engine.js` — a
+DOM-free module this CLI and the browser app (`../src/blindocr.js`) both
+import. `blind-read.mjs` itself only owns what's CLI-specific: GRY1 raster
+loading, the glyph-bundle Buffer reader, arg parsing, and truth-diff/text/JSON
+output. Edit the scan itself in `ocr-engine.js`, not in either caller —
+that's the whole point of the split (2026-07-16: the two callers used to
+carry independent copies of this code).
+
 ```
 node blind-read.mjs --pdf ../corpus/v3.pdf --all --truth ../corpus/v3.txt
 node blind-read.mjs --pdf ../corpus/email.pdf --all --quant \

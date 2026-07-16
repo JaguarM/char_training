@@ -8,7 +8,8 @@
 //   node tools/sync-recto.mjs --recto <path-to-Recto>
 //
 // What syncs:
-//   src/core.js, src/ocr.js, src/blindocr.js -> ocr_tool/static/ocr_tool/engine/
+//   src/core.js, src/ocr.js, src/ocr-engine.js, src/blindocr.js ->
+//     ocr_tool/static/ocr_tool/engine/
 //   assets/glyphs/glyphs.bin (THE dictionary) -> ocr_tool/static/ocr_tool/glyphs/
 //     (+ index.json listing it — Recto's adapter passes the listed files to
 //      BlindOCR.loadSets; a bare .bin entry loads every set in the bundle)
@@ -36,7 +37,7 @@ if (!existsSync(join(PLUGIN, 'tool.py'))) {
   process.exit(2);
 }
 
-const ENGINE_FILES = ['core.js', 'ocr.js', 'blindocr.js'];
+const ENGINE_FILES = ['core.js', 'ocr.js', 'ocr-engine.js', 'blindocr.js'];
 const engineDir = join(PLUGIN, 'static', 'ocr_tool', 'engine');
 const glyphDir = join(PLUGIN, 'static', 'ocr_tool', 'glyphs');
 
