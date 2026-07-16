@@ -37,7 +37,7 @@ const GLYPH_DIR = resolve(REPO, 'assets', 'glyphs');   // shared glyph sets (fon
 
 // ---------------- args ----------------
 const o = { pdf: null, raster: null, page: 1, all: false, truth: null, out: null,
-  json: null, glyphs: ['glyphs_times16.json'], tol: 0 };
+  json: null, glyphs: ['glyphs_times16.json'], tol: 0, matchcols: 0 };
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i], next = () => process.argv[++i];
   if (a === '--pdf') o.pdf = resolve(process.cwd(), next());
@@ -51,6 +51,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === '--glyphs') o.glyphs = next().split(',');
   else if (a === '--union') o.union = true;
   else if (a === '--quant') o.quant = true;
+  else if (a === '--matchcols') o.matchcols = parseInt(next(), 10);
   else { console.error(`unknown arg ${a}`); process.exit(2); }
 }
 
@@ -158,10 +159,27 @@ function loadSet(file) {
       // hot-loop precomputation: per ink pixel its column, row and raster byte
       // (the candidate trial loop runs millions of times per page — the
       // div/mod and byte lookups were measurable)
-      const inkC = new Int16Array(ink.length), inkR = new Int16Array(ink.length),
+      let inkC = new Int16Array(ink.length), inkR = new Int16Array(ink.length),
         inkB = new Uint8Array(ink.length);
       for (let k = 0; k < ink.length; k++) {
         inkC[k] = ink[k] % r.w; inkR[k] = (ink[k] / r.w) | 0; inkB[k] = bytes[ink[k]];
+      }
+      // --matchcols N (EXPERIMENT): the candidate trial only sees the middle N
+      // ink columns; acceptance still subtracts the FULL raster (g.ink/g.bytes)
+      // so the certification canvas is untouched. Window is centered on the
+      // median ink column (extent-centering can land in a hollow middle — '"').
+      if (o.matchcols > 0) {
+        const cols = [...inkC].sort((a, b) => a - b);
+        const med = cols[cols.length >> 1];
+        let lo = med - ((o.matchcols - 1) >> 1), hi = lo + o.matchcols - 1;
+        const keep = [];
+        for (let k = 0; k < ink.length; k++)
+          if (inkC[k] >= lo && inkC[k] <= hi) keep.push(k);
+        if (keep.length) {
+          inkC = Int16Array.from(keep, k => inkC[k]);
+          inkR = Int16Array.from(keep, k => inkR[k]);
+          inkB = Uint8Array.from(keep, k => inkB[k]);
+        }
       }
       if (!byPhy.has(phy)) byPhy.set(phy, []);
       byPhy.get(phy).push({ ch, adv: rec.adv, phx, w: r.w, h: r.h, dx: r.dx, dy: r.dy,
@@ -471,6 +489,48 @@ function probeBaseline(page, mask, set, phy, baseline, x0, x1, quant, bandTop) {
   return line.glyphs.reduce((s, g) => s + g.exact, 0) - line.fails.length * 20;
 }
 
+// ---------------- anchor-column candidate index ----------------
+// Candidates grouped ("sorted") by the ink-row bit pattern of their FIRST ink
+// column, as a 64-bit mask over the band window's rows (bit = dy+row+maxAsc).
+// The scanner anchors every candidate with its first ink column on the probe
+// column, and a candidate is provably dead when the page is white at a pixel
+// it predicts as ink (fresh pred < 255: white page rejects; composite canvas
+// at a white page pixel is impossible outside the skip overlay, which the
+// page-side mask treats as ink). So one AND per GROUP replaces the per-
+// candidate pixel walk for every group that needs ink where the page has
+// none. Near-white predictions (pred > 254−2·TOL) prove nothing from a white
+// page and stay out of the mask. Tie-break on the original candidate order
+// (_i) keeps acceptance independent of group iteration order.
+function anchorGroups(set, phy, quant, TOL) {
+  const cands = set.byPhy.get(phy) ?? [];
+  const ASC = set.maxAsc, span = ASC + set.maxDesc;
+  if (span > 64) return null;                        // mask would overflow: plain path
+  cands.forEach((g, i) => { g._i = i; });
+  const colBits = (g, colRel) => {                   // required-ink row mask of one glyph column
+    let m0 = 0, m1 = 0;
+    for (let k = 0; k < g.inkC.length; k++) {
+      if (g.inkC[k] !== g.inkLeft + colRel) continue;
+      const pred = quant ? quant[g.inkB[k]] : g.inkB[k];   // fresh-canvas prediction (lin: pred = gb, shifts cancel)
+      if (pred > 254 - 2 * TOL) continue;
+      const bit = g.dy + g.inkR[k] + ASC;
+      if (bit >= 0 && bit < span) { if (bit < 32) m0 |= 1 << bit; else m1 |= 1 << (bit - 32); }
+    }
+    return [m0, m1];
+  };
+  const groups = new Map();
+  for (const g of cands) {
+    const [m0, m1] = colBits(g, 0), [n0, n1] = colBits(g, 1);
+    let grp = groups.get(m0 + ',' + m1);
+    if (!grp) groups.set(m0 + ',' + m1, grp = { m0, m1, subs: new Map() });
+    let sub = grp.subs.get(n0 + ',' + n1);
+    if (!sub) grp.subs.set(n0 + ',' + n1, sub = { n0, n1, members: [] });
+    sub.members.push(g);
+  }
+  const list = [...groups.values()];
+  for (const grp of list) grp.subs = [...grp.subs.values()];
+  return list;
+}
+
 // ---------------- the scanner ----------------
 // Reads one band left→right. Returns {glyphs:[{ch,pen,exact,pending}], fails:[col,...]}.
 // maxGlyphs: stop early (baseline probing).
@@ -541,6 +601,29 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
   // within-tol pixels here would let faint leading AA columns slip past and
   // misplace the next glyph's anchor.
   const TOL = o.tol;
+  // anchor-column group index (see anchorGroups above); cache per (set, phy) —
+  // quant maps are per page, so the cache re-keys on the quant object
+  let groups = null;
+  if (!DBG_PIX) {
+    let gc = set._grpCache;
+    if (!gc || gc.quant !== quant || gc.tol !== TOL)
+      gc = set._grpCache = { quant, tol: TOL, byPhy: new Map() };
+    groups = gc.byPhy.get(phy);
+    if (groups === undefined) { groups = anchorGroups(set, phy, quant, TOL); gc.byPhy.set(phy, groups); }
+  }
+  const grpList = groups ??
+    (cands.forEach((g, i) => { g._i = i; }),
+      cands.length ? [{ m0: 0, m1: 0, subs: [{ n0: 0, n1: 0, members: cands }] }] : []);
+  const ASC = set.maxAsc, baseTop = baseline - ASC;  // unclamped window top: mask bit = y - baseTop
+  let pm0 = 0, pm1 = 0;                              // page-side mask of the last colMask(x)
+  const colMask = (x) => {
+    pm0 = 0; pm1 = 0;
+    for (let y = y0; y < y1; y++)
+      if (page.gray[y * W + x] < 255 || skip[(y - y0) * bw + (x - xFrom)]) {
+        const bit = y - baseTop;
+        if (bit < 32) pm0 |= 1 << bit; else if (bit < 64) pm1 |= 1 << (bit - 32);
+      }
+  };
   const nextUnexplained = (fromX) => {
     for (let x = Math.max(fromX, xFrom); x < xTo; x++)
       if (unexpl[x - xFrom] > 0) return x;
@@ -558,7 +641,16 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
     // columns can hide the true left edge when bytes saturate)
     let best = null;
     for (let back = 0; back <= 2; back++) {
-      for (const g of cands) {
+      if (col - back < xFrom) break;                 // every candidate's bbox starts left of the window
+      colMask(col - back);                           // page ink+skip rows at the anchor column
+      const a0 = pm0, a1 = pm1;
+      let b0 = -1, b1 = -1;                          // second column; all-ones when outside the window
+      if (col - back + 1 < xTo) { colMask(col - back + 1); b0 = pm0; b1 = pm1; }
+      for (const grp of grpList) {
+      if ((grp.m0 & ~a0) | (grp.m1 & ~a1)) continue;     // group needs ink where the page is white
+      for (const sub of grp.subs) {
+      if ((sub.n0 & ~b0) | (sub.n1 & ~b1)) continue;
+      for (const g of sub.members) {
         const pi = col - back - g.dx - g.inkLeft;      // integer pen such that first ink col = col-back
         const gx = pi + g.dx, gy = baseline + g.dy;
         if (gx < xFrom || gx + g.w > xTo || gy < y0 || gy + g.h > y1) continue;
@@ -620,7 +712,12 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
             exact < considered * 0.5 || pending > considered * 0.35) continue;
         if (accepted.has(`${g.ch}@${pi + g.phx}`)) continue;  // after the pixel work: rare
         const score = exact - pending * 0.25;
-        if (!best || score > best.score) best = { g, pi, gx, gy, exact, pending, score };
+        // tie-break on original candidate order: acceptance must not depend
+        // on the group iteration order (plain loop = first max wins)
+        if (!best || score > best.score || (score === best.score && g._i < best.g._i))
+          best = { g, pi, gx, gy, exact, pending, score };
+      }
+      }
       }
       if (best) break;
     }

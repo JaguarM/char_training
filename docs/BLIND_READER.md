@@ -797,3 +797,36 @@ much darker (2-col stems 118+227 vs single 152). Excluded so far: MuPDF
 cour10/11/12/13/16, times13, PIL hinted-freetype 10. Headings are likely
 Times (per user). Next: REPORT_RENDERER_HUNT methodology at 10px (GDI,
 Ghostscript, supersampled downscale, freetype hint modes).
+
+## 2026-07-16 — anchor-column candidate index (~1.7× read speed, gate identical)
+
+**Where the time went.** After the 07-13 speed work, scanLine was still 75%
+of self time — almost all of it the candidate trial loop (every anchor
+column tries every candidate of the phase, ~700 per set, ×3 back offsets).
+
+**The index.** Candidates are now grouped ("sorted by pixels") by the
+ink-row bit pattern of their first TWO ink columns: two 64-bit masks over
+the band window's rows (bit = dy+row+maxAsc). At each anchor the scanner
+builds the page-side mask of the anchor column (ink OR skip rows) once,
+and rejects a whole group with one `AND` when the group needs ink where
+the page is white. This is *provably* the same acceptance: a fresh-canvas
+prediction < 255−2·TOL at a white page pixel always rejects (composite
+canvas at a white page pixel is impossible outside the skip overlay, which
+the page-side mask counts as ink); near-white predictions stay out of the
+glyph masks. A `_i` tie-break keeps best-candidate selection independent
+of group iteration order. times16: 684 candidates/phase → 133 groups → 296
+subgroups. Cache per (set, phy), re-keyed on the per-page quant map.
+
+**Certified 2026-07-16** — every gate transcript byte-identical: v3 8.8→4.5s,
+big 104→62s (0.17 s/page), email 9.2→4.6s, courier_1 6.1→2.5s, courier_2
+→7.0s, report-raster + EFTA00756043 (tol 1) unchanged. Ported to
+blindocr.js; app test + sync-recto + recto-test green.
+
+**Same-day experiment (why not narrower):** `--matchcols N` (blind-read
+only) restricts *matching* to each glyph's middle N ink columns while still
+subtracting the full raster. N=8 stays byte-identical on the whole gate;
+N=7..5 misplace flat wide glyphs — `=` and `_` have all four x-phases
+byte-identical in their middle 7 columns (phase identity lives in the
+outermost AA columns) — 200 □ on v3; N≤4 confuses identities ('.=' swaps);
+N≤2 collapses. Storage cannot be cut at all: an accepted glyph must explain
+ALL its ink or the remainder floods the line with □s.

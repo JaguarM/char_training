@@ -91,8 +91,9 @@ the PDF had already left corpus/) — last certified numbers: `30 lines / 884
 glyphs / 1 □` at tol 0 `--quant --union` (the struck-line fragment;
 blue/struck spans deliberately blank).
 The □s and diff rows are all root-caused (see BLIND_READER.md); a CHANGE in
-any number is the signal, not the absolute. Speed (2026-07-13): ~0.2 s/page —
-big.pdf full doc 72 s, v3 5 s (15–50× vs before; BLIND_READER.md bottom).
+any number is the signal, not the absolute. Speed (2026-07-16): ~0.17 s/page —
+big.pdf full doc 62 s, v3 4.5 s (anchor-column candidate index on top of the
+07-13 work; BLIND_READER.md bottom).
 Corpus PDFs are committed (2026-07-15); raster caches are populated once per
 document with `tools/rasterize.mjs`. report.pdf exists only as its raster
 cache — the one cache directory that is COMMITTED
