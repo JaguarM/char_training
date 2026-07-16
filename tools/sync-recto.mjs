@@ -9,7 +9,9 @@
 //
 // What syncs:
 //   src/core.js, src/ocr.js, src/blindocr.js -> ocr_tool/static/ocr_tool/engine/
-//   assets/glyphs/glyphs_*.json              -> ocr_tool/static/ocr_tool/glyphs/ (+ index.json)
+//   assets/glyphs/glyphs.bin (THE dictionary) -> ocr_tool/static/ocr_tool/glyphs/
+//     (+ index.json listing it — Recto's adapter passes the listed files to
+//      BlindOCR.loadSets; a bare .bin entry loads every set in the bundle)
 // Engine script cache-busters in ocr_tool/tool.py are rewritten to a content
 // hash, so browsers refetch exactly when a file actually changed.
 
@@ -60,11 +62,11 @@ for (const f of ENGINE_FILES) {
   console.log(`${changed ? (o.check ? 'STALE ' : 'sync  ') : 'same  '} engine/${f}  v=${versions[f]}`);
 }
 
-// 2. glyph sets + index.json (stale sets in Recto are removed)
-// _OFF sets are disabled experiments — never shipped
-const sets = readdirSync(join(REPO, 'assets', 'glyphs'))
-  .filter(f => /^glyphs_.*\.json$/.test(f) && !/_OFF\.json$/.test(f)).sort();
-if (!sets.length) { console.error('no glyph sets in assets/glyphs — export them first'); process.exit(2); }
+// 2. the glyph bundle + index.json (stale per-set JSONs in Recto are removed)
+const sets = ['glyphs.bin'];
+if (!existsSync(join(REPO, 'assets', 'glyphs', 'glyphs.bin'))) {
+  console.error('no assets/glyphs/glyphs.bin — run: node tools/export-glyphs.mjs'); process.exit(2);
+}
 if (!o.check) mkdirSync(glyphDir, { recursive: true });
 for (const f of sets)
   if (place(join(REPO, 'assets', 'glyphs', f), join(glyphDir, f)))

@@ -12,17 +12,19 @@ physics and the full regression gate: [../docs/README.md](../docs/README.md).
 Self-calibrating byte-exact reader with **no layout constants**: ink bands,
 per-band baseline/y-phase/font pinning, then a left→right composite-aware
 scan that accepts a glyph only if it explains the page bytes through the
-producer's blend law. Spaces are measured (pen gap vs advance, width
+producer's blend law (advance-chained: each accept predicts the next pen on
+the ¼-px lattice and probes it first; the anchor-column scan is the
+fallback — BLIND_READER.md 07-16 PM). Spaces are measured (pen gap vs advance, width
 self-calibrated); redaction boxes / rules / vrules are detected, masked, and
 reported as objects; strike-through spans are voided; unknown ink = honest
-`□` with exact coordinates. Glyph sets are fontgen exports
-(`glyphs_*.json`, zero corpus pixels; `*lin*` sets carry the eDiscovery
-producer's linear compositor).
+`□` with exact coordinates. Glyph sets come out of the one committed bundle
+`assets/glyphs/glyphs.bin` (fontgen rasters, zero corpus pixels; `*lin*`
+sets carry the eDiscovery producer's linear compositor).
 
 ```
 node blind-read.mjs --pdf ../corpus/v3.pdf --all --truth ../corpus/v3.txt
-node blind-read.mjs --pdf ../corpus/v4.pdf --tol 0 --quant --union \
-  --glyphs glyphs_times16.json,glyphs_timesbd16.json,glyphs_timesi16.json
+node blind-read.mjs --pdf ../corpus/email.pdf --all --quant \
+  --glyphs times16,timesbd16,timesi16
 node blind-read.mjs --raster raster-cache/<key>/page-0001.gray.gz --glyphs …
 ```
 
@@ -30,7 +32,7 @@ node blind-read.mjs --raster raster-cache/<key>/page-0001.gray.gz --glyphs …
 |---|---|
 | `--pdf` / `--raster` | document (pages come from `raster-cache/`; populate it once with `rasterize.mjs`) or a single cached page |
 | `--page <n>` / `--all` | page selection |
-| `--glyphs a.json,b.json` | glyph sets; the per-band auto-pick chooses font AND compositor. `+` joins sets into ONE union pool (`a.json+b.json,c.json` = [a∪b, c]) — pool only fonts that mix within a line; a global pool lets a foreign font byte-match glyph fragments and steal pixels |
+| `--glyphs a,b` | set names from the bundle (legacy `glyphs_a.json` spellings still accepted); the per-band auto-pick chooses font AND compositor. `+` joins sets into ONE union pool (`a+b,c` = [a∪b, c]) — pool only fonts that mix within a line; a global pool lets a foreign font byte-match glyph fragments and steal pixels |
 | `--union` | merge ALL sets into one candidate pool so a single line may mix fonts (bold labels + regular values); opt-in, superseded by `+` groups for multi-size documents |
 | `--tol N` | per-pixel tolerance for near-identical rasterizers (0 = byte-exact; keep 0 unless a producer is unidentified) |
 | `--quant` | palette-quantized producers (v4-family): snap every prediction to the page's available gray levels |
@@ -66,20 +68,35 @@ Zero-dependency HTTP server behind `npm run serve`: serves the repo root
 `--port N`, `--no-browser` (used headless by `rasterize.mjs` and
 `test-blind-app.mjs`).
 
-# Glyph-set export — `export-glyphs.mjs`
+# Regression gate runner — `gate.mjs`
 
-Exports a fontgen GlyphSet (`assets/fonts/*.npz` — committed, zero corpus
-pixels) to the JSON the node/browser readers consume
-(`assets/glyphs/glyphs_*.json`, committed):
+`npm run gate` — runs every gate document (docs/README.md "The regression
+gate") through the reader and byte-compares transcript + count summary per
+doc against the COMMITTED reference `tools/gate-ref/` (the expected numbers
+ARE those files). Re-record only after an intended output change:
 
 ```
-node export-glyphs.mjs ../assets/fonts/cour_13.npz ../assets/glyphs/glyphs_cour13.json
-node export-glyphs.mjs --check      # every committed set ⇔ its .npz (npm run glyphs-check)
+npm run gate                            # certify vs tools/gate-ref
+node gate.mjs --out gate-ref --ref none # re-record the reference
 ```
 
-`--check` regenerates every committed set in memory and deep-compares —
-proof the JSONs are pure derivations of the .npz rasters (the port itself
-was certified identical against the Python exporter's output, 31/31).
+# Glyph bundle build — `export-glyphs.mjs`
+
+Builds `assets/glyphs/glyphs.bin` — THE glyph dictionary, every set in one
+committed binary file — from the committed fontgen rasters
+(`assets/fonts/*.npz`, zero corpus pixels). Per raster it stores the raw
+MuPDF gray window AND the true rasterizer alpha derived through the set's
+compositor law (standard blend vs the eDiscovery linear law — each set is
+law-tagged; the matcher predicts composites straight from the alpha plane,
+BLIND_READER.md 07-16 PM). The explicit name → npz manifest lives at the
+top of the file (a new font = one new line); binary layout is documented in
+`glyph-bundle.mjs` (the node reader — the browser reader is in
+`blindocr.js`).
+
+```
+node export-glyphs.mjs              # (re)build glyphs.bin
+node export-glyphs.mjs --check      # bundle ⇔ .npz rebuild (npm run glyphs-check)
+```
 
 The GENERATOR that renders a new font/size into an .npz (PDF text at
 size·0.75 pt → MuPDF 96 dpi gray at all 4×2 subpixel phases, exact FreeType

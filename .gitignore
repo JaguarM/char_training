@@ -1,3 +1,8 @@
 # NEW/ = the in-progress EFTA batch (large, uncertified) — local only until
 # documents graduate into corpus/ with certified transcriptions
 NEW
+# profiling artifacts + scratch gate runs (tools/gate-ref/ = the COMMITTED
+# reference transcripts the gate compares against — tracked, not ignored)
+.profiles
+tools/gate-*
+!tools/gate-ref

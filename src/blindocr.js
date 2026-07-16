@@ -10,80 +10,114 @@
 // (The bench's MuPDF re-render cross-check lives in tools/blind-read.mjs
 // --verify; this is the same composition law applied in reverse.)
 //
-// Glyph sets come from assets/glyphs/glyphs_*.json (tools/export-glyphs.mjs — pure synthetic
-// fontgen rasters, 4 x-phases × 2 y-phases). Load with BlindOCR.loadSets().
+// The glyph dictionary is ONE binary bundle — assets/glyphs/glyphs.bin,
+// every fontgen set (raw gray + true-alpha planes), built and byte-certified
+// from the committed .npz rasters by tools/export-glyphs.mjs (layout doc in
+// tools/glyph-bundle.mjs). Load with BlindOCR.loadSets().
 (function (root) {
   'use strict';
 
   const SNAP = x => Math.round(x * 4) / 4;
 
-  // blend-law inverse: single-glyph gray on white -> possible e = cov + (cov>>7)
-  const INV = (() => {
-    const inv = Array.from({ length: 256 }, () => []);
-    for (let cov = 0; cov <= 255; cov++) {
-      const e = cov + (cov >> 7);
-      const g = (255 * (256 - e)) >> 8;
-      if (!inv[g].includes(e)) inv[g].push(e);
-    }
-    return inv;
-  })();
+  // ---- glyph sets (glyphs.bin bundle) ----
+  const BUNDLE_URL = '/assets/glyphs/glyphs.bin';
+  // the app's default working set — deliberate, NOT "everything in the
+  // bundle": every extra set adds per-band probes and new pick ties
+  const DEFAULT_SETS = ['times16', 'timesbd16', 'timesi16', 'tnr8_16',
+    'arial16', 'georgia16',
+    'cour13',                                    // courier_1/2 body font
+    // linear-compositor variants (eDiscovery producer — see blind-read.mjs);
+    // the per-band auto-pick chooses whichever compositor matches the page
+    'timeslin16', 'timesbdlin16', 'timesilin16', 'tnr8lin16', 'tnr8lin10'];
+  // "…/glyphs_times16.json" (legacy url) / "times16" -> "times16"
+  const setName = s => s.replace(/^.*glyphs_/, '').replace(/\.json$/, '').replace(/^.*\//, '');
 
-  // ---- glyph sets ----
-  function b64ToBytes(s) {
-    const bin = atob(s), out = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-    return out;
+  function parseBundleDir(buf) {                 // buf: Uint8Array of glyphs.bin
+    const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+    if (String.fromCharCode(buf[0], buf[1], buf[2], buf[3]) !== 'GBF1')
+      throw new Error('bad GBF1 magic');
+    const td = new TextDecoder();
+    const dir = new Map();
+    let o = 8;
+    for (let i = 0, n = dv.getUint32(4, true); i < n; i++) {
+      const nameLen = buf[o];
+      const name = td.decode(buf.subarray(o + 1, o + 1 + nameLen)); o += 1 + nameLen;
+      o += 1 + buf[o];                           // npz provenance name — unused here
+      const flags = buf[o]; o += 1;
+      const sizePx = dv.getFloat64(o, true); o += 8;
+      const off = dv.getUint32(o, true); o += 8;
+      dir.set(name, { name, linear: !!(flags & 1), sizePx, off });
+    }
+    return { buf, dv, dir };
   }
 
-  function parseSet(json, name) {
+  // one set out of the bundle, in the exact per-candidate shape the scanner
+  // uses (insertion order = char × phx order — tie-break-significant)
+  function materializeSet(bundle, name) {
+    const d = bundle.dir.get(name);
+    if (!d) return null;
+    const { buf, dv } = bundle;
     const byPhy = new Map();
     let maxAsc = 0, maxDesc = 0;
-    for (const [ch, rec] of Object.entries(json.chars)) {
-      for (const [key, r] of Object.entries(rec.ph)) {
-        if (!r.w) continue;
-        const [phxS, phyS = '0'] = key.split('_');
-        const phx = parseFloat(phxS), phy = parseFloat(phyS);
-        const bytes = b64ToBytes(r.b64);
+    let o = d.off;
+    const nChars = dv.getUint32(o, true); o += 4;
+    for (let ci = 0; ci < nChars; ci++) {
+      const ch = String.fromCodePoint(dv.getUint32(o, true)); o += 4;
+      const adv = dv.getFloat64(o, true); o += 8;
+      const nPh = buf[o]; o += 1;
+      for (let pi = 0; pi < nPh; pi++) {
+        const phx = buf[o] / 4, phy = buf[o + 1] / 2;
+        const dx = dv.getInt16(o + 2, true), dy = dv.getInt16(o + 4, true);
+        const w = dv.getUint16(o + 6, true), h = dv.getUint16(o + 8, true);
+        o += 10;
+        if (!w) continue;
+        const bytes = buf.subarray(o, o + w * h);
+        const alpha = buf.subarray(o + w * h, o + 2 * w * h);
+        o += 2 * w * h;
         const ink = [];
-        let inkLeft = r.w;
-        for (let c = 0; c < r.w; c++)
-          for (let rr = 0; rr < r.h; rr++)
-            if (bytes[rr * r.w + c] < 255) { ink.push(rr * r.w + c); if (c < inkLeft) inkLeft = c; }
-        // hot-loop precomputation: per ink pixel its column, row and raster
-        // byte (the candidate trial loop runs millions of times per page)
+        let inkLeft = w;
+        for (let c = 0; c < w; c++)
+          for (let rr = 0; rr < h; rr++)
+            if (bytes[rr * w + c] < 255) { ink.push(rr * w + c); if (c < inkLeft) inkLeft = c; }
+        // hot-loop precomputation: per ink pixel its column, row, raster byte
+        // and alpha (the candidate trial loop runs millions of times per page)
         const inkC = new Int16Array(ink.length), inkR = new Int16Array(ink.length),
-          inkB = new Uint8Array(ink.length);
+          inkB = new Uint8Array(ink.length), inkA = new Uint8Array(ink.length);
         for (let k = 0; k < ink.length; k++) {
-          inkC[k] = ink[k] % r.w; inkR[k] = (ink[k] / r.w) | 0; inkB[k] = bytes[ink[k]];
+          inkC[k] = ink[k] % w; inkR[k] = (ink[k] / w) | 0;
+          inkB[k] = bytes[ink[k]]; inkA[k] = alpha[ink[k]];
         }
         if (!byPhy.has(phy)) byPhy.set(phy, []);
-        byPhy.get(phy).push({ ch, adv: rec.adv, phx, w: r.w, h: r.h, dx: r.dx, dy: r.dy,
-          bytes, ink, inkC, inkR, inkB, inkLeft });
-        maxAsc = Math.max(maxAsc, -r.dy);
-        maxDesc = Math.max(maxDesc, r.dy + r.h);
+        byPhy.get(phy).push({ ch, adv, phx, w, h, dx, dy,
+          bytes, alpha, ink, inkC, inkR, inkB, inkA, inkLeft });
+        maxAsc = Math.max(maxAsc, -dy);
+        maxDesc = Math.max(maxDesc, dy + h);
       }
     }
-    return { name, sizePx: json.size_px, linear: !!json.linear, byPhy, maxAsc, maxDesc };
+    return { name, sizePx: d.sizePx, linear: d.linear, byPhy, maxAsc, maxDesc };
   }
 
   let _sets = null;
-  async function loadSets(urls) {
+  // loadSets(list?) — entries may be set names ("times16"), legacy glyph-JSON
+  // urls (mapped to names), or a glyphs.bin url. A bare .bin entry loads
+  // EVERY set in the bundle (Recto's index.json lists exactly that — Recto
+  // ships them all); no list = DEFAULT_SETS from BUNDLE_URL.
+  async function loadSets(list) {
     if (_sets) return _sets;
+    let url = BUNDLE_URL, names = DEFAULT_SETS, all = false;
+    if (list && list.length) {
+      const bin = list.find(u => /\.bin($|\?)/.test(u));
+      const rest = list.filter(u => u !== bin).map(setName);
+      if (bin) { url = bin; names = rest; all = !rest.length; }
+      else { url = list[0].replace(/[^/]*$/, 'glyphs.bin'); names = rest; }
+    }
+    const r = await fetch(url, { cache: 'no-store' });
+    if (!r.ok) throw new Error(`glyph bundle fetch failed: ${url} (${r.status})`);
+    const bundle = parseBundleDir(new Uint8Array(await r.arrayBuffer()));
     const out = [];
-    for (const u of urls ?? ['/assets/glyphs/glyphs_times16.json', '/assets/glyphs/glyphs_timesbd16.json',
-      '/assets/glyphs/glyphs_timesi16.json', '/assets/glyphs/glyphs_tnr8_16.json',
-      '/assets/glyphs/glyphs_arial16.json', '/assets/glyphs/glyphs_georgia16.json',
-      '/assets/glyphs/glyphs_cour13.json',                    // courier_1/2 body font
-      // linear-compositor variants (eDiscovery producer — see blind-read.mjs);
-      // the per-band auto-pick chooses whichever compositor matches the page
-      '/assets/glyphs/glyphs_timeslin16.json', '/assets/glyphs/glyphs_timesbdlin16.json',
-      '/assets/glyphs/glyphs_timesilin16.json', '/assets/glyphs/glyphs_tnr8lin16.json',
-      '/assets/glyphs/glyphs_tnr8lin10.json']) {
-      try {
-        const r = await fetch(u, { cache: 'no-store' });
-        if (!r.ok) continue;
-        out.push(parseSet(await r.json(), u.replace(/^.*glyphs_|\.json$/g, '')));
-      } catch { /* set not exported locally — skip */ }
+    for (const n of all ? [...bundle.dir.keys()] : names) {
+      const s = materializeSet(bundle, n);
+      if (s) out.push(s);                        // unknown name: skip (parked/renamed set)
     }
     _sets = out;
     return out;
@@ -440,6 +474,11 @@
       return [m0, m1];
     };
     const groups = new Map();
+    // chain index (advance chaining): the same per-candidate column masks,
+    // bucketed by ¼-px x-phase and then by dx+inkLeft — at a KNOWN pen only
+    // ¼ of the pool applies, and of those only the ≤3 dx+inkLeft buckets
+    // whose first ink column can land on the anchor are ever walked.
+    const byPhase = [[], [], [], []];
     for (const g of cands) {
       const [m0, m1] = colBits(g, 0), [n0, n1] = colBits(g, 1);
       let grp = groups.get(m0 + ',' + m1);
@@ -447,11 +486,28 @@
       let sub = grp.subs.get(n0 + ',' + n1);
       if (!sub) grp.subs.set(n0 + ',' + n1, sub = { n0, n1, members: [] });
       sub.members.push(g);
+      byPhase[Math.round(g.phx * 4) & 3].push({ g, m0, m1, n0, n1, d: g.dx + g.inkLeft });
     }
+    const chain = byPhase.map(arr => {
+      if (!arr.length) return null;
+      const dMin = Math.min(...arr.map(c => c.d)), dMax = Math.max(...arr.map(c => c.d));
+      const buckets = Array.from({ length: dMax - dMin + 1 }, () => null);
+      for (const c of arr) {
+        if (!buckets[c.d - dMin]) buckets[c.d - dMin] = [];
+        buckets[c.d - dMin].push(c);
+      }
+      return { dMin, buckets };
+    });
     const list = [...groups.values()];
     for (const grp of list) grp.subs = [...grp.subs.values()];
-    return list;
+    return { groups: list, chain };
   }
+
+  // chained-pen probes: the exact advance and its ¼-px snap neighbours. The
+  // prediction error is bounded by the previous pen's snap (≤1/8 px) plus the
+  // layout bias δ ∈ [0, 1/32 px] — under one quarter, so ±1 covers all of it
+  // (all probes accumulate before judging; order does not matter)
+  const CHAIN_PROBES = [0, -1, 1];
 
   // ---- the scanner (see tools/blind-read.mjs for the full derivation) ----
   // TOL relaxes byte-exactness to |Δ|≤TOL per glyph-ink pixel (2×TOL on
@@ -526,11 +582,12 @@
     let gc = set._grpCache;
     if (!gc || gc.quant !== QUANT || gc.tol !== TOL)
       gc = set._grpCache = { quant: QUANT, tol: TOL, byPhy: new Map() };
-    let groups = gc.byPhy.get(phy);
-    if (groups === undefined) { groups = anchorGroups(set, phy, QUANT, TOL); gc.byPhy.set(phy, groups); }
-    const grpList = groups ??
+    let idx = gc.byPhy.get(phy);
+    if (idx === undefined) { idx = anchorGroups(set, phy, QUANT, TOL); gc.byPhy.set(phy, idx); }
+    const grpList = (idx && idx.groups) ??
       (cands.forEach((g, i) => { g._i = i; }),
         cands.length ? [{ m0: 0, m1: 0, subs: [{ n0: 0, n1: 0, members: cands }] }] : []);
+    const chain = idx ? idx.chain : null;  // per-phase index for advance chaining
     const ASC = set.maxAsc, baseTop = baseline - ASC;  // unclamped window top: mask bit = y - baseTop
     let pm0 = 0, pm1 = 0;                              // page-side mask of the last colMask(x)
     const colMask = (x) => {
@@ -542,14 +599,123 @@
         }
     };
 
+    // one candidate trial: glyph g at integer pen pi must explain the page
+    // bytes through the blend law, with the anchor column inside its bbox.
+    // ONE implementation shared by the chained-pen probe and the anchor-
+    // column scan, so acceptance physics can never diverge between paths.
+    const tryCand = (g, pi, col) => {
+      const gx = pi + g.dx, gy = baseline + g.dy;
+      if (gx < xFrom || gx + g.w > xTo || gy < y0 || gy + g.h > y1) return null;
+      // must explain the anchor column itself (hoisted: cheap reject)
+      if (col < gx || col >= gx + g.w) return null;
+      let exact = 0, pending = 0, skipped = 0;
+      const linG = g.lin ?? lin;
+      const inkC = g.inkC, inkR = g.inkR, inkB = g.inkB, inkA = g.inkA, nInk = inkC.length;
+      const rowBase = gy * W + gx, canBase = (gy - y0) * bw + (gx - xFrom);
+      for (let k = 0; k < nInk; k++) {
+        const cc = inkC[k], rr = inkR[k];
+        const pOff = rowBase + rr * W + cc;
+        if (skip[canBase + rr * bw + cc]) { skipped++; continue; }
+        const gb = inkB[k], pv = page.gray[pOff], cv = canvas[canBase + rr * bw + cc];
+        // fresh-canvas fast path (the overwhelmingly common case, non-
+        // linear law): blending the glyph's alpha over white reproduces gb
+        // by construction — pred === gb — so one compare suffices
+        if (cv === 255 && !linG) {
+          const d = QUANT ? QUANT[gb] : gb;
+          if (pv >= d - TOL && pv <= d + TOL) exact++;
+          else if (pv < d - TOL) pending++;
+          else return null;
+          continue;
+        }
+        // tol mode: a neighbour may have absorbed this composite pixel
+        // already; a faint own-contribution proves nothing — skip it
+        if (TOL && cv !== 255 && gb >= 255 - 2 * TOL) { skipped++; continue; }
+        // ONE prediction from the stored true alpha (no e-ambiguity loop:
+        // the lone byte collision, gb 0, predicts identically either way)
+        const t = cv !== 255 ? 2 * TOL : TOL;
+        const a = inkA[k];
+        let hit = false, minPred = 256;
+        if (linG) {
+          // linear law: a IS the producer's raw byte (= gb − sh)
+          const sh = gb >= 129 && gb !== 255 ? 1 : 0, s0 = lin ? shifts[canBase + rr * bw + cc] : 0;
+          minPred = (((cv - s0) * a) / 255 | 0) + s0 + sh;
+          // composite pixels may read 1 lighter than the law: the producer's
+          // junction arithmetic is 1-ambiguous there (3/925 fitted pairs,
+          // always this sign) — single-glyph pixels stay byte-strict
+          hit = Math.abs(q(minPred) - pv) <= t || (cv !== 255 && q(minPred) - pv === 1);
+        } else {
+          const e = a + (a >> 7);
+          minPred = (cv * (256 - e)) >> 8;
+          hit = Math.abs(q(minPred) - pv) <= t;
+        }
+        if (hit) exact++;
+        else if (pv < q(minPred) - t) pending++;
+        else return null;
+      }
+      const considered = nInk - skipped;
+      if (considered < nInk * 0.5 ||
+          exact < considered * 0.5 || pending > considered * 0.35) return null;
+      if (accepted.has(g.ch + '@' + (pi + g.phx))) return null;  // after pixel work: rare
+      return { g, pi, gx, gy, exact, pending, score: exact - pending * 0.25 };
+    };
+
     const glyphs = [], fails = [], frags = [], records = [];
     let failGuard = -1;                   // right edge of the last failed blob
     const accepted = new Set();
     let cursor = xFrom;
+    let chainPenQ = null;                 // expected next pen (¼-px units) after an accept
+    const mk = new Int32Array(8);         // chain-probe column masks, cols col-2..col+1
     while (glyphs.length < maxGlyphs) {
       const col = nextUnexplained(cursor);
       if (col < 0) break;
       let best = null;
+      // advance chaining: within a word the next pen is the previous pen +
+      // advance snapped to the ¼-px lattice (proven physics: pens snap to
+      // ¼ px and sit δ ∈ [0, 1/32 px] below ideal — MISSING_LETTER.md), so
+      // probe that pen and its ¼-px snap neighbours against the pen's phase
+      // buckets before paying for the full anchor-column scan. A background
+      // run is a natural resync point: a chained candidate whose first ink
+      // column misses the anchor col simply doesn't apply (styled rows
+      // justify SPACES down to 2.4–2.8 px — the space advance is never
+      // trusted). ALL probe pens accumulate before judging — a subset glyph
+      // (',' is the bottom of ';') that byte-passes at one probed pen must
+      // still lose the score comparison to the true glyph at a neighbouring
+      // probed pen, exactly as it loses inside one anchor pass of the scan.
+      // Anchor priority col > col−1 > col−2 replicates the back-loop order.
+      if (chainPenQ !== null && chain) {
+        for (let i = 0; i < 4; i++) {                  // page masks, cols col-2..col+1
+          const x = col - 2 + i;
+          if (x < xFrom || x >= xTo) { mk[2 * i] = -1; mk[2 * i + 1] = -1; }
+          else { colMask(x); mk[2 * i] = pm0; mk[2 * i + 1] = pm1; }
+        }
+        const slot = [null, null, null];               // best per anchor distance col−f
+        for (const d of CHAIN_PROBES) {
+          const penQ = chainPenQ + d;
+          if (penQ < 0) continue;
+          const ph = chain[penQ & 3];
+          if (!ph) continue;
+          const pi = penQ >> 2;
+          // f = pi + (dx+inkLeft) must land on col-2..col: walk those buckets only
+          for (let dd = Math.max(col - pi - 2, ph.dMin); dd <= col - pi; dd++) {
+            const bucket = ph.buckets[dd - ph.dMin];
+            if (!bucket) continue;
+            const f = pi + dd;                         // first ink col at this pen
+            if (f < xFrom) continue;
+            const ai = 2 * (f - col + 2);
+            const a0 = mk[ai], a1 = mk[ai + 1], b0 = mk[ai + 2], b1 = mk[ai + 3];
+            const s = col - f;
+            for (const c of bucket) {
+              if ((c.m0 & ~a0) | (c.m1 & ~a1)) continue;  // needs ink where page is white
+              if ((c.n0 & ~b0) | (c.n1 & ~b1)) continue;
+              const r = tryCand(c.g, pi, col);
+              if (!r) continue;
+              if (!slot[s] || r.score > slot[s].score ||
+                  (r.score === slot[s].score && c.g._i < slot[s].g._i)) slot[s] = r;
+            }
+          }
+        }
+        best = slot[0] ?? slot[1] ?? slot[2];
+      }
       for (let back = 0; back <= 2 && !best; back++) {
         if (col - back < xFrom) break;               // every candidate's bbox starts left of the window
         colMask(col - back);                         // page ink+skip rows at the anchor column
@@ -561,62 +727,12 @@
         for (const sub of grp.subs) {
         if ((sub.n0 & ~b0) | (sub.n1 & ~b1)) continue;
         for (const g of sub.members) {
-          const pi = col - back - g.dx - g.inkLeft;
-          const gx = pi + g.dx, gy = baseline + g.dy;
-          if (gx < xFrom || gx + g.w > xTo || gy < y0 || gy + g.h > y1) continue;
-          // must explain the anchor column itself (hoisted: cheap reject)
-          if (col < gx || col >= gx + g.w) continue;
-          let exact = 0, pending = 0, skipped = 0, ok = true;
-          const linG = g.lin ?? lin;
-          const inkC = g.inkC, inkR = g.inkR, inkB = g.inkB, nInk = inkC.length;
-          const rowBase = gy * W + gx, canBase = (gy - y0) * bw + (gx - xFrom);
-          for (let k = 0; k < nInk; k++) {
-            const cc = inkC[k], rr = inkR[k];
-            const pOff = rowBase + rr * W + cc;
-            if (skip[canBase + rr * bw + cc]) { skipped++; continue; }
-            const gb = inkB[k], pv = page.gray[pOff], cv = canvas[canBase + rr * bw + cc];
-            // fresh-canvas fast path (the overwhelmingly common case, non-
-            // linear law): every e in INV[gb] reproduces gb from white by
-            // construction — pred === gb — one compare replaces the e-loop
-            if (cv === 255 && !linG) {
-              const d = QUANT ? QUANT[gb] : gb;
-              if (pv >= d - TOL && pv <= d + TOL) exact++;
-              else if (pv < d - TOL) pending++;
-              else { ok = false; break; }
-              continue;
-            }
-            // tol mode: a neighbour may have absorbed this composite pixel
-            // already; a faint own-contribution proves nothing — skip it
-            if (TOL && cv !== 255 && gb >= 255 - 2 * TOL) { skipped++; continue; }
-            const t = cv !== 255 ? 2 * TOL : TOL;
-            let hit = false, minPred = 256;
-            if (linG) {
-              const sh = gb >= 129 && gb !== 255 ? 1 : 0, s0 = lin ? shifts[canBase + rr * bw + cc] : 0;
-              minPred = (((cv - s0) * (gb - sh)) / 255 | 0) + s0 + sh;
-              // composite pixels may read 1 lighter than the law: the producer's
-              // junction arithmetic is 1-ambiguous there (3/925 fitted pairs,
-              // always this sign) — single-glyph pixels stay byte-strict
-              hit = Math.abs(q(minPred) - pv) <= t || (cv !== 255 && q(minPred) - pv === 1);
-            } else {
-              for (const e of INV[gb]) {
-                const pred = (cv * (256 - e)) >> 8;
-                if (pred < minPred) minPred = pred;
-                if (Math.abs(q(pred) - pv) <= t) { hit = true; break; }
-              }
-            }
-            if (hit) exact++;
-            else if (pv < q(minPred) - t) pending++;
-            else { ok = false; break; }
-          }
-          const considered = nInk - skipped;
-          if (!ok || considered < nInk * 0.5 ||
-              exact < considered * 0.5 || pending > considered * 0.35) continue;
-          if (accepted.has(g.ch + '@' + (pi + g.phx))) continue;  // after pixel work: rare
-          const score = exact - pending * 0.25;
+          const r = tryCand(g, col - back - g.dx - g.inkLeft, col);  // pen puts first ink col at col-back
+          if (!r) continue;
           // tie-break on original candidate order: acceptance must not
           // depend on the group iteration order (plain loop = first max)
-          if (!best || score > best.score || (score === best.score && g._i < best.g._i))
-            best = { g, pi, gx, gy, exact, pending, score };
+          if (!best || r.score > best.score || (r.score === best.score && r.g._i < best.g._i))
+            best = r;
         }
         }
         }
@@ -645,6 +761,7 @@
             continue;
           }
         }
+        chainPenQ = null;                    // unexplained ink breaks the pen chain
         // Flood the connected components of unexplained ink through the fail
         // column (a column-range absorb swallows readable glyphs that merely
         // share columns with the blob — a byte-clean comma right of a
@@ -693,29 +810,29 @@
         const rr = (p / g.w) | 0, cc = p % g.w;
         const x = gx + cc, y = gy + rr;
         if (masked(x, y)) continue;
-        const gb = g.bytes[p], pv = pageAt(x, y), cv = canAt(x, y);
+        const gb = g.bytes[p], ga = g.alpha[p], pv = pageAt(x, y), cv = canAt(x, y);
         if (TOL && cv !== 255 && gb >= 255 - 2 * TOL) continue;   // faint skip (see above)
         const t = cv !== 255 ? 2 * TOL : TOL;
-        let val = null;
+        let val;
         if (g.lin ?? lin) {
           const sh = gb >= 129 && gb !== 255 ? 1 : 0, s0 = shAt(x, y);
-          const pred = (((cv - s0) * (gb - sh)) / 255 | 0) + s0 + sh;
+          const pred = (((cv - s0) * ga) / 255 | 0) + s0 + sh;    // ga = raw byte (gb − sh)
           const ok = Math.abs(q(pred) - pv) <= t ||
                      (cv !== 255 && q(pred) - pv === 1);          // composite 1-lighter case
           val = ok ? (QUANT ? pred : pv) : pred;   // quant: canvas stays original-space
           addSh(x, y, sh);
         } else {
-          for (const e of INV[gb]) {
-            const pred = (cv * (256 - e)) >> 8;
-            if (Math.abs(q(pred) - pv) <= t) { val = QUANT ? pred : pv; break; }  // absorb page value
-            if (val === null) val = pred;
-          }
+          const e = ga + (ga >> 7);                // single prediction (see tryCand)
+          const pred = (cv * (256 - e)) >> 8;
+          val = Math.abs(q(pred) - pv) <= t
+            ? (QUANT ? pred : pv) : pred;          // absorb page value on a hit
         }
         setCan(x, y, val);
       }
       glyphs.push({ ch: g.ch, pen: pi + g.phx, adv: g.adv, exact: best.exact, pending: best.pending,
         ...(g.src ? { src: g.src } : {}) });
       accepted.add(g.ch + '@' + (pi + g.phx));
+      chainPenQ = Math.round((pi + g.phx + g.adv) * 4);  // expected next pen on the ¼-px lattice
       cursor = col + 1;
     }
     // Deferred fail/frag classification (final scans only — probes never
@@ -1082,7 +1199,7 @@
     return { res: best.res, pass: best.pass };
   }
 
-  const api = { loadSets, parseSet, readPage, readPageAuto, blindPasses, passLabel,
+  const api = { loadSets, readPage, readPageAuto, blindPasses, passLabel,
     detectObjects, findBands, scanLine, whitenColored, quantMap, unionSets };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.BlindOCR = api;

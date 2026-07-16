@@ -195,7 +195,7 @@ class CanvasViewer {
   async _ensureBlindSets() {
     if (!this._blindSets) this._blindSets = await BlindOCR.loadSets();
     if (!this._blindSets.length) throw new Error(
-      'no glyph sets found — run tools/export-glyphs.mjs (assets/glyphs/glyphs_*.json)');
+      'no glyph sets found — run tools/export-glyphs.mjs (assets/glyphs/glyphs.bin)');
     return this._blindSets;
   }
 

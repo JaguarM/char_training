@@ -881,3 +881,104 @@ remembered the winning pass — training now keeps `_blindPassHint` across
 presses, reset on image load (Recto resets on document:loaded). Certified:
 test-blind-app (document API runs THROUGH the carry, 94/94 byte-clean,
 unchanged), sync-recto, test-recto-app PASS.
+
+## 2026-07-16 PM — advance chaining + true-alpha (a64) storage
+
+Two matcher-core upgrades, each certified gate-byte-identical (transcripts
+AND summaries) before the next; `tools/gate.mjs` (`npm run gate`) now runs
+the whole documented gate and byte-compares against a reference directory,
+so "byte-identical" is one command instead of six.
+
+**Advance chaining.** Within a word the next pen is the previous pen +
+advance snapped to the ¼-px lattice (pens snap to ¼ px, layout bias
+δ ∈ [0, 1/32 px] — MISSING_LETTER.md), so after every accept the scanner
+probes the predicted pen and its ±1 ¼-px snap neighbours against the
+pen's PHASE bucket (per phase, per dx+inkLeft — only candidates whose
+first ink column can land on the anchor are walked, each carrying its own
+anchor-column bitmasks) before paying for the full anchor-column scan.
+94% of big.pdf's 1.43M accepts come straight off the chain. Two
+byte-identity rules bought with regressions during bring-up:
+
+- ONE candidate-trial implementation (`tryCand`) is shared by the chained
+  probe and the anchor scan — acceptance physics cannot diverge.
+- ALL probe pens accumulate before judging, then anchor priority
+  (col > col−1 > col−2), score, original order. Breaking at the first
+  probe with a hit read `&lt;` as `&lt,` — ',' is the bottom of ';', and a
+  phase-degenerate comma byte-passed at one probed pen before the true
+  semicolon at the neighbouring pen was ever tried (big grew 5 □,
+  email 1 □; both gone with accumulation).
+
+A background run is a natural resync: chained candidates whose first ink
+column misses the anchor simply don't apply (styled rows justify spaces to
+2.4–2.8 px — the space advance is never trusted). Any fail resets the
+chain. ±2 probes were tried and are unreachable (error bound: pen snap
+1/8 + δ 1/32 < ¼); the wider window only slowed the walk.
+
+**True-alpha storage.** export-glyphs.mjs now stores, beside each raster's
+gray-on-white window, the true rasterizer alpha derived through the set's
+law, and every set carries a law tag (standard | linear). Standard:
+gb = (255·(256−e))>>8 with e = cov+(cov>>7) inverts to a canonical
+coverage — the ONLY collision is gb 0 (cov 254/255), and both predict page
+byte 0 at every canvas value, so one prediction is byte-identical by
+construction. Linear: alpha = the producer's raw byte (gb − sh). The
+matcher's composite path is now a single prediction from inkA (no INV
+e-loop; INV itself is gone). The fresh-canvas fast path and the linear
+composite-1-lighter allowance are untouched.
+
+**Certified.** Gate 6/6 byte-identical after each stage (v3, big, email,
+report-raster, courier_1/2 — transcripts and summaries), test-blind-app
+green (email P1 48/54 vs defect truth, courier_1 57/57), glyphs-check
+30/30, NEW/ spot checks (EFTA00382108 1545/114,273/0□/1 frag,
+EFTA00434905 305/22,796/0□/1 frag — the frag is pre-existing, verified
+against the stashed pre-change engine; its truth round-trips 0-diff),
+sync-recto + test-recto-app PASS. Speed: big.pdf 34.6 → ~31.5 s
+(~0.09 s/page), v3 3.8 → ~3.3 s; chaining is most of the win, a64 is
+mostly a precision/format change (the e-loop was already short).
+
+**Keyed lookup (planned stage 3) — NOT built.** Its trigger was "only if
+1+2 leave search as the bottleneck". Post-change profile of big.pdf:
+candidate search (chain walk + fallback scan) ≈ 3.2 s (10%), behind
+detectObjects ≈ 8.4 s (26%) and the winner's own pixel certification
+≈ 5.6 s (17%, irreducible physics). Remaining cheap-ish levers if speed
+matters later: fuse/row-major detectObjects' five full-page sweeps
+(~24 ms/page on every page), de-closure scanLine's pageAt/canAt in the
+init loops (~2 s), and the per-band window init (~1.7 s, paid by every
+probe).
+
+## 2026-07-16 late — one glyph bundle + committed gate reference
+
+**glyphs.bin.** The 30 per-set JSONs are gone: every glyph set now lives in
+ONE committed binary bundle, `assets/glyphs/glyphs.bin` (raw gray +
+true-alpha planes, per-set directory with lazy slices; layout documented in
+`tools/glyph-bundle.mjs`, the node reader — the browser reader is
+`blindocr.js` parseBundleDir/materializeSet). export-glyphs.mjs builds it
+from the .npz rasters through an EXPLICIT name → npz manifest (the old
+fuzzy filename matching is gone); `--check` byte-compares the committed
+bundle against an in-memory rebuild. Loaders keep every name spelling
+working (`--glyphs times16` = `--glyphs glyphs_times16.json`); the app's
+DEFAULT_SETS list (12 names) is unchanged and deliberate — Recto's
+index.json now lists just `glyphs.bin`, and a bare .bin entry loads every
+set in the bundle (Recto shipped all 30 before, same behavior). Candidate
+insertion order (char × phx) is preserved exactly — it is
+tie-break-significant. Honest numbers: set loading was ~30 ms/run and is
+dominated by the ink-list precompute, not JSON parsing — the win is one
+file, one fetch, no name guessing, not milliseconds. The parked
+`glyphs_tnr8lin16_OFF.json` stays as JSON provenance, outside the bundle.
+
+**tools/gate-ref/ (committed) = the expected numbers.** `npm run gate` now
+byte-compares against it by default; re-record with
+`node gate.mjs --out gate-ref --ref none` only after an INTENDED output
+change. The hand-maintained expected-numbers prose in docs/README.md shrank
+to root-cause notes — counts live in the reference summaries.
+
+**Certified** (whole chain, bundle + gate-ref): gate 6/6 byte-identical vs
+the pre-bundle reference, test-blind-app green, glyphs-check green, npm
+test green, sync-recto (bundle replaces the 30 JSONs in Recto's static
+dir) + test-recto-app PASS.
+
+**Known friction NOT fixed (recommendation).** The matcher core exists
+TWICE — tools/blind-read.mjs and src/blindocr.js are structural twins and
+every engine change is written two times (this session included). The fix
+is one shared engine consumed by both (blindocr.js is already DOM-free);
+it is a half-session refactor with the gate as the safety net, best done
+as its own session.

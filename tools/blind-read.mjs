@@ -24,20 +24,20 @@
 //
 //   node blind-read.mjs --pdf ../corpus/v3.pdf --page 2
 //   node blind-read.mjs --pdf ../corpus/v3.pdf --all --truth ../corpus/v3.txt
-//   node blind-read.mjs --raster <page.gray.gz> --glyphs glyphs_times16.json,glyphs_arial16.json
+//   node blind-read.mjs --raster <page.gray.gz> --glyphs times16,arial16
 import { createHash } from 'node:crypto';
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
-import { dirname, resolve, join, basename } from 'node:path';
+import { dirname, resolve, join } from 'node:path';
+import { materializeSet } from './glyph-bundle.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(__dirname, '..');
-const GLYPH_DIR = resolve(REPO, 'assets', 'glyphs');   // shared glyph sets (fontgen exports)
 
 // ---------------- args ----------------
 const o = { pdf: null, raster: null, page: 1, all: false, truth: null, out: null,
-  json: null, glyphs: ['glyphs_times16.json'], tol: 0, matchcols: 0 };
+  json: null, glyphs: ['times16'], tol: 0, matchcols: 0 };
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i], next = () => process.argv[++i];
   if (a === '--pdf') o.pdf = resolve(process.cwd(), next());
@@ -140,58 +140,32 @@ function cachePages(pdfPath) {
 }
 
 // ---------------- glyph sets ----------------
-// per (ch, phx, phy): raster bytes + dx/dy + ink pixel list + first-ink column
+// All sets live in ONE committed binary bundle (assets/glyphs/glyphs.bin,
+// built + byte-certified from the .npz rasters by export-glyphs.mjs);
+// glyph-bundle.mjs materializes a set by name — legacy "glyphs_x.json"
+// spellings still work. Only the bench-side extras live here.
 function loadSet(file) {
-  const j = JSON.parse(readFileSync(resolve(GLYPH_DIR, file), 'utf8'));
-  const byPhy = new Map();                       // phy -> [{ch, adv, phx, w,h,dx,dy,bytes,ink,inkLeft}]
-  let maxAsc = 0, maxDesc = 0;
-  for (const [ch, rec] of Object.entries(j.chars)) {
-    for (const [key, r] of Object.entries(rec.ph)) {
-      if (!r.w) continue;
-      const [phxS, phyS = '0'] = key.split('_');
-      const phx = parseFloat(phxS), phy = parseFloat(phyS);
-      const bytes = Buffer.from(r.b64, 'base64');
-      const ink = [];
-      let inkLeft = r.w;
-      for (let c = 0; c < r.w; c++)
-        for (let rr = 0; rr < r.h; rr++)
-          if (bytes[rr * r.w + c] < 255) { ink.push(rr * r.w + c); if (c < inkLeft) inkLeft = c; }
-      // hot-loop precomputation: per ink pixel its column, row and raster byte
-      // (the candidate trial loop runs millions of times per page — the
-      // div/mod and byte lookups were measurable)
-      let inkC = new Int16Array(ink.length), inkR = new Int16Array(ink.length),
-        inkB = new Uint8Array(ink.length);
-      for (let k = 0; k < ink.length; k++) {
-        inkC[k] = ink[k] % r.w; inkR[k] = (ink[k] / r.w) | 0; inkB[k] = bytes[ink[k]];
-      }
-      // --matchcols N (EXPERIMENT): the candidate trial only sees the middle N
-      // ink columns; acceptance still subtracts the FULL raster (g.ink/g.bytes)
-      // so the certification canvas is untouched. Window is centered on the
-      // median ink column (extent-centering can land in a hollow middle — '"').
-      if (o.matchcols > 0) {
-        const cols = [...inkC].sort((a, b) => a - b);
-        const med = cols[cols.length >> 1];
-        let lo = med - ((o.matchcols - 1) >> 1), hi = lo + o.matchcols - 1;
-        const keep = [];
-        for (let k = 0; k < ink.length; k++)
-          if (inkC[k] >= lo && inkC[k] <= hi) keep.push(k);
-        if (keep.length) {
-          inkC = Int16Array.from(keep, k => inkC[k]);
-          inkR = Int16Array.from(keep, k => inkR[k]);
-          inkB = Uint8Array.from(keep, k => inkB[k]);
-        }
-      }
-      if (!byPhy.has(phy)) byPhy.set(phy, []);
-      byPhy.get(phy).push({ ch, adv: rec.adv, phx, w: r.w, h: r.h, dx: r.dx, dy: r.dy,
-        bytes, ink, inkC, inkR, inkB, inkLeft });
-      maxAsc = Math.max(maxAsc, -r.dy);
-      maxDesc = Math.max(maxDesc, r.dy + r.h);
+  // --matchcols N (EXPERIMENT): the candidate trial only sees the middle N
+  // ink columns; acceptance still subtracts the FULL raster (g.ink/g.bytes)
+  // so the certification canvas is untouched. Window is centered on the
+  // median ink column (extent-centering can land in a hollow middle — '"').
+  const trim = o.matchcols > 0 ? (rec) => {
+    const cols = [...rec.inkC].sort((a, b) => a - b);
+    const med = cols[cols.length >> 1];
+    const lo = med - ((o.matchcols - 1) >> 1), hi = lo + o.matchcols - 1;
+    const keep = [];
+    for (let k = 0; k < rec.ink.length; k++)
+      if (rec.inkC[k] >= lo && rec.inkC[k] <= hi) keep.push(k);
+    if (keep.length) {
+      rec.inkC = Int16Array.from(keep, k => rec.inkC[k]);
+      rec.inkR = Int16Array.from(keep, k => rec.inkR[k]);
+      rec.inkB = Uint8Array.from(keep, k => rec.inkB[k]);
+      rec.inkA = Uint8Array.from(keep, k => rec.inkA[k]);
     }
-  }
-  const stem = (j.font ?? '').replace(/_\d+.*$/, '');   // "times_16.npz" -> "times"
-  return { name: basename(file).replace(/^glyphs_|\.json$/g, ''), sizePx: j.size_px,
-    linear: !!j.linear,                                 // report.pdf producer blend
-    fontFile: `C:/Windows/Fonts/${stem || 'times'}.ttf`, byPhy, maxAsc, maxDesc };
+  } : null;
+  const s = materializeSet(file, trim);
+  const stem = s.font.replace(/_\d+.*$/, '');           // "times_16.npz" -> "times"
+  return { ...s, fontFile: `C:/Windows/Fonts/${stem || 'times'}.ttf` };
 }
 
 // --union: one merged candidate pool over all sets, so a single line may mix
@@ -212,15 +186,9 @@ function unionSets(sets) {
     linear: sets.some(s => s.linear), fontFile: sets[0].fontFile, byPhy, maxAsc, maxDesc };
 }
 
-// blend-law tables: single-glyph gray g on white -> possible e = cov + (cov>>7)
-const INV = (() => {
-  const inv = Array.from({ length: 256 }, () => []);
-  for (let cov = 0; cov <= 255; cov++) {
-    const e = cov + (cov >> 7);
-    if (!inv[(255 * (256 - e)) >> 8].includes(e)) inv[(255 * (256 - e)) >> 8].push(e);
-  }
-  return inv;
-})();
+// blend law: page = (dst·(256−e))>>8 with e = cov + (cov>>7) — predictions
+// come straight from the stored true-alpha plane (a64; COV above is the
+// same inversion for old-format sets), no per-pixel e-ambiguity loop left.
 
 // report.pdf producer (linear glyph sets): glyph raw alpha bytes composite
 // multiplicatively in 255-space with floor — raw' = floor(raw_canvas * rb /
@@ -518,6 +486,12 @@ function anchorGroups(set, phy, quant, TOL) {
     return [m0, m1];
   };
   const groups = new Map();
+  // chain index (advance chaining): the same per-candidate column masks,
+  // bucketed by ¼-px x-phase and then by dx+inkLeft — at a KNOWN pen only
+  // ¼ of the pool applies, and of those only the ≤3 dx+inkLeft buckets whose
+  // first ink column can land on the anchor are ever walked (a fixed pen
+  // puts each glyph's first ink column at pi + that offset).
+  const byPhase = [[], [], [], []];
   for (const g of cands) {
     const [m0, m1] = colBits(g, 0), [n0, n1] = colBits(g, 1);
     let grp = groups.get(m0 + ',' + m1);
@@ -525,10 +499,18 @@ function anchorGroups(set, phy, quant, TOL) {
     let sub = grp.subs.get(n0 + ',' + n1);
     if (!sub) grp.subs.set(n0 + ',' + n1, sub = { n0, n1, members: [] });
     sub.members.push(g);
+    byPhase[Math.round(g.phx * 4) & 3].push({ g, m0, m1, n0, n1, d: g.dx + g.inkLeft });
   }
+  const chain = byPhase.map(arr => {
+    if (!arr.length) return null;
+    const dMin = Math.min(...arr.map(c => c.d)), dMax = Math.max(...arr.map(c => c.d));
+    const buckets = Array.from({ length: dMax - dMin + 1 }, () => null);
+    for (const c of arr) (buckets[c.d - dMin] ??= []).push(c);
+    return { dMin, buckets };
+  });
   const list = [...groups.values()];
   for (const grp of list) grp.subs = [...grp.subs.values()];
-  return list;
+  return { groups: list, chain };
 }
 
 // ---------------- the scanner ----------------
@@ -536,6 +518,14 @@ function anchorGroups(set, phy, quant, TOL) {
 // maxGlyphs: stop early (baseline probing).
 const DBG_PIX = !!process.env.BR_PIX;   // disables the fresh-canvas fast path so
                                         // per-pixel debug output stays complete
+const DBG_LINE = process.env.BR_LINE ? +process.env.BR_LINE : null;  // hoisted:
+                                        // process.env reads cost ~1µs each and
+                                        // the check runs once per accepted glyph
+// chained-pen probes: the exact advance and its ¼-px snap neighbours. The
+// prediction error is bounded by the previous pen's snap (≤1/8 px) plus the
+// layout bias δ ∈ [0, 1/32 px] — under one quarter, so ±1 covers all of it
+// (all probes accumulate before judging; order does not matter)
+const CHAIN_PROBES = [0, -1, 1];
 function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infinity, maxFails = Infinity, quant = null, halos = null, bandTop = null) {
   const W = page.w, cands = set.byPhy.get(phy) ?? [], lin = set.linear;
   const inHalo = (x, y) => halos && halos.some(h => x >= h[0] && x < h[1] && y >= h[2] && y < h[3]);
@@ -603,17 +593,18 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
   const TOL = o.tol;
   // anchor-column group index (see anchorGroups above); cache per (set, phy) —
   // quant maps are per page, so the cache re-keys on the quant object
-  let groups = null;
+  let idx = null;
   if (!DBG_PIX) {
     let gc = set._grpCache;
     if (!gc || gc.quant !== quant || gc.tol !== TOL)
       gc = set._grpCache = { quant, tol: TOL, byPhy: new Map() };
-    groups = gc.byPhy.get(phy);
-    if (groups === undefined) { groups = anchorGroups(set, phy, quant, TOL); gc.byPhy.set(phy, groups); }
+    idx = gc.byPhy.get(phy);
+    if (idx === undefined) { idx = anchorGroups(set, phy, quant, TOL); gc.byPhy.set(phy, idx); }
   }
-  const grpList = groups ??
+  const grpList = idx?.groups ??
     (cands.forEach((g, i) => { g._i = i; }),
       cands.length ? [{ m0: 0, m1: 0, subs: [{ n0: 0, n1: 0, members: cands }] }] : []);
+  const chain = idx?.chain ?? null;      // per-phase index for advance chaining
   const ASC = set.maxAsc, baseTop = baseline - ASC;  // unclamped window top: mask bit = y - baseTop
   let pm0 = 0, pm1 = 0;                              // page-side mask of the last colMask(x)
   const colMask = (x) => {
@@ -630,16 +621,135 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
     return -1;
   };
 
+  // one candidate trial: glyph g at integer pen pi must explain the page
+  // bytes through the blend law, with the anchor column inside its bbox.
+  // ONE implementation shared by the chained-pen probe and the anchor-column
+  // scan, so acceptance physics can never diverge between the two paths.
+  const tryCand = (g, pi, col) => {
+    const gx = pi + g.dx, gy = baseline + g.dy;
+    if (gx < xFrom || gx + g.w > xTo || gy < y0 || gy + g.h > y1) return null;
+    // must explain the anchor column itself (hoisted: cheap reject)
+    if (col < gx || col >= gx + g.w) return null;
+    let exact = 0, pending = 0, skipped = 0;
+    const linG = g.lin ?? lin;
+    const { inkC, inkR, inkB, inkA } = g, nInk = inkC.length;
+    const rowBase = gy * W + gx, canBase = (gy - y0) * bw + (gx - xFrom);
+    for (let k = 0; k < nInk; k++) {
+      const cc = inkC[k], rr = inkR[k];
+      const pOff = rowBase + rr * W + cc;
+      if (skip[canBase + rr * bw + cc]) { skipped++; continue; }  // object/absorbed pixel: no evidence either way
+      const gb = inkB[k], pv = page.gray[pOff], cv = canvas[canBase + rr * bw + cc];
+      // fresh-canvas fast path (the overwhelmingly common case, non-linear
+      // law): blending the glyph's alpha over white reproduces gb by
+      // construction — pred === gb — so one compare suffices
+      if (cv === 255 && !linG && !DBG_PIX) {
+        const d = quant ? quant[gb] : gb;
+        if (pv >= d - TOL && pv <= d + TOL) exact++;
+        else if (pv < d - TOL) pending++;              // darker: future glyph may composite
+        else return null;
+        continue;
+      }
+      // tol mode: a neighbour may have absorbed this pixel's composite
+      // already (within-tol steal); a FAINT own-contribution proves
+      // nothing either way — skip instead of predicting double ink
+      if (TOL && cv !== 255 && gb >= 255 - 2 * TOL) { skipped++; continue; }
+      // ONE prediction from the stored true alpha (the old e-ambiguity loop
+      // is gone: the lone byte collision, gb 0, predicts identically for
+      // either coverage); composite pixels (canvas already inked) get double
+      // tolerance — rasterizer deviations of BOTH overlapping curves
+      // compound (f-hook ∩ i-dot)
+      const t = cv !== 255 ? 2 * TOL : TOL;
+      const a = inkA[k];
+      let hit = false, minPred = 256;
+      if (linG) {
+        // linear law: a IS the producer's raw byte (= gb − sh)
+        const sh = gb >= 129 && gb !== 255 ? 1 : 0, s0 = lin ? shifts[canBase + rr * bw + cc] : 0;
+        minPred = (((cv - s0) * a) / 255 | 0) + s0 + sh;
+        // composite pixels may read 1 lighter than the law: the producer's
+        // junction arithmetic is 1-ambiguous there (3/925 fitted pairs,
+        // always this sign) — single-glyph pixels stay byte-strict
+        hit = Math.abs(q(minPred) - pv) <= t || (cv !== 255 && q(minPred) - pv === 1);
+      } else {
+        const e = a + (a >> 7);
+        minPred = (cv * (256 - e)) >> 8;
+        hit = Math.abs(q(minPred) - pv) <= t;
+      }
+      if (DBG_PIX && +process.env.BR_PIX === col && !hit)
+        console.log(`      pix '${g.ch}' pen ${pi + g.phx} @(${gx + cc},${gy + rr}) gb=${gb} cv=${cv} pv=${pv} minPred=${minPred}`);
+      if (hit) exact++;
+      else if (pv < q(minPred) - t) pending++;         // darker: future glyph may composite
+      else return null;
+    }
+    // pending is for kern overlap (a few columns) — a glyph "hiding" inside
+    // solid ink shows up as mostly-pending and must not be accepted; a glyph
+    // mostly inside an object mask has no evidence and is rejected too
+    const considered = nInk - skipped;
+    if (considered < nInk * 0.5 ||
+        exact < considered * 0.5 || pending > considered * 0.35) return null;
+    if (accepted.has(`${g.ch}@${pi + g.phx}`)) return null;  // after the pixel work: rare
+    return { g, pi, gx, gy, exact, pending, score: exact - pending * 0.25 };
+  };
+
   const glyphs = [], fails = [], frags = [], records = [];
   let failGuard = -1;                     // right edge of the last failed blob
   const accepted = new Set();                          // "ch@pen" — never re-accept
   let cursor = xFrom;
+  let chainPenQ = null;                   // expected next pen (¼-px units) after an accept
+  const mk = new Int32Array(8);           // chain-probe column masks, cols col-2..col+1
   while (glyphs.length < maxGlyphs) {
     const col = nextUnexplained(cursor);
     if (col < 0) break;
+    let best = null;
+    // advance chaining: within a word the next pen is the previous pen +
+    // advance snapped to the ¼-px lattice (proven physics: pens snap to ¼ px
+    // and sit δ ∈ [0, 1/32 px] below ideal — MISSING_LETTER.md), so probe
+    // that pen, then ±1–2 ¼-px for snap boundaries, against the pen's phase
+    // bucket before paying for the full anchor-column scan. A background run
+    // is a natural resync point: a chained candidate whose first ink column
+    // misses the anchor col simply doesn't apply (styled rows justify SPACES
+    // down to 2.4–2.8 px — the space advance is never trusted). Anchor
+    // priority col > col−1 > col−2 replicates the scan's back-loop order.
+    if (chainPenQ !== null && chain) {
+      for (let i = 0; i < 4; i++) {                    // page masks, cols col-2..col+1
+        const x = col - 2 + i;
+        if (x < xFrom || x >= xTo) { mk[2 * i] = -1; mk[2 * i + 1] = -1; }
+        else { colMask(x); mk[2 * i] = pm0; mk[2 * i + 1] = pm1; }
+      }
+      // ALL five probe pens accumulate before judging — a subset glyph (','
+      // is the bottom of ';') that byte-passes at one probed pen must still
+      // lose the score comparison to the true glyph at a neighbouring probed
+      // pen, exactly as it loses inside one anchor pass of the full scan
+      const slot = [null, null, null];                 // best per anchor distance col−f
+      for (const d of CHAIN_PROBES) {
+        const penQ = chainPenQ + d;
+        if (penQ < 0) continue;
+        const ph = chain[penQ & 3];
+        if (!ph) continue;
+        const pi = penQ >> 2;
+        // f = pi + (dx+inkLeft) must land on col-2..col: walk those buckets only
+        for (let dd = Math.max(col - pi - 2, ph.dMin); dd <= col - pi; dd++) {
+          const bucket = ph.buckets[dd - ph.dMin];
+          if (!bucket) continue;
+          const f = pi + dd;                           // first ink col at this pen
+          if (f < xFrom) continue;
+          const ai = 2 * (f - col + 2);
+          const a0 = mk[ai], a1 = mk[ai + 1], b0 = mk[ai + 2], b1 = mk[ai + 3];
+          const s = col - f;
+          for (const c of bucket) {
+            if ((c.m0 & ~a0) | (c.m1 & ~a1)) continue; // needs ink where page is white
+            if ((c.n0 & ~b0) | (c.n1 & ~b1)) continue;
+            const r = tryCand(c.g, pi, col);
+            if (!r) continue;
+            if (!slot[s] || r.score > slot[s].score ||
+                (r.score === slot[s].score && c.g._i < slot[s].g._i)) slot[s] = r;
+          }
+        }
+      }
+      best = slot[0] ?? slot[1] ?? slot[2];
+    }
     // candidates whose first ink column lands on col (or col-1/-2: composite
     // columns can hide the true left edge when bytes saturate)
-    let best = null;
+    if (!best)
     for (let back = 0; back <= 2; back++) {
       if (col - back < xFrom) break;                 // every candidate's bbox starts left of the window
       colMask(col - back);                           // page ink+skip rows at the anchor column
@@ -651,71 +761,12 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
       for (const sub of grp.subs) {
       if ((sub.n0 & ~b0) | (sub.n1 & ~b1)) continue;
       for (const g of sub.members) {
-        const pi = col - back - g.dx - g.inkLeft;      // integer pen such that first ink col = col-back
-        const gx = pi + g.dx, gy = baseline + g.dy;
-        if (gx < xFrom || gx + g.w > xTo || gy < y0 || gy + g.h > y1) continue;
-        // must explain the anchor column itself (hoisted: cheap reject)
-        if (col < gx || col >= gx + g.w) continue;
-        let exact = 0, pending = 0, skipped = 0, ok = true;
-        const linG = g.lin ?? lin;
-        const { inkC, inkR, inkB } = g, nInk = inkC.length;
-        const rowBase = gy * W + gx, canBase = (gy - y0) * bw + (gx - xFrom);
-        for (let k = 0; k < nInk; k++) {
-          const cc = inkC[k], rr = inkR[k];
-          const pOff = rowBase + rr * W + cc;
-          if (skip[canBase + rr * bw + cc]) { skipped++; continue; }  // object/absorbed pixel: no evidence either way
-          const gb = inkB[k], pv = page.gray[pOff], cv = canvas[canBase + rr * bw + cc];
-          // fresh-canvas fast path (the overwhelmingly common case, non-linear
-          // law): every e in INV[gb] reproduces gb from white by construction
-          // — pred === gb — so the whole e-loop collapses to one compare
-          if (cv === 255 && !linG && !DBG_PIX) {
-            const d = quant ? quant[gb] : gb;
-            if (pv >= d - TOL && pv <= d + TOL) exact++;
-            else if (pv < d - TOL) pending++;          // darker: future glyph may composite
-            else { ok = false; break; }
-            continue;
-          }
-          // tol mode: a neighbour may have absorbed this pixel's composite
-          // already (within-tol steal); a FAINT own-contribution proves
-          // nothing either way — skip instead of predicting double ink
-          if (TOL && cv !== 255 && gb >= 255 - 2 * TOL) { skipped++; continue; }
-          // predicted values for this pixel over the e-ambiguity; composite
-          // pixels (canvas already inked) get double tolerance — rasterizer
-          // deviations of BOTH overlapping curves compound (f-hook ∩ i-dot)
-          const t = cv !== 255 ? 2 * TOL : TOL;
-          let hit = false, minPred = 256;
-          if (linG) {
-            const sh = gb >= 129 && gb !== 255 ? 1 : 0, s0 = lin ? shifts[canBase + rr * bw + cc] : 0;
-            minPred = (((cv - s0) * (gb - sh)) / 255 | 0) + s0 + sh;
-            // composite pixels may read 1 lighter than the law: the producer's
-            // junction arithmetic is 1-ambiguous there (3/925 fitted pairs,
-            // always this sign) — single-glyph pixels stay byte-strict
-            hit = Math.abs(q(minPred) - pv) <= t || (cv !== 255 && q(minPred) - pv === 1);
-          } else {
-            for (const e of INV[gb]) {
-              const pred = (cv * (256 - e)) >> 8;
-              if (pred < minPred) minPred = pred;
-              if (Math.abs(q(pred) - pv) <= t) { hit = true; break; }
-            }
-          }
-          if (DBG_PIX && +process.env.BR_PIX === col && !hit)
-            console.log(`      pix '${g.ch}' pen ${pi + g.phx} @(${gx + cc},${gy + rr}) gb=${gb} cv=${cv} pv=${pv} minPred=${minPred}`);
-          if (hit) exact++;
-          else if (pv < q(minPred) - t) pending++;     // darker: future glyph may composite
-          else { ok = false; break; }
-        }
-        // pending is for kern overlap (a few columns) — a glyph "hiding" inside
-        // solid ink shows up as mostly-pending and must not be accepted; a glyph
-        // mostly inside an object mask has no evidence and is rejected too
-        const considered = nInk - skipped;
-        if (!ok || considered < nInk * 0.5 ||
-            exact < considered * 0.5 || pending > considered * 0.35) continue;
-        if (accepted.has(`${g.ch}@${pi + g.phx}`)) continue;  // after the pixel work: rare
-        const score = exact - pending * 0.25;
+        const r = tryCand(g, col - back - g.dx - g.inkLeft, col);  // pen puts first ink col at col-back
+        if (!r) continue;
         // tie-break on original candidate order: acceptance must not depend
         // on the group iteration order (plain loop = first max wins)
-        if (!best || score > best.score || (score === best.score && g._i < best.g._i))
-          best = { g, pi, gx, gy, exact, pending, score };
+        if (!best || r.score > best.score || (r.score === best.score && r.g._i < best.g._i))
+          best = r;
       }
       }
       }
@@ -751,6 +802,7 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
       }
       // give up on this ink cluster: absorb its columns up to the next white
       // gap, emit one □, and bail out entirely once the fail budget is spent
+      chainPenQ = null;                        // unexplained ink breaks the pen chain
       if (process.env.BR_DEBUG && maxGlyphs === Infinity) {
         console.log(`    fail @col ${col} baseline ${baseline}`);
         for (let y = cTop; y < y1; y++)
@@ -813,30 +865,30 @@ function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infini
       const rr = (p / g.w) | 0, cc = p % g.w;
       const x = gx + cc, y = gy + rr;
       if (masked(x, y)) continue;                      // keep page bytes under objects
-      const gb = g.bytes[p], pv = pageAt(x, y), cv = canAt(x, y);
+      const gb = g.bytes[p], ga = g.alpha[p], pv = pageAt(x, y), cv = canAt(x, y);
       if (TOL && cv !== 255 && gb >= 255 - 2 * TOL) continue;  // faint skip (see above)
-      let val = null;
+      let val;
       if (g.lin ?? lin) {
         const sh = gb >= 129 && gb !== 255 ? 1 : 0, s0 = shAt(x, y);
-        const pred = (((cv - s0) * (gb - sh)) / 255 | 0) + s0 + sh;
+        const pred = (((cv - s0) * ga) / 255 | 0) + s0 + sh;   // ga = raw byte (gb − sh)
         const ok = Math.abs(q(pred) - pv) <= (cv !== 255 ? 2 * TOL : TOL) ||
                    (cv !== 255 && q(pred) - pv === 1);   // composite 1-lighter case
         val = ok ? (quant ? pred : pv) : pred;        // quant: canvas stays original-space
         addSh(x, y, sh);
       } else {
-        for (const e of INV[gb]) {
-          const pred = (cv * (256 - e)) >> 8;
-          if (Math.abs(q(pred) - pv) <= (cv !== 255 ? 2 * TOL : TOL)) { val = quant ? pred : pv; break; }  // absorb page value
-          if (val === null) val = pred;
-        }
+        const e = ga + (ga >> 7);                     // single prediction (see tryCand)
+        const pred = (cv * (256 - e)) >> 8;
+        val = Math.abs(q(pred) - pv) <= (cv !== 255 ? 2 * TOL : TOL)
+          ? (quant ? pred : pv) : pred;               // absorb page value on a hit
       }
       setCan(x, y, val);
     }
-    if (process.env.BR_LINE && +process.env.BR_LINE === baseline && maxGlyphs === Infinity)
+    if (DBG_LINE !== null && DBG_LINE === baseline && maxGlyphs === Infinity)
       console.log(`    accept '${g.ch}' pen ${pi + g.phx} exact ${best.exact} pend ${best.pending} (anchor ${col})`);
     glyphs.push({ ch: g.ch, pen: pi + g.phx, adv: g.adv, exact: best.exact, pending: best.pending,
       ...(g.src ? { src: g.src } : {}) });
     accepted.add(`${g.ch}@${pi + g.phx}`);
+    chainPenQ = Math.round((pi + g.phx + g.adv) * 4);  // expected next pen on the ¼-px lattice
     cursor = col + 1;   // pending overlap columns right of col are revisited; the
   }                     // accepted-set guard prevents re-accepting the same glyph
   // Deferred fail/frag classification (final scans only — probes never pass

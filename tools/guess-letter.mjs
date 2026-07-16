@@ -23,7 +23,7 @@
 //   (--pdf ../corpus/v3.pdf default; --pdf ../corpus/big.pdf for volume)
 //
 // Page rasters come exclusively from tools/raster-cache/ (never re-rasterized);
-// glyph rasters from glyphs_times16.json (tools/export-glyphs.mjs).
+// glyph rasters: times16 from assets/glyphs/glyphs.bin (export-glyphs.mjs).
 
 import { createHash } from 'node:crypto';
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
@@ -32,10 +32,10 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve, join, basename } from 'node:path';
 import puppeteer from 'puppeteer-core';
 import { findChrome } from './paths.mjs';
+import { materializeSet } from './glyph-bundle.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(__dirname, '..');
-const GLYPH_DIR = resolve(REPO, 'assets', 'glyphs');   // shared glyph sets (fontgen exports)
 
 // ---------------- proven layout constants ----------------
 const ROW_COUNT = 54, ROW_BASE = 40, ROW_PITCH = 18, BASE_OFF = 11;
@@ -141,30 +141,25 @@ function loadSourcePages(path) {
 }
 
 // ---------------- glyph set ----------------
+// times16 out of the glyphs.bin bundle (tools/glyph-bundle.mjs), reshaped
+// into this tool's ch -> phx map (phy=0 only: corpus baselines are integer)
 function loadGlyphs() {
-  const path = join(GLYPH_DIR, 'glyphs_times16.json');
-  if (!existsSync(path)) throw new Error(`missing ${path} — run tools/export-glyphs.mjs`);
-  const j = JSON.parse(readFileSync(path, 'utf8'));
+  const set = materializeSet('times16');
   const GS = new Map();
-  for (const [ch, rec] of Object.entries(j.chars)) {
-    const ph = new Map();
-    for (const [phx, r] of Object.entries(rec.ph)) {
-      if (phx.includes('_')) continue;   // phy=0.5 rasters (blind-read only): corpus baselines are integer
-      const bytes = r.b64 ? Buffer.from(r.b64, 'base64') : new Uint8Array(0);
-      const coreCols = [], inkCols = [];
-      for (let c = 0; c < r.w; c++) {
-        let mn = 255, ink = false;
-        for (let rr = 0; rr < r.h; rr++) {
-          const v = bytes[rr * r.w + c];
-          if (v < mn) mn = v;
-          if (v < 255) ink = true;
-        }
-        if (mn < 128) coreCols.push(c);
-        if (ink) inkCols.push(c);
+  for (const g of set.byPhy.get(0) ?? []) {
+    const coreCols = [], inkCols = [];
+    for (let c = 0; c < g.w; c++) {
+      let mn = 255, ink = false;
+      for (let rr = 0; rr < g.h; rr++) {
+        const v = g.bytes[rr * g.w + c];
+        if (v < mn) mn = v;
+        if (v < 255) ink = true;
       }
-      ph.set(parseFloat(phx), { w: r.w, h: r.h, dx: r.dx, dy: r.dy, bytes, coreCols, inkCols });
+      if (mn < 128) coreCols.push(c);
+      if (ink) inkCols.push(c);
     }
-    GS.set(ch, { adv: rec.adv, ph });
+    if (!GS.has(g.ch)) GS.set(g.ch, { adv: g.adv, ph: new Map() });
+    GS.get(g.ch).ph.set(g.phx, { w: g.w, h: g.h, dx: g.dx, dy: g.dy, bytes: g.bytes, coreCols, inkCols });
   }
   return GS;
 }

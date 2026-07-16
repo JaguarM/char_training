@@ -65,11 +65,10 @@ cd tools && npm install
 node rasterize.mjs --pdf ../corpus/v3.pdf
 ```
 
-Glyph rasters are committed (`assets/glyphs/glyphs_*.json`) and derive from
-the committed `assets/fonts/*.npz` fontgen rasters — regenerate any set with
-`node tools/export-glyphs.mjs <in.npz> <out.json>`; `npm run glyphs-check`
-proves every committed set reproducible from its .npz (see
-`tools/README.md`).
+Glyph rasters are committed as ONE bundle (`assets/glyphs/glyphs.bin`, every
+set) derived from the committed `assets/fonts/*.npz` fontgen rasters —
+rebuild with `node tools/export-glyphs.mjs`; `npm run glyphs-check` proves
+the bundle reproducible from the .npz (see `tools/README.md`).
 
 > Glyph-crop saving (double-click a box) uses the File System Access API —
 > Chrome/Edge.
