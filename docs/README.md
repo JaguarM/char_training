@@ -39,6 +39,9 @@ rasterizer = **check for a palette before hunting renderers**.
 ## The regression gate (run after any reader change)
 
 ```bash
+npm test                       # FIRST: fast unit suite (~30 ms) — engine primitives
+                               # (scanLine, detectObjects, readPage, quant/TOL/composite
+                               # physics) on synthetic pages; test/engine.test.js
 npm run gate                   # 6 reader docs, byte-compared vs tools/gate-ref/
 cd tools
 node test-blind-app.mjs        # the app's Auto OCR path (blindocr.js)

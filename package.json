@@ -6,7 +6,8 @@
   "license": "MIT",
   "scripts": {
     "serve": "node tools/serve.mjs",
-    "test": "node test/test.js",
+    "test": "node test/test.js && node test/engine.test.js",
+    "test:engine": "node test/engine.test.js",
     "bench": "node tools/blind-read.mjs",
     "gate": "node tools/gate.mjs",
     "rasterize": "node tools/rasterize.mjs",
