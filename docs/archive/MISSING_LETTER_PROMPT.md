@@ -2,7 +2,7 @@
 
 > **COMPLETED 2026-07-09** — results, calibration numbers (δ = [0, 1/32 px],
 > x0 = 45.0000 exactly), and the honest write-up live in
-> [MISSING_LETTER.md](MISSING_LETTER.md). Kept as the record of the task
+> [MISSING_LETTER.md](../MISSING_LETTER.md). Kept as the record of the task
 > definition; numbers below (e.g. "δ ≈ 0.025") were superseded by measurement.
 
 Read `docs/RENDERER_IDENTIFIED.md` and `docs/SYNTHETIC_DICT.md` first; the
@@ -65,7 +65,7 @@ Harness notes: page rasters come from `tools/raster-cache/` (v3 =
 never re-rasterize the PDFs. Pick erased letters uniformly over mid-line
 positions (not first/last), include kern-heavy neighbours (AV, Ye, T?) and
 narrow glyphs on purpose. Skip the known narrow-space styled rows
-(`docs/SPACE_REVIEW.md` list) in the main run; report them as a separate
+(`docs/archive/SPACE_REVIEW.md` list) in the main run; report them as a separate
 hard bucket if attempted. dump-ocr comparisons need `KEEP_SPACES=1`.
 
 ## Deliverables

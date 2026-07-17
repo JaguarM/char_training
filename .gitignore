@@ -4,5 +4,6 @@ NEW
 # profiling artifacts + scratch gate runs (tools/gate-ref/ = the COMMITTED
 # reference transcripts the gate compares against — tracked, not ignored)
 .profiles
+*.cpuprofile
 tools/gate-*
 !tools/gate-ref

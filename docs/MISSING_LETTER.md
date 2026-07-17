@@ -1,6 +1,6 @@
 # Missing-letter recovery — what a ¼-px bucket stream actually knows (2026-07-09)
 
-Stress-test from `MISSING_LETTER_PROMPT.md`: erase ONE letter from a real
+Stress-test from `archive/MISSING_LETTER_PROMPT.md`: erase ONE letter from a real
 corpus line and try to recover it from the surviving pixels. Tool:
 `tools/guess-letter.mjs` (single trial `--page/--row/--col`, batch
 `--sample N [--targeted]`, physics `--calibrate`; the Python halves it used —

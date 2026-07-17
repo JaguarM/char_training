@@ -10,7 +10,7 @@ from any corpus document** — every byte is a MuPDF render of Times New Roman
   all 1745 rows** (space-stripped comparison of the two dumps: zero differing rows);
 - vs `corpus/v3.txt`: 1708/1745 rows byte-exact (97.9%), 99.70% chars, 0 truncations.
   ALL residuals are space-count-only rows (narrow styled spaces / redaction gaps —
-  the rows `docs/SPACE_REVIEW.md` already holds for manual review) **except P5 L13,
+  the rows `docs/archive/SPACE_REVIEW.md` already holds for manual review) **except P5 L13,
   where v3.txt itself is truncated**: the page really draws
   "First time user? &nbsp;&nbsp;Refer to instructions =" and both dicts read it;
   v3.txt stops at "user" (it inherited an old reader stop at a then-missing '?').

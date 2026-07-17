@@ -5,7 +5,7 @@
 > and byte-clean in the app. En route the app gained the full bench feature set
 > (color pages, palette, union, strike suppression). Results + the two extra
 > root causes found (palette-quantized P1, detached-ink bands):
-> [BLIND_READER.md](BLIND_READER.md), bottom section. Kept for provenance.
+> [BLIND_READER.md](../BLIND_READER.md), bottom section. Kept for provenance.
 
 Read `docs/README.md` first (physics + regression gate), then the
 `detectObjects` sections of `tools/blind-read.mjs` and `blindocr.js` (kept in

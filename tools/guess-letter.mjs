@@ -5,7 +5,7 @@
 // to ¼ px with boundaries at .125, layout = Chrome measureText from startX 45,
 // drawn pens sit δ ∈ [0, ~0.03] px BELOW the ideal measureText positions).
 //
-// Three evidence levels, reported separately (docs/MISSING_LETTER_PROMPT.md):
+// Three evidence levels, reported separately (docs/archive/MISSING_LETTER_PROMPT.md):
 //   1 geometry-only : erase the glyph's full advance window ∪ its ink columns;
 //                     infer from the surviving glyphs' located ¼-px buckets via
 //                     interval intersection.
@@ -48,7 +48,7 @@ const SNAP = x => Math.round(x * 4) / 4;   // ¼-px pen snap (boundaries at .125
 const DELTA_MAX_DEFAULT = 0.032;
 
 // Rows excluded from sampling (narrow-space styled rows under manual review —
-// docs/SPACE_REVIEW.md — plus P4 L36 redaction-box row and P5 L13 where
+// docs/archive/SPACE_REVIEW.md — plus P4 L36 redaction-box row and P5 L13 where
 // v3.txt itself is truncated). Keyed by raster-cache key so a different PDF
 // never inherits the list. 'page-row', page 1-based, row 0-based.
 const SKIP_ROWS = {

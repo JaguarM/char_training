@@ -194,7 +194,7 @@ from the corpus renderer, and the blind reader now reads it:
   renderer hunt itself is documented in
   [REPORT_RENDERER_HUNT.md](REPORT_RENDERER_HUNT.md) (the ocr workspace it
   ran from is retired — history in
-  [RENDERER_HUNT_NOTES.md](RENDERER_HUNT_NOTES.md)).
+  [archive/RENDERER_HUNT_NOTES.md](archive/RENDERER_HUNT_NOTES.md)).
 - **`--tol N` mode** (bench + app): glyph-ink pixels match within ±N (double
   on composite pixels — two curves' deviations compound at junctions like
   f-hook ∩ i-dot), the anchor scan and canvas bookkeeping stay exact, and
@@ -414,7 +414,7 @@ Reproduce:
 
 ## 2026-07-12 (late) — email.pdf reads 0 □; Auto OCR reaches bench parity
 
-Session prompt: [EMAIL_VRULE_PROMPT.md](EMAIL_VRULE_PROMPT.md). The confirmed
+Session prompt: [archive/EMAIL_VRULE_PROMPT.md](archive/EMAIL_VRULE_PROMPT.md). The confirmed
 quote-bar root cause was real but email.pdf hid three more; all four fixes
 landed in BOTH `tools/blind-read.mjs` and `blindocr.js` (kept in sync), and
 the app port closed the whole feature gap (color pages, `--quant`, `--union`,

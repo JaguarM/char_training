@@ -105,18 +105,18 @@ the --json label-drift note).
   path; the fontgen glyph sets the blind reader uses come from the same
   identification.
 
-**Historical / superseded (kept for provenance)**
-- [RENDERER_HUNT_NOTES.md](RENDERER_HUNT_NOTES.md) — the living notes of the
+**Historical / superseded — in [archive/](archive/) (kept for provenance)**
+- [archive/RENDERER_HUNT_NOTES.md](archive/RENDERER_HUNT_NOTES.md) — the living notes of the
   Desktop/ocr forensics workspace (2026-07-07 → 07-12): one-letter/one-template
   proofs, renderer identification, fontgen pipeline history. The workspace's
   live core now lives in `tools/fontgen/` + `assets/fonts/`; the template-era
   remainder is archived as a zip.
-- [MISSING_LETTER_PROMPT.md](MISSING_LETTER_PROMPT.md) — the session prompt
+- [archive/MISSING_LETTER_PROMPT.md](archive/MISSING_LETTER_PROMPT.md) — the session prompt
   that produced MISSING_LETTER.md (completed 2026-07-09).
-- [EMAIL_VRULE_PROMPT.md](EMAIL_VRULE_PROMPT.md) — the session prompt for
+- [archive/EMAIL_VRULE_PROMPT.md](archive/EMAIL_VRULE_PROMPT.md) — the session prompt for
   email.pdf (completed 2026-07-12: 0 □ in bench AND app; light rules, palette
   P1, detached-ink and baseline-below-band fixes — BLIND_READER.md bottom).
-- [SPACE_REVIEW.md](SPACE_REVIEW.md) — 28 disputed space-placement rows from
+- [archive/SPACE_REVIEW.md](archive/SPACE_REVIEW.md) — 28 disputed space-placement rows from
   the grid-path era; the blind reader's measured spaces settled these in the
   pixels' favor (BLIND_READER.md 07-10). Reference only.
 
@@ -135,7 +135,7 @@ the --json label-drift note).
   retired 2026-07-15, tag `python-era`.)
 - `assets/fonts/*.npz` — the committed glyph rasters every set derives from
   (renderer-hunt provenance in
-  [RENDERER_HUNT_NOTES.md](RENDERER_HUNT_NOTES.md)). The rest of the old
+  [archive/RENDERER_HUNT_NOTES.md](archive/RENDERER_HUNT_NOTES.md)). The rest of the old
   Desktop/ocr workspace is archived as a zip (deleted 2026-07-13).
 - `../char_training-main/` — the ORIGINAL grid-NCC project this repo grew out
   of (courier base64 docs, 7×11 px templates, hardcoded grid: xStart 60,
