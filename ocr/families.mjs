@@ -63,6 +63,29 @@ export const FAMILIES = [
   { name: 'georgia16', renderable: true, font: `${WIN}/georgia.ttf`, em64: 1024, fy: [0, 32], gid: 'cmap', post: null,
     engineSet: 'georgia16', record: 'exported 07-13' },
 
+  // ---- Word→JPEG letterheads on Calibri VERSION 1.02 (Office-2007 era) ----
+  // Proven: FINDINGS-calibri.md (NEW/calibri EFTA00038617 + EFTA01649149 read
+  // 0 □). Face is calibri 1.02 — the installed 6.2x has DIFFERENT w/x
+  // drawings — through the "mid" law: byte = t + (t>>7) − ((255−t)>>7),
+  // t = 255−cov (every AA byte pushed 1 away from the 127/128 midpoint;
+  // spectral hole at 127/128 is the family fingerprint). ¼-px x pens, integer
+  // baselines, per-(doc,page) ±1-2 curve wobble → engine sets are page-byte
+  // HARVESTS (harvest-prop.mjs) at --tol 2, synthetic mid-law fallback.
+  // Colored runs use the srcover analog: byte = 255 − round(cov·(255−C)/255)
+  // (C = ink gray; C 23 body-gray runs, 127 letterhead, 162/166 markings).
+  { name: 'calibri102-16', renderable: true, font: 'fonts/cand/calibri-jondot.ttf', em64: 1024, fy: [0], gid: 'cmap', post: null,
+    engineSet: 'calibri102mid_1024', record: 'FINDINGS-calibri.md (mid law lives in harvest-prop.mjs covLaw)' },
+  { name: 'calibri102-11pt', renderable: true, font: 'fonts/cand/calibri-jondot.ttf', em64: 938, fy: [0], gid: 'cmap', post: null,
+    engineSet: 'calibri102mid_938', record: 'FINDINGS-calibri.md ("Approved by" letterhead line)' },
+  { name: 'calibrib102-16', renderable: true, font: 'fonts/cand/calibrib-jondot.ttf', em64: 1024, fy: [0], gid: 'cmap', post: null,
+    engineSet: 'calibrib102mid_1024', record: 'FINDINGS-calibri.md (bold headings)' },
+  { name: 'calibrib102-14pt', renderable: true, font: 'fonts/cand/calibrib-jondot.ttf', em64: 1194, fy: [0], gid: 'cmap', post: null,
+    engineSet: 'calibrib102mid_1194', record: 'FINDINGS-calibri.md (14pt bold title)' },
+  // Letterhead furniture the model can't render byte-exactly (Segoe UI
+  // strings at 2/px model floor, Word list bullets): partition-cut page-byte
+  // sets from harvest-band.mjs — fedline_page, hdrles_page, ftrfouo_page,
+  // bullet16/bullet16b/bulleto16. Layout-constant across the family.
+
   // ---- Outside In "PDF Image Export" with mupdf builtin base-14 faces ----
   // Proven: FINDINGS.md 2026-07-19 — the 7516xx/7543xx/7569xx courier block.
   // em64 791 = 12.359375 px isotropic, ¼-px-x / INTEGER-y pens, single draw.

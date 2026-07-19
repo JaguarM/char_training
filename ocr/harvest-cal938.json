@@ -1,0 +1,576 @@
+{
+ "meta": {
+  "docs": [
+   "EFTA00038617",
+   "EFTA01649149"
+  ],
+  "font": "C:/Users/yanni/Desktop/char_training/ocr//fonts/cand/calibri-jondot.ttf",
+  "em64": 938
+ },
+ "slots": [
+  {
+   "ch": "0",
+   "cp": 48,
+   "fx": 0,
+   "n": 6,
+   "pages": [
+    {
+     "pk": "8617/01",
+     "n": 1,
+     "distinct": 1,
+     "sad": 23
+    },
+    {
+     "pk": "8617/02",
+     "n": 1,
+     "distinct": 1,
+     "sad": 24
+    },
+    {
+     "pk": "8617/03",
+     "n": 1,
+     "distinct": 1,
+     "sad": 25
+    },
+    {
+     "pk": "9149/01",
+     "n": 1,
+     "distinct": 1,
+     "sad": 24
+    },
+    {
+     "pk": "9149/02",
+     "n": 1,
+     "distinct": 1,
+     "sad": 20
+    },
+    {
+     "pk": "9149/03",
+     "n": 1,
+     "distinct": 1,
+     "sad": 25
+    }
+   ],
+   "droppedPages": 0,
+   "maxSpread": 3,
+   "take": "harvest"
+  },
+  {
+   "ch": "1",
+   "cp": 49,
+   "fx": 0,
+   "n": 6,
+   "pages": [
+    {
+     "pk": "8617/01",
+     "n": 1,
+     "distinct": 1,
+     "sad": 5
+    },
+    {
+     "pk": "8617/02",
+     "n": 1,
+     "distinct": 1,
+     "sad": 4
+    },
+    {
+     "pk": "8617/03",
+     "n": 1,
+     "distinct": 1,
+     "sad": 5
+    },
+    {
+     "pk": "9149/01",
+     "n": 1,
+     "distinct": 1,
+     "sad": 3
+    },
+    {
+     "pk": "9149/02",
+     "n": 1,
+     "distinct": 1,
+     "sad": 4
+    },
+    {
+     "pk": "9149/03",
+     "n": 1,
+     "distinct": 1,
+     "sad": 14
+    }
+   ],
+   "droppedPages": 0,
+   "maxSpread": 2,
+   "take": "harvest"
+  },
+  {
+   "ch": "4",
+   "cp": 52,
+   "fx": 48,
+   "n": 6,
+   "pages": [
+    {
+     "pk": "8617/01",
+     "n": 1,
+     "distinct": 1,
+     "sad": 12
+    },
+    {
+     "pk": "8617/02",
+     "n": 1,
+     "distinct": 1,
+     "sad": 14
+    },
+    {
+     "pk": "8617/03",
+     "n": 1,
+     "distinct": 1,
+     "sad": 13
+    },
+    {
+     "pk": "9149/01",
+     "n": 1,
+     "distinct": 1,
+     "sad": 11
+    },
+    {
+     "pk": "9149/02",
+     "n": 1,
+     "distinct": 1,
+     "sad": 13
+    },
+    {
+     "pk": "9149/03",
+     "n": 1,
+     "distinct": 1,
+     "sad": 20
+    }
+   ],
+   "droppedPages": 0,
+   "maxSpread": 2,
+   "take": "harvest"
+  },
+  {
+   "ch": "C",
+   "cp": 67,
+   "fx": 16,
+   "n": 6,
+   "pages": [
+    {
+     "pk": "8617/01",
+     "n": 1,
+     "distinct": 1,
+     "sad": 10
+    },
+    {
+     "pk": "8617/02",
+     "n": 1,
+     "distinct": 1,
+     "sad": 13
+    },
+    {
+     "pk": "8617/03",
+     "n": 1,
+     "distinct": 1,
+     "sad": 7
+    },
+    {
+     "pk": "9149/01",
+     "n": 1,
+     "distinct": 1,
+     "sad": 5
+    },
+    {
+     "pk": "9149/02",
+     "n": 1,
+     "distinct": 1,
+     "sad": 14
+    },
+    {
+     "pk": "9149/03",
+     "n": 1,
+     "distinct": 1,
+     "sad": 14
+    }
+   ],
+   "droppedPages": 0,
+   "maxSpread": 2,
+   "take": "harvest"
+  },
+  {
+   "ch": "D",
+   "cp": 68,
+   "fx": 48,
+   "n": 6,
+   "pages": [
+    {
+     "pk": "8617/01",
+     "n": 1,
+     "distinct": 1,
+     "sad": 14
+    },
+    {
+     "pk": "8617/02",
+     "n": 1,
+     "distinct": 1,
+     "sad": 24
+    },
+    {
+     "pk": "8617/03",
+     "n": 1,
+     "distinct": 1,
+     "sad": 16
+    },
+    {
+     "pk": "9149/01",
+     "n": 1,
+     "distinct": 1,
+     "sad": 23
+    },
+    {
+     "pk": "9149/02",
+     "n": 1,
+     "distinct": 1,
+     "sad": 20
+    },
+    {
+     "pk": "9149/03",
+     "n": 1,
+     "distinct": 1,
+     "sad": 31
+    }
+   ],
+   "droppedPages": 0,
+   "maxSpread": 2,
+   "take": "harvest"
+  },
+  {
+   "ch": "I",
+   "cp": 73,
+   "fx": 16,
+   "n": 6,
+   "pages": [
+    {
+     "pk": "8617/01",
+     "n": 1,
+     "distinct": 1,
+     "sad": 1
+    },
+    {
+     "pk": "8617/02",
+     "n": 1,
+     "distinct": 1,
+     "sad": 2
+    },
+    {
+     "pk": "8617/03",
+     "n": 1,
+     "distinct": 1,
+     "sad": 2
+    },
+    {
+     "pk": "9149/01",
+     "n": 1,
+     "distinct": 1,
+     "sad": 9
+    },
+    {
+     "pk": "9149/02",
+     "n": 1,
+     "distinct": 1,
+     "sad": 11
+    },
+    {
+     "pk": "9149/03",
+     "n": 1,
+     "distinct": 1,
+     "sad": 9
+    }
+   ],
+   "droppedPages": 0,
+   "maxSpread": 2,
+   "take": "harvest"
+  },
+  {
+   "ch": "b",
+   "cp": 98,
+   "fx": 48,
+   "n": 6,
+   "pages": [
+    {
+     "pk": "8617/01",
+     "n": 1,
+     "distinct": 1,
+     "sad": 13
+    },
+    {
+     "pk": "8617/02",
+     "n": 1,
+     "distinct": 1,
+     "sad": 13
+    },
+    {
+     "pk": "8617/03",
+     "n": 1,
+     "distinct": 1,
+     "sad": 13
+    },
+    {
+     "pk": "9149/01",
+     "n": 1,
+     "distinct": 1,
+     "sad": 17
+    },
+    {
+     "pk": "9149/02",
+     "n": 1,
+     "distinct": 1,
+     "sad": 14
+    },
+    {
+     "pk": "9149/03",
+     "n": 1,
+     "distinct": 1,
+     "sad": 13
+    }
+   ],
+   "droppedPages": 0,
+   "maxSpread": 3,
+   "take": "harvest"
+  },
+  {
+   "ch": "d",
+   "cp": 100,
+   "fx": 48,
+   "n": 6,
+   "pages": [
+    {
+     "pk": "8617/01",
+     "n": 1,
+     "distinct": 1,
+     "sad": 14
+    },
+    {
+     "pk": "8617/02",
+     "n": 1,
+     "distinct": 1,
+     "sad": 22
+    },
+    {
+     "pk": "8617/03",
+     "n": 1,
+     "distinct": 1,
+     "sad": 16
+    },
+    {
+     "pk": "9149/01",
+     "n": 1,
+     "distinct": 1,
+     "sad": 23
+    },
+    {
+     "pk": "9149/02",
+     "n": 1,
+     "distinct": 1,
+     "sad": 23
+    },
+    {
+     "pk": "9149/03",
+     "n": 1,
+     "distinct": 1,
+     "sad": 19
+    }
+   ],
+   "droppedPages": 0,
+   "maxSpread": 3,
+   "take": "harvest"
+  },
+  {
+   "ch": "n",
+   "cp": 110,
+   "fx": 0,
+   "n": 6,
+   "pages": [
+    {
+     "pk": "8617/01",
+     "n": 1,
+     "distinct": 1,
+     "sad": 10
+    },
+    {
+     "pk": "8617/02",
+     "n": 1,
+     "distinct": 1,
+     "sad": 16
+    },
+    {
+     "pk": "8617/03",
+     "n": 1,
+     "distinct": 1,
+     "sad": 11
+    },
+    {
+     "pk": "9149/01",
+     "n": 1,
+     "distinct": 1,
+     "sad": 8
+    },
+    {
+     "pk": "9149/02",
+     "n": 1,
+     "distinct": 1,
+     "sad": 12
+    },
+    {
+     "pk": "9149/03",
+     "n": 1,
+     "distinct": 1,
+     "sad": 7
+    }
+   ],
+   "droppedPages": 0,
+   "maxSpread": 2,
+   "take": "harvest"
+  },
+  {
+   "ch": "o",
+   "cp": 111,
+   "fx": 16,
+   "n": 6,
+   "pages": [
+    {
+     "pk": "8617/01",
+     "n": 1,
+     "distinct": 1,
+     "sad": 10
+    },
+    {
+     "pk": "8617/02",
+     "n": 1,
+     "distinct": 1,
+     "sad": 13
+    },
+    {
+     "pk": "8617/03",
+     "n": 1,
+     "distinct": 1,
+     "sad": 18
+    },
+    {
+     "pk": "9149/01",
+     "n": 1,
+     "distinct": 1,
+     "sad": 16
+    },
+    {
+     "pk": "9149/02",
+     "n": 1,
+     "distinct": 1,
+     "sad": 8
+    },
+    {
+     "pk": "9149/03",
+     "n": 1,
+     "distinct": 1,
+     "sad": 15
+    }
+   ],
+   "droppedPages": 0,
+   "maxSpread": 2,
+   "take": "harvest"
+  },
+  {
+   "ch": "p",
+   "cp": 112,
+   "fx": 16,
+   "n": 6,
+   "pages": [
+    {
+     "pk": "8617/01",
+     "n": 1,
+     "distinct": 1,
+     "sad": 7
+    },
+    {
+     "pk": "8617/02",
+     "n": 1,
+     "distinct": 1,
+     "sad": 9
+    },
+    {
+     "pk": "8617/03",
+     "n": 1,
+     "distinct": 1,
+     "sad": 9
+    },
+    {
+     "pk": "9149/01",
+     "n": 1,
+     "distinct": 1,
+     "sad": 17
+    },
+    {
+     "pk": "9149/02",
+     "n": 1,
+     "distinct": 1,
+     "sad": 20
+    },
+    {
+     "pk": "9149/03",
+     "n": 1,
+     "distinct": 1,
+     "sad": 16
+    }
+   ],
+   "droppedPages": 0,
+   "maxSpread": 3,
+   "take": "harvest"
+  },
+  {
+   "ch": "p",
+   "cp": 112,
+   "fx": 32,
+   "n": 6,
+   "pages": [
+    {
+     "pk": "8617/01",
+     "n": 1,
+     "distinct": 1,
+     "sad": 10
+    },
+    {
+     "pk": "8617/02",
+     "n": 1,
+     "distinct": 1,
+     "sad": 13
+    },
+    {
+     "pk": "8617/03",
+     "n": 1,
+     "distinct": 1,
+     "sad": 10
+    },
+    {
+     "pk": "9149/01",
+     "n": 1,
+     "distinct": 1,
+     "sad": 11
+    },
+    {
+     "pk": "9149/02",
+     "n": 1,
+     "distinct": 1,
+     "sad": 13
+    },
+    {
+     "pk": "9149/03",
+     "n": 1,
+     "distinct": 1,
+     "sad": 12
+    }
+   ],
+   "droppedPages": 0,
+   "maxSpread": 2,
+   "take": "harvest"
+  }
+ ]
+}

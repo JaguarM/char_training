@@ -216,7 +216,14 @@
       }
       for (let m = 1; m < segs.length - 1; ) {           // absorb bridge bursts
         const [a, b, c] = [segs[m - 1], segs[m], segs[m + 1]];
-        if (b.y1 - b.y0 < 5 &&
+        // a text line kerned tight against a box bridges EVERY x-height row
+        // (8+, over the short-burst cap) — but a bridge burst is always a
+        // strict SUPERSET of its neighbours' extent (the box plus the glyph
+        // spans), while genuinely wider stacked boxes protrude on their own
+        // rows only. A one-sided overhang burst absorbs at any height.
+        const overhang = b.y1 - b.y0 < 5 ||
+          (mode(b, 0) === mode(a, 0) && mode(b, 1) > mode(a, 1) + 4);
+        if (overhang &&
             Math.abs(mode(a, 0) - mode(c, 0)) <= 2 && Math.abs(mode(a, 1) - mode(c, 1)) <= 2) {
           a.y1 = c.y1; a.exts.push(...c.exts); a.last = c.last;
           segs.splice(m, 2);
@@ -241,6 +248,22 @@
           cov += Math.max(0, Math.min(o.y1, b.y1) - Math.max(o.y0, b.y0));
       if (cov > 0.6 * (o.y1 - o.y0)) objects.splice(i, 1);
     }
+    // Graphic residue (whitened-color pages): a colored emblem or rule whose
+    // neutral-gray pixels survive whitening leaves (a) DUST — scattered ≤4×4
+    // speck components far from any real glyph — and (b) GHOSTS — components
+    // whose every byte is ≥244, too faint to be any glyph's core (a glyph
+    // component always carries dark core pixels; its faint AA is connected to
+    // that core). Both are masked below, after the object mask is built, so
+    // they neither form ink bands nor extend a band's bottom past the true
+    // baseline (seal dust under a letterhead line pushed the baseline sweep
+    // out of range — the whole line went unread). Real punctuation is small
+    // too, but never isolated: a '.', ':' or i-dot sits within a few px of a
+    // big component, so dust requires no big (>12px, dark-core) component
+    // AND no detected object within 8px — a sentence period beside a
+    // redaction box has only masked box pixels for neighbours and would
+    // otherwise read as isolated (the email/courier gate docs read exactly
+    // such periods). Dash/asterisk separator rows stay readable: a '-' is
+    // ≥5px wide, over the ≤4px dust cap.
     // Mask = object extent, padded per SIDE only where the object itself put
     // ink there. Dark AA (<160) is already inside the detected extent; what can
     // lie just outside is the light AA line of a fractional edge — and that is
@@ -279,6 +302,69 @@
         for (let x = x0; x < x1; x++)
           mask[y * w + x] = 1;
       }
+    }
+    // ---- dust & ghost masking (see comment above the mask builder) ----
+    {
+      const seen = new Uint8Array(w * h);
+      const stack = [];
+      const bigs = [], smalls = [];
+      for (let i = 0; i < w * h; i++) {
+        if (gray[i] === 255 || mask[i] || seen[i]) continue;
+        seen[i] = 1; stack.push(i);
+        let n = 0, minv = 255, x0 = w, x1 = 0, y0 = h, y1 = 0;
+        const px = [];
+        while (stack.length) {
+          const j = stack.pop(), jx = j % w, jy = (j / w) | 0;
+          n++; px.push(j);
+          if (gray[j] < minv) minv = gray[j];
+          if (jx < x0) x0 = jx; if (jx > x1) x1 = jx;
+          if (jy < y0) y0 = jy; if (jy > y1) y1 = jy;
+          for (let dy = -1; dy <= 1; dy++)
+            for (let dx = -1; dx <= 1; dx++) {
+              const nx = jx + dx, ny = jy + dy;
+              if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+              const k = ny * w + nx;
+              if (!seen[k] && gray[k] < 255 && !mask[k]) { seen[k] = 1; stack.push(k); }
+            }
+        }
+        if (minv >= 244) { for (const j of px) { mask[j] = 1; mRows[(j / w) | 0] = 1; } } // ghost
+        else if (n > 12) bigs.push([x0, x1, y0, y1]);
+        else if (x1 - x0 < 4 && y1 - y0 < 4) smalls.push({ x0, x1, y0, y1, minv, px });
+      }
+      for (const o of objects) bigs.push([o.x0, o.x1, o.y0, o.y1]);
+      // transitive: an ellipsis dot 10px from the word but 4px from its
+      // sibling dot is text — each kept small extends the neighbourhood
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (const s of smalls) {
+          if (s.keep) continue;
+          for (const [bx0, bx1, by0, by1] of bigs)
+            if (s.x0 <= bx1 + 8 && s.x1 >= bx0 - 8 && s.y0 <= by1 + 8 && s.y1 >= by0 - 8) {
+              s.keep = true; bigs.push([s.x0, s.x1, s.y0, s.y1]); changed = true; break;
+            }
+        }
+      }
+      // isolated smalls: faint ones are residue outright; DARK ones are real
+      // punctuation unless they come in a swarm (emblem residue is dozens of
+      // specks chained ≤12px apart — a sentence period stranded after a
+      // whitened hyperlink is alone and stays readable)
+      const iso = smalls.filter(s => !s.keep && s.minv < 160);
+      for (const s of iso) s.grp = null;
+      const groups2 = [];
+      for (const s of iso) {
+        if (s.grp) continue;
+        const g2 = [s]; s.grp = g2;
+        for (let gi = 0; gi < g2.length; gi++)
+          for (const t of iso)
+            if (!t.grp && g2[gi].x0 <= t.x1 + 12 && g2[gi].x1 >= t.x0 - 12 &&
+                g2[gi].y0 <= t.y1 + 12 && g2[gi].y1 >= t.y0 - 12) { t.grp = g2; g2.push(t); }
+        groups2.push(g2);
+      }
+      for (const g2 of groups2)
+        if (g2.length < 4) for (const s of g2) s.keep = true;
+      for (const s of smalls)
+        if (!s.keep) for (const j of s.px) { mask[j] = 1; mRows[(j / w) | 0] = 1; }
     }
     mask._rows = mRows;
     return { mask, objects };
@@ -1042,6 +1128,19 @@
             const score = probeBaseline(page, mask, set, phy, yb, Math.max(0, xp - 2), Math.min(page.w, x1 + 20), tol, quant, top, explained, clampBot);
             if (score > 0 && (!pick || score > pick.score)) pick = { set, phy, yb, score };
           }
+      // non-glyph ink BELOW the text (an unmasked box-corner fringe, a stray
+      // remnant row) stretches the band bottom past baseline+maxDesc and the
+      // sweep above never reaches the true baseline (P2 y416 "Jean Luc
+      // Brunel" between redactions). Second chance, deeper floor — only
+      // bands the primary sweep failed pay for it, so existing picks are
+      // untouched.
+      if (!pick)
+        for (const set of sets)
+          for (const phy of set.byPhy.keys())
+            for (let yb = bot - set.maxDesc - 1; yb >= bot - set.maxDesc - 3 && yb > top; yb--) {
+              const score = probeBaseline(page, mask, set, phy, yb, Math.max(0, xp - 2), Math.min(page.w, x1 + 20), tol, quant, top, explained, clampBot);
+              if (score > 0 && (!pick || score > pick.score)) pick = { set, phy, yb, score };
+            }
       // glyphs whose ink sits entirely above the baseline (a row of '-' or '*':
       // separators, dividers) put the true baseline BELOW the band bottom —
       // outside the range above. Only failed bands pay for the second sweep.
@@ -1057,12 +1156,28 @@
         // a band whose every ink pixel sits inside box halos is redaction
         // spill (ascender tips above a box top), not an unread text line
         let fragOnly = halos.length > 0 && x1 >= x0;
-        for (let y = top; y < bot && fragOnly; y++) {
+        let inkN = 0, runMax = 0, iy0 = bot, iy1 = top;
+        for (let y = top; y < bot; y++) {
           const off = y * page.w;
-          for (let x = x0; x <= x1 && fragOnly; x++)
-            if (page.gray[off + x] < 255 && !mask[off + x] &&
-                !halos.some(h => x >= h[0] && x < h[1] && y >= h[2] && y < h[3])) fragOnly = false;
+          let run = 0;
+          for (let x = x0; x <= x1; x++) {
+            if (page.gray[off + x] < 255 && !mask[off + x]) {
+              inkN++;
+              if (y < iy0) iy0 = y; if (y > iy1) iy1 = y;
+              if (++run > runMax) runMax = run;
+              if (fragOnly &&
+                  !halos.some(h => x >= h[0] && x < h[1] && y >= h[2] && y < h[3])) fragOnly = false;
+            } else run = 0;
+          }
         }
+        // graphic residue too sparse for the dust mask's swarm rule (a couple
+        // of 1-2px specks stranded in an otherwise empty band — whitened
+        // emblem leftovers): a handful of short-run pixels SPARSE over the
+        // band's ink bbox is noise, not a □. Density keeps honest failures
+        // honest — a compact unreadable blob fills its bbox and stays a □.
+        const dustOnly = inkN > 0 && inkN <= 12 && runMax <= 4 &&
+          (inkN <= 2 || (x1 - x0 + 1) * (iy1 - iy0 + 1) >= 20 * inkN);
+        if (dustOnly) return;                    // not content: emit nothing
         lines.push({ top, bot, baseline: null, glyphs: [],
           fails: fragOnly || x1 < x0 ? [] : [x0], fragOnly,
           residual: 0, boxes: lineObjects.map(ob => [ob.x0 - 2, ob.x1 + 2]), objects: lineObjects, set: null });

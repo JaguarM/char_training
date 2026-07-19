@@ -1,128 +1,115 @@
-# FINDINGS (open) — NEW/calibri block, started 2026-07-19
+# FINDINGS — NEW/calibri block, started 2026-07-19
 
-Doc under study: `../NEW/calibri/EFTA00038617.pdf` (3 pages, ingested;
-sisters EFTA00039797, EFTA01649149 untouched). Status: **OPEN — face, em,
-phase lattice, and the byte law are PINNED; rasterizer geometry still ±1
-on diagonals/curves.** Everything below is pixel-derived and
-re-verifiable; per the trust rule, re-measure before building on it.
+## STATUS: SOLVED 2026-07-19 (session 4) — BOTH DOCS READ 0 □
 
-## SOLVED 2026-07-19 (session 2)
+`EFTA00038617.pdf` and `EFTA01649149.pdf` (3 pages each) read **100 %:
+0 unreadable clusters, 0 box fragments** at `--tol 2`, gate 6/6
+byte-identical, engine unit tests 22/22. Read command (bench):
 
-- **Face = Calibri VERSION 1.02** (Office-2007/Vista era;
-  `fonts/cand/calibri-jondot.ttf`, from jondot/dotfiles github). User
-  verified 12 pt → em64 1024 (16 px) at this 96 dpi raster; topology and
-  probes agree. Windows 6.2x calibri has DIFFERENT drawings for w
-  (narrower, SAD 2916) and x (wider); l and a carried over — folder-name
-  era probes failed partly because of the WRONG FONT VERSION. Carlito
-  refuted (l SAD 343 vs exact).
-- **Pen lattice**: all probed glyphs sit on ¼-px x phases (fx 0,16,32),
-  fy = 0 (integer baselines) — fillText-class snapping.
-- **Byte law ("mid" law)**: page byte = clamp(t + (t>>7) − ((255−t)>>7)),
-  t = 255 − ftgrays coverage. I.e. AA bytes move 1 AWAY from the 127/128
-  midpoint. Fitted on the l anchors, then verified page-wide by its
-  spectral hole: bytes 127 and 128 occur ZERO times in body text on all 3
-  pages (126/129 occur hundreds of times each). The courier-era "linear
-  +1 for 128..253" law is this law's bright half seen through the mupdf
-  blend; boundary is really 254 (254→255 confirmed on the l).
-- **'l' is byte-EXACT** (full window incl. margins, SAD 0) under
-  calibri-1.02 + em64 1024 + fx0 fy0 + mid-law via ftclone coverage.
-- 21 px pitch = Word 1.08 line-spacing multiple of Calibri's 1.22 em
-  spacing at 12 pt (19.53 × 1.08 = 21.09) — Word-family layout.
+```
+node tools/blind-read.mjs --pdf NEW/calibri/EFTA00038617.pdf --all --tol 2 \
+  --glyphs "assets/fonts/calibri102mid_1024.npz+assets/fonts/calibrib102mid_1024.npz+assets/fonts/calibri102g23_1024.npz+assets/fonts/bullet16.npz+assets/fonts/bullet16b.npz+assets/fonts/bulleto16.npz,assets/fonts/calibri102mid_938.npz,assets/fonts/calibrib102mid_1194.npz,assets/fonts/fedline_page.npz,assets/fonts/hdrles_page.npz,assets/fonts/ftrfouo_page.npz"
+```
 
-## DETERMINISM PROVEN (repeat-check.mjs, P1)
+('+' = one union pool, mirrors the app's same-sizePx auto-union; ',' = per-band
+candidates.) Certified transcripts: `NEW/calibri/<doc>.txt`.
 
-Every (glyph, ¼-phase) occurrence on the page is BYTE-IDENTICAL to every
-other: e|fx16 ×20 → 1 raster, e|fx32 ×23 → 1, o/s/w all phases → 1 each.
-The ftclone+midlaw residual SAD is CONSTANT per (glyph, phase) (e≈13,
-s≈8–15, w≈18–23). Producer = deterministic f(gid, fx∈{0,16,32,48}), fy=0.
+## The full content model (what 100 % required)
 
-⇒ **Harvest path is valid**: locate glyphs with ftclone+midlaw candidates
-(SAD ≤ ~45 + white-margin check — already reliable in repeat-check), then
-record PAGE bytes as the template for (gid, phase); cross-instance
-agreement is the certification. 4 rasters per glyph cover the whole doc;
-unharvested rare (glyph, phase) slots fall back to ftclone+midlaw
-(SAD ≤ ~25) until the ±1 curve law falls. This is the Outside In
-harvester precedent, but proportional and law-anchored.
+Per-band inventory — every item below was measured off the pixels:
 
-## OPEN — the last gap (geometry)
+| run | face / source | em64 | ink | set (assets/fonts/) |
+|---|---|---|---|---|
+| body text | Calibri **1.02** | 1024 | black midlaw | calibri102mid_1024 (harvested) |
+| body gray runs (P2 "Bill Clinton", "On July 29" ¶) | Calibri 1.02 | 1024 | gray ≈23 srcover | calibri102g23_1024 (harvested, `harvest-prop --c 23`) |
+| bold headings, "not public knowledge" | Calibri **Bold** 1.02 | 1024 | black | calibrib102mid_1024 |
+| title "Epstein Investigation Summary…" | Calibri Bold 1.02 | **1194** (14 pt) | black | calibrib102mid_1194 |
+| "Approved by CID A/AD…" | Calibri 1.02 regular | **938** (11 pt, FLOOR of 938.67) | black | calibri102mid_938 |
+| FEDERAL BUREAU OF INVESTIGATION | **Segoe UI** 10 pt (853) | — | gray ≈127 | fedline_page (partition-cut) |
+| UNCLASSIFIED//LES header | Segoe-like ~8.5 pt, model floor 2/px | — | gray ≈162 | hdrles_page (partition-cut) |
+| UNCLASSIFIED//FOUO footer | same | — | gray ≈162 | ftrfouo_page (partition-cut) |
+| '•' list bullets (2 phase states!) | Word bullet | — | black | bullet16 + bullet16b |
+| 'o' level-2 bullet | Courier-style | — | black | bulleto16 |
+| CID caps line + seal + rules | **colored** → whitened away | — | — | (invisible to reader) |
+| seal residue | neutral specks/ghosts | — | — | engine dust/ghost mask |
 
-At best phases, remaining SAD under mid-law: a=11, x=15, w=18 (l=0).
-Residuals are ±1 coverage quanta on DIAGONAL and CURVED edges only
-(verticals exact everywhere); page slightly darker on average; faintest
-AA (cov 1–2) sometimes absent. Eliminated as the source, all at em64
-1024 full 64×64 pen lattice: mupdf/ftclone (certified equal to real
-fillText), FT 2.4.12 walkers (scanline+bisect+neg port: worse), FT
-2.6–2.9 (prod+bisect+~), exact-vs-reciprocal FT_UDIV, fractional em
-(±2 em64 in 1/32 steps, x and y), 26.8-direct outline precision,
-poppler 24.08 splash AND cairo backends (SAD 60 on real renders of a
-sweep PDF), DirectWrite natural modes (alpha textures are 6-level
-quantized — cannot make the page's continuous values), GDI (integer
-pens only), GDI+ AntiAlias (SAD 1116, soft), Java2D JDK-11 (integer
-snapping + hinted), PDFium wasm (SAD 1645).
+Fonts: `fonts/cand/calibri[b|i|z]-jondot.ttf` — all four styles v1.02 fetched
+from jondot/dotfiles, version strings verified. The installed 6.2x Calibri has
+different w/x drawings (session-2 result); Carlito refuted.
 
-## Hunt tools added (attic)
+- 21 px body pitch = Calibri 1.22 spacing × Word 1.08 default. 11 pt em64 is
+  **floor**(938.67) = 938 (pinned by 'd' probe: em938 SAD 14 vs em939 SAD 77).
+  14 pt bold = 1194 (23 harvest slots vs 1 at 1195).
+- Byte law ("mid"): byte = t + (t>>7) − ((255−t)>>7), t = 255−cov. 127/128
+  spectral hole = family fingerprint. Colored runs: srcover analog
+  byte = 255 − round(cov·(255−C)/255), C = ink gray; observed C: 23 (body
+  gray, with a −2 dip near full coverage: page bytes 22/24), ~127 (FEDERAL),
+  ~162 (CRIMINAL, whitened anyway), ~166 (UNCLASS marks). The gray law keeps
+  ±1 quirks — harvested page bytes absorb them, candidates gate at |Δ|≤4.
+- Determinism stays PER (doc,page) (session 3); consensus is **midrange**
+  (not median) so every instance stays within tol 2, and inked pixels never
+  round up to 255 (an all-white template pixel can never explain page ink).
 
-- `lattice-lut-probe.mjs` — full-lattice pen sweep vs page cut, mid-law.
-- `fine-scale-sweep.mjs` — fractional-em64 sweep.
-- `rastold.mjs` — toggleable FT walkers (line old/prod, conic
-  bisect/dda, sign neg/not, div recip/exact, prec 26.6/26.8).
-- `mupdf-direct.mjs` — real fillText vs page cut.
-- `pdf-sweep.mjs` + `sweep-compare.mjs` — synthetic sub-pixel sweep PDF
-  for real external renderers; `png2pgm.mjs`.
-- `render-dwrite.ps1` (COM glyph-run analysis), `render-gdip2.ps1`
-  (private-font grid sweep) + `grid-compare.mjs`, `DrawSweep.java`.
-- `stem-survey.mjs` (fringe statistics), `dump-covmap.mjs` (cov→byte
-  scatter + Δcov grids), `calibri-topo.mjs`, `font-version.mjs`.
-- Anchor cuts on P1: l 513,271,5,16 / a 517,274,8,13 / x 162,296,8,10 /
-  w 524,274,14,13 (cps 108/97/120/119, gids 367/258/454/449).
+## Reader-view lesson (cost half a session)
 
-## Established (pixels)
+**Harvest from what the READER sees.** The pages are color JPEGs; blind-read
+whitens colored + flood-connected ink (mode-3). The letterhead seal, CRIMINAL
+line and rules are colored → GONE in the reader view; FEDERAL/UNCLASS survive
+but with jitter pixels neutralized differently than the id-lab pgm ingest.
+`tools/gen-white.mjs` materializes the reader view as
+`pages/<doc>/white-000N.pgm`; `harvest-band --prefix white` cuts from it.
 
-- Pages: 816×1056, embedded 3-component image. Colored ink ONLY in the
-  letterhead band y 60–150 (banner/graphic) — NOT ClearType; body text is
-  neutral (R=G=B), so the gray reduction in ingest is lossless there.
-- Body: full-AA grayscale (161 distinct ink values, 8.6 % zeros — not
-  hinted-black-heavy), line pitch **21 px**, ink span per line ~14 px,
-  x-height ≈ 7 px, digit height ≈ 10 px ⇒ em ≈ 14–16 px. Pitch/em does NOT
-  fit Calibri's default 1.22 line spacing — the layout is not the face
-  default (extra leading, or a different face).
-- "calibri" is a FOLDER-NAME GUESS, never verified from glyph shapes.
+## New tools
 
-## Eliminated (byte evidence, engine-probe sweeps 2026-07-19)
+- `tools/harvest-band.mjs` — transcription-anchored PARTITION-CUT harvester
+  for layout-constant bands (letterhead strings whose glyphs touch, bullets):
+  any consistent column partition of a recurring band reproduces byte-exactly
+  at read time. Boundaries: white gaps → advance-weighted cuts snapped to ink
+  valleys; faint-only (≥244) lead columns attach to the PREVIOUS glyph (a
+  template anchored on a faint column misaligns when the scan absorbs that
+  column — the ION 'O' lesson). Repeated chars land in ¼-phase slots (≤4).
+- `tools/gen-white.mjs` — reader-view pgm materializer (above).
+- `tools/graylaw.mjs` — cov→byte scatter fitter for colored runs.
+- `tools/attic/fy-probe.mjs` — single-glyph (em64, fx, fy, C) pen-lattice probe
+  with ±3 slide; the workhorse for face/size/color identification.
+- `harvest-prop.mjs` gained `--c <gray>` (srcover candidates, adaptive seed).
 
-- All 14 registered families (identify.mjs) — though note the targets used
-  were proportional FRAGMENTS (see below), so only the engine probes count:
-- **Windows calibri.ttf through the certified unhinted-mupdf pipeline
-  (ftclone ≡ fontgen), em64 832–1120 (13.0–17.5 px), fy {0} and {0, ½},
-  ¼-px x pens: ZERO lines read on P1 at every em.** Method: fontgen
-  `--chars <64 common>` npz per em64 + `blind-read --page 1 --glyphs
-  <npz>` (byte-exact, cannot false-positive).
+## Engine changes (src/ocr-engine.js — gate 6/6 byte-identical, tests 22/22)
 
-## Trap logged
+1. **Dust & ghost mask** (detectObjects): ghost CCs (min ≥ 244, any size) and
+   isolated ≤4×4 speck CCs are masked. Isolation is transitive (ellipsis dots
+   chain to their word) and object-aware (a period beside a redaction box has
+   only masked neighbours — the email/courier gate docs read such periods).
+   Isolated DARK smalls only mask in swarms (≥4 chained ≤12 px) — a lone
+   period after a whitened hyperlink stays readable.
+2. **dustOnly unread bands** (readPage): an unread band whose ink is ≤12 px of
+   ≤4-px runs, sparse over its bbox (or ≤2 px), is graphic residue → emit
+   nothing (the honest-□ unit test's dense blob stays a □).
+3. **Deeper second-chance baseline sweep**: bands whose bottom is stretched by
+   sub-baseline junk (box fringe under "Jean Luc Brunel") get 3 extra rows of
+   baseline probes — only after the primary sweep failed, so existing picks
+   are untouched.
+4. **Box-extent overhang absorb** (segment voter): a text line kerned tight
+   against a box bridges EVERY x-height row (8+, over the short-burst cap);
+   such a burst is a strict right-superset of its neighbours' extent and now
+   absorbs at any height — "[box]Bill Clinton" reads its 'B'.
+5. **tools/glyph-bundle.mjs**: COV[127] filled (the mid-law spectral hole —
+   alpha was 0, blend predicted white, gray-127 stems went eternally
+   unexplained; nearest-coverage predicts 128, inside the tol-2 regime).
 
-`harvest.mjs` is monospace-only: on this doc it emitted 130 byte-identical
-clusters (`targets-calibri/`) that are glyph FRAGMENTS on a bogus 5.64 px
-lattice — do not scan against them. Engine probes are the tester until a
-proportional harvester exists.
+## Open
 
-## Next steps, in order (rewritten 2026-07-19 eve — steps 1–3 of the old
-## list are DONE: face verified = calibri 1.02, pipeline characterized)
-
-1. Build the proportional harvester (new tool, NOT harvest.mjs): scan all
-   3 pages with ftclone(calibri-1.02)+midlaw candidates for the full
-   charset × 4 phases; require white margins + cross-instance byte
-   agreement; emit a (gid, fx) → page-bytes template set (npz, engine
-   format). Include digits/punctuation; log unfilled slots.
-2. Wire into blind-read as the calibri16-mid family: harvested templates
-   first, ftclone+midlaw synthetic (exact for straight-edge glyphs like
-   l/i/I/t) for unfilled slots; certify P1–P3 line counts, then the two
-   sister docs (same producer assumed — verify 127/128 hole first).
-3. families.mjs entry: pageLaw/renderable hybrid — font calibri 1.02
-   (fonts/cand/calibri-jondot.ttf), em64 1024, fx ¼-lattice, fy [0],
-   post 'mid' (cov law, NOT the old byte linA), plus harvested-template
-   pointer. Note the 127/128 spectral-hole fingerprint for identify.mjs.
-4. OPEN RESEARCH (nice-to-have): the ±1 curve/slant law — everything
-   eliminated is in "OPEN — the last gap" below; next untried ideas:
-   fit per-chord Δ against DDA t-grid phase; try FT 2.5/2.6.0 exact
-   sources; check if residuals vanish at em64 2048 (32px — sisters may
-   differ in size and discriminate harder).
+- `EFTA00039797` (was listed under calibri/): its 1-page raster survives in
+  cache 6d285189c0ea55f5 (PDF itself absent from the repo). Shares the FBI
+  letterhead (9 lines read via the page-cut sets) but the body "From:" face
+  matches NEITHER Calibri (any style/em) nor Segoe/Arial/Tahoma/Verdana bolds
+  (best 10.6/px) — different producer, future hunt. pages/EFTA00039797/
+  keeps the materialized pgm.
+- Letterhead word-spacing cosmetics: FEDERAL line reads all glyphs but the
+  measured per-char advances make 1-2 word gaps drift ("FE DERAL"-class
+  spacing in some runs); characters and order are exact.
+- The ±1 conic law (why ftclone's curves differ ±1 quantum from the producer)
+  stays open as pure research — harvesting made it moot for reading.
+- Session-1/2/3 history (probe eliminations, determinism proofs, per-page
+  state analysis) lives in git history of this file; the constants above are
+  the surviving truth.

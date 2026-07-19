@@ -86,6 +86,11 @@ const COV = (() => {
     const e = cov + (cov >> 7);
     t[(255 * (256 - e)) >> 8] = cov;
   }
+  // gb 127 is the law's spectral hole (e skips 128): no black render produces
+  // it, but PAGE-CUT gray templates legitimately carry it (a gray-127 stem).
+  // Alpha 0 predicted white and un-explained the pixel; the neighbour's
+  // coverage predicts 128 — within the tol-2 regime page-cut sets read at.
+  t[127] = t[128];
   return t;                                        // t[255] = 0 (cov 0 → gb 255)
 })();
 const alphaOf = (bytes, linear) => {
