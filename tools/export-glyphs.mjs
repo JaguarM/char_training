@@ -30,9 +30,23 @@ const BUNDLE = join(REPO, 'assets', 'glyphs', 'glyphs.bin');
 const SETS = [
   ['arial16', 'arial_16.npz'],
   ['arialbd16', 'arialbd_16.npz'],
+  // NEW/calibri block (ocr/FINDINGS-calibri.md, 0 □ 2026-07-19): harvested
+  // Calibri 1.02 mid-law sets + gray-23 body runs + partition-cut page-byte
+  // sets for the Segoe letterhead lines and the Word/Courier bullets
+  ['bullet16', 'bullet16.npz'],
+  ['bullet16b', 'bullet16b.npz'],
+  ['bulleto16', 'bulleto16.npz'],
+  ['calibri102g23_1024', 'calibri102g23_1024.npz'],
+  ['calibri102mid_1024', 'calibri102mid_1024.npz'],
+  ['calibri102mid_938', 'calibri102mid_938.npz'],
+  ['calibrib102mid_1024', 'calibrib102mid_1024.npz'],
+  ['calibrib102mid_1194', 'calibrib102mid_1194.npz'],
   ['calibri16', 'calibri_16.npz'],
   ['calibrib16', 'calibrib_16.npz'],
   ['calibrii16', 'calibrii_16.npz'],
+  ['fedline_page', 'fedline_page.npz'],
+  ['ftrfouo_page', 'ftrfouo_page.npz'],
+  ['hdrles_page', 'hdrles_page.npz'],
   ['cour10', 'cour_10.npz'],
   ['cour11', 'cour_11.npz'],
   ['cour12', 'cour_12.npz'],

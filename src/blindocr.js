@@ -265,10 +265,13 @@
   // for near-identical renderers we haven't modelled. Keeps the fewest-
   // failures read at the earliest (weakest-machinery) pass; certificates
   // are labelled accordingly, never silently weakened.
+  // {tol:2, union} is the NEW/calibri family's pass: per-page ±1-quanta
+  // render state needs tol 2 AND the body line mixes sets (calibri +
+  // gray-23 twin + bullets) — same-size pooling mirrors the bench's '+'.
   const blindPasses = [
     { tol: 0 }, { tol: 0, quant: true },
     { tol: 0, union: true }, { tol: 0, quant: true, union: true },
-    { tol: 1 }, { tol: 2 }, { tol: 10 },
+    { tol: 1 }, { tol: 2 }, { tol: 2, union: true }, { tol: 10 },
   ];
 
   function passLabel(pass) {
@@ -304,7 +307,10 @@
         best = { res: r, pass, fails, rank };
       if (best.fails === 0) break;                     // fully read — stop here
       const glyphs = r.lines.reduce((s, L) => s + L.glyphs.length, 0);
-      if (pass.tol >= 2 && glyphs >= fails * 8) break; // good enough — stop escalating
+      // "good enough" gives up only after the strongest tol-2 machinery
+      // (WITH union) ran — stopping at plain {tol:2} starved the calibri
+      // family's union pass of its chance to clear the remaining □s
+      if (pass.tol >= 2 && pass.union && glyphs >= fails * 8) break;
     }
     return { res: best.res, pass: best.pass };
   }

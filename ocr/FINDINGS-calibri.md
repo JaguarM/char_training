@@ -14,6 +14,19 @@ node tools/blind-read.mjs --pdf NEW/calibri/EFTA00038617.pdf --all --tol 2 \
 ('+' = one union pool, mirrors the app's same-sizePx auto-union; ',' = per-band
 candidates.) Certified transcripts: `NEW/calibri/<doc>.txt`.
 
+**Integrated app-side (2026-07-19 night, session 5):** all 11 npz sets are in
+`glyphs.bin` (export-glyphs SETS, names = npz stems; 42 sets total; gate 6/6
+byte-identical, tests green). The app ladder gained `{tol:2, union:true}` and
+the good-enough early-stop now waits for it (`src/blindocr.js`) — without that
+pass the app stopped at plain tol 2 with ~56 □ (bullets + '’' need the union
+pool). Verified: Node sim of Recto's all-sets condition reads BOTH docs 102
+lines / 0 □, all rows space-exact vs the certified transcripts; real-app
+puppeteer run (upload → Read all pages) = 102 lines, 0 unread, clean@±2.
+Synced to Recto (sync-recto: engine + bundle); recto-test PASS. Also fixed
+Recto's webgl_mask overlay rendering pages GRAYSCALE when the mask view is
+active (LUMINANCE page texture → RGBA + per-channel shader, Recto-side file
+`webgl_mask/static/webgl_mask/webgl-mask.js`).
+
 ## The full content model (what 100 % required)
 
 Per-band inventory — every item below was measured off the pixels:
