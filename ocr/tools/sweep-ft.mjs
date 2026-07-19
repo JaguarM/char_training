@@ -16,6 +16,7 @@ const DRAWS = optS('draws', '1,2').split(',').map(Number);
 const REPORT = optS('report', null);
 const SAD = args.includes('--sad');   // also track best bbox-aligned SAD per target
 
+const FONT = optS('font', 'fonts/cour.ttf');
 const root = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
 const { targets } = JSON.parse(readFileSync(`${root}/targets/index.json`, 'utf8'));
 
@@ -42,7 +43,12 @@ for (const t of targets) {
 }
 
 const W = 40, H = 40, PENX = 10, BASEY = 28;
-const clone = new FTClone(`${root}/fonts/cour.ttf`, W, H);
+const clone = new FTClone(`${root}/${FONT}`, W, H);
+if (FONT.endsWith('.cff')) {
+  const mupdf = await import('mupdf');
+  const bfont = new mupdf.Font(optS('builtin', 'Courier'));
+  clone.setGidMap(new Map([...byCp.keys()].map(cp => [cp, bfont.encodeCharacter(cp)])));
+}
 
 // exact test: align candidate ink bbox to target ink bbox, compare the FULL
 // target window byte-for-byte (white margins included), then border stray-ink
@@ -114,6 +120,11 @@ for (const [em64x, em64y] of EMS) {
   if (SAD) {
     const rows = [...best.entries()].map(([id, b]) => ({ id, ...b, t: targets.find(t => t.id === id) }));
     rows.sort((a, b) => a.sad - b.sad);
+    const so = optS('sadout', null);
+    if (so) writeFileSync(`${root}/${so}`, JSON.stringify(rows.map(r => ({
+      id: r.id, ch: r.t.ch, sad: r.sad, avg: +(r.sad / (r.t.pgm.w * r.t.pgm.h)).toFixed(1),
+      draws: r.draws, fx: r.fx, fy: r.fy,
+    })), null, 1));
     let tot = 0;
     for (const r of rows) tot += r.sad;
     console.log(`  mean best sad ${(tot / rows.length).toFixed(0)};  best 12 / worst 6:`);

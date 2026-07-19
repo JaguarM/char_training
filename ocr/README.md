@@ -1,5 +1,12 @@
 # Task: identify the renderer of the NEW/courier block
 
+**SOLVED 2026-07-19 — see `FINDINGS.md`.** MuPDF-lineage renderer, built-in
+base-14 Courier = URW Nimbus Mono CFF, em64 791 (12.359375 px) isotropic,
+single draw, ¼-px-x / integer-y pens; 113/279 targets byte-EXACT with
+`tools/ftclone.mjs` + `tools/sweep-ft.mjs`, remainder pixel-proven to be
+neighbor-bleed / drawn-rule composition under the same law. The sections
+below describe the original hunt setup (historical).
+
 This folder is standalone and self-contained. One question only:
 
 > **Which rasterizer (program + font file + settings + any resample stage)

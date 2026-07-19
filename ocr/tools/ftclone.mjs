@@ -16,6 +16,7 @@
 // Certify (must print 0 diffs before any hunt conclusions):
 //   node tools/ftclone.mjs            # vs fillText at the 8 snap phases
 import { loadFont } from './ttf.mjs';
+import { loadCff } from './cff.mjs';
 
 const ONE_PIXEL = 256;
 const UPSCALE = x => x << 2;          // 26.6 -> 26.8
@@ -116,6 +117,46 @@ class Raster {
     this.integrate(fy2 - fy1, fx1 + fx2);
     this.x = to_x; this.y = to_y;
   }
+  // gray_render_cubic + gray_split_cubic (FT_INT64 build). controls/to in 26.6!
+  cubicTo(c1x6, c1y6, c2x6, c2y6, tx6, ty6) {
+    const stack = [];   // arc frames of 4 points, arc = top index
+    const A = [];       // flat array of points {x,y}; arc window = A[ai..ai+3]
+    for (let k = 0; k < 16 * 3 + 1; k++) A.push({ x: 0, y: 0 });
+    let ai = 0;
+    A[0].x = UPSCALE(tx6); A[0].y = UPSCALE(ty6);
+    A[1].x = UPSCALE(c2x6); A[1].y = UPSCALE(c2y6);
+    A[2].x = UPSCALE(c1x6); A[2].y = UPSCALE(c1y6);
+    A[3].x = this.x; A[3].y = this.y;
+    const H = this.H;
+    const t0 = TRUNC(A[0].y), t1 = TRUNC(A[1].y), t2 = TRUNC(A[2].y), t3 = TRUNC(A[3].y);
+    if ((t0 >= H && t1 >= H && t2 >= H && t3 >= H) || (t0 < 0 && t1 < 0 && t2 < 0 && t3 < 0)) {
+      this.x = A[0].x; this.y = A[0].y; return;
+    }
+    const split = i => {
+      let a, b, c;
+      A[i + 6].x = A[i + 3].x;
+      a = A[i].x + A[i + 1].x; b = A[i + 1].x + A[i + 2].x; c = A[i + 2].x + A[i + 3].x;
+      A[i + 5].x = c >> 1; c += b; A[i + 4].x = c >> 2; A[i + 1].x = a >> 1;
+      a += b; A[i + 2].x = a >> 2; A[i + 3].x = (a + c) >> 3;
+      A[i + 6].y = A[i + 3].y;
+      a = A[i].y + A[i + 1].y; b = A[i + 1].y + A[i + 2].y; c = A[i + 2].y + A[i + 3].y;
+      A[i + 5].y = c >> 1; c += b; A[i + 4].y = c >> 2; A[i + 1].y = a >> 1;
+      a += b; A[i + 2].y = a >> 2; A[i + 3].y = (a + c) >> 3;
+    };
+    for (;;) {
+      if (Math.abs(2 * A[ai].x - 3 * A[ai + 1].x + A[ai + 3].x) > ONE_PIXEL / 2 ||
+          Math.abs(2 * A[ai].y - 3 * A[ai + 1].y + A[ai + 3].y) > ONE_PIXEL / 2 ||
+          Math.abs(A[ai].x - 3 * A[ai + 2].x + 2 * A[ai + 3].x) > ONE_PIXEL / 2 ||
+          Math.abs(A[ai].y - 3 * A[ai + 2].y + 2 * A[ai + 3].y) > ONE_PIXEL / 2) {
+        split(ai); ai += 3;
+        if (ai + 6 >= A.length) for (let k = 0; k < 6; k++) A.push({ x: 0, y: 0 });
+        continue;
+      }
+      this.lineTo(A[ai].x, A[ai].y);
+      if (ai === 0) return;
+      ai -= 3;
+    }
+  }
   // gray_render_conic, DDA (FT_INT64) variant. control/to in 26.6!
   conicTo(cx6, cy6, tx6, ty6) {
     const p0x = this.x, p0y = this.y;
@@ -178,25 +219,59 @@ class Raster {
   }
 }
 
+// FT_DivFix: ((a<<16)/b) with C truncation
+export function divfix(a, b) {
+  return Math.trunc((a * 65536) / b);
+}
+
 export class FTClone {
   constructor(fontPath, W = 40, H = 40) {
     this.W = W; this.H = H;
-    this.ttf = loadFont(fontPath);
-    if (this.ttf.unitsPerEm !== 2048)
-      throw new Error(`upm ${this.ttf.unitsPerEm}: x32 ppem-1024 shortcut assumes 2048`);
+    if (fontPath.endsWith('.cff')) {
+      this.cff = loadCff(fontPath);
+      this.upm = this.cff.unitsPerEm;
+      this.gidMap = null;              // set via setGidMap (cp -> gid)
+    } else {
+      this.ttf = loadFont(fontPath);
+      this.upm = this.ttf.unitsPerEm;
+    }
+    // FT loads at char size 65536/64 = 1024pt @72dpi: scale16.16 = DivFix(65536, upm)
+    this.scale16 = divfix(65536, this.upm);
     this.cache = new Map();
   }
+  setGidMap(map) { this.gidMap = map; }
   // coverage buffer for glyph cp at matrix [em64x,0,0,-em64y]/64 pen (px64,py64)/64
   coverage(cp, em64x, em64y, px64, py64) {
     const key = `${cp}|${em64x}|${em64y}|${px64}|${py64}`;
     let cov = this.cache.get(key);
     if (cov) return cov;
+    const R = new Raster(this.W, this.H);
+    // funits -> 26.6 at ppem 1024 via MulFix(u, scale16) (exact x32 for upm
+    // 2048), then FT_Outline_Transform m=(em64x,-em64y) 16.16, then +v.
+    const pre = u => mulfix(u, this.scale16);
+    const TX = u => mulfix(pre(u), em64x) + px64;
+    const TY = v => mulfix(pre(v), -em64y) + py64;
+    if (this.cff) {
+      const gid = this.gidMap ? this.gidMap.get(cp) : cp;
+      const contours = this.cff.outline(gid);
+      if (!contours) return null;
+      for (const { start, segs } of contours) {
+        const sx = TX(start[0]), sy = TY(start[1]);
+        R.moveTo(UPSCALE(sx), UPSCALE(sy));
+        for (const s of segs) {
+          if (s.c1) R.cubicTo(TX(s.c1[0]), TY(s.c1[1]), TX(s.c2[0]), TY(s.c2[1]), TX(s.to[0]), TY(s.to[1]));
+          else R.lineTo(UPSCALE(TX(s.to[0])), UPSCALE(TY(s.to[1])));
+        }
+        R.lineTo(UPSCALE(sx), UPSCALE(sy));   // decompose closes every contour
+      }
+      cov = new Uint8Array(this.W * this.H);
+      R.sweep(cov);
+      this.cache.set(key, cov);
+      return cov;
+    }
     const o = this.ttf.rawOutline(cp);
     if (!o) return null;
-    const R = new Raster(this.W, this.H);
-    // FT_Outline_Decompose on SCALED 26.6 points: funits -> x32 (ppem 1024,
-    // exact for upm 2048) -> MulFix by m=(em64x, -em64y) -> +v. Implicit
-    // conic midpoints are (a+b)/2 with C truncation, computed in 26.6.
+    // Implicit conic midpoints are (a+b)/2 with C truncation, computed in 26.6.
     const half = (a, b) => Math.trunc((a + b) / 2);
     for (const raw of o.contours) {
       if (raw.length < 2) continue;
@@ -298,6 +373,38 @@ if (isMain) {
     }
   }
   console.log(totalDiff === 0
-    ? `CERTIFIED: 0 byte diffs across ${cps.length} glyphs x 8 phases x 2 em configs`
-    : `NOT certified: ${totalDiff} bytes differ, worst |d|=${worst} at ${worstKey}`);
+    ? `TTF CERTIFIED: 0 byte diffs across ${cps.length} glyphs x 4 phases x 2 em configs`
+    : `TTF NOT certified: ${totalDiff} bytes differ, worst |d|=${worst} at ${worstKey}`);
+
+  // ---- CFF: clone(NimbusMonoPS-Regular.cff) vs fillText(builtin 'Courier')
+  const bfont = new mupdf.Font('Courier');
+  const cloneC = new FTClone(`${root}/fonts/NimbusMonoPS-Regular.cff`, W, H);
+  cloneC.setGidMap(new Map(cps.map(cp => [cp, bfont.encodeCharacter(cp)])));
+  totalDiff = 0; worst = 0; worstKey = '';
+  for (const [emx, emy, em64x, em64y] of [[12.359375, 12.359375, 791, 791], [12.359375, 12, 791, 768]]) {
+    for (const cp of cps) {
+      for (const fx64 of [0, 16, 32, 48]) for (const fy64 of [0]) {
+        const pix = new mupdf.Pixmap(mupdf.ColorSpace.DeviceGray, [0, 0, W, H], false);
+        pix.clear(255);
+        const dev = new mupdf.DrawDevice(mupdf.Matrix.identity, pix);
+        const text = new mupdf.Text();
+        text.showGlyph(bfont, [emx, 0, 0, -emy, PENX + fx64 / 64, BASEY + fy64 / 64], bfont.encodeCharacter(cp), cp, 0);
+        dev.fillText(text, mupdf.Matrix.identity, mupdf.ColorSpace.DeviceGray, [0], 1.0);
+        dev.close();
+        const ref = Buffer.from(pix.getPixels());
+        pix.destroy();
+        const got = cloneC.render(cp, em64x, em64y, PENX * 64 + fx64, BASEY * 64 + fy64, 1);
+        let diffs = 0, w = 0;
+        for (let i = 0; i < ref.length; i++) {
+          const d = Math.abs(ref[i] - got[i]);
+          if (d) { diffs++; if (d > w) w = d; }
+        }
+        totalDiff += diffs;
+        if (w > worst) { worst = w; worstKey = `cp${cp} em64(${em64x},${em64y}) f(${fx64},${fy64})`; }
+      }
+    }
+  }
+  console.log(totalDiff === 0
+    ? `CFF CERTIFIED: 0 byte diffs across ${cps.length} glyphs x 4 phases x 2 em configs`
+    : `CFF NOT certified: ${totalDiff} bytes differ, worst |d|=${worst} at ${worstKey}`);
 }

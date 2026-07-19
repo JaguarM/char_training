@@ -20,7 +20,13 @@ const m = /^P5\s+(\d+)\s+(\d+)\s+255\s/.exec(b.toString('latin1'));
 const tw = +m[1], th = +m[2], tpx = b.subarray(m[0].length);
 
 const W = 40, H = 40, PENX = 10, BASEY = 28;
-const clone = new FTClone(`${root}/fonts/cour.ttf`, W, H);
+const FONT = optS('font', 'fonts/NimbusMonoPS-Regular.cff');
+const clone = new FTClone(`${root}/${FONT}`, W, H);
+if (FONT.endsWith('.cff')) {
+  const mupdf = await import('mupdf');
+  const bfont = new mupdf.Font(optS('builtin', 'Courier'));
+  clone.setGidMap(new Map([[t.cp, bfont.encodeCharacter(t.cp)]]));
+}
 const cand = clone.render(t.cp, EM64X, EM64Y, PENX * 64 + FX, BASEY * 64 + FY, DRAWS);
 
 function bbox(px, w, h, blank = 255) {
