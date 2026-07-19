@@ -275,9 +275,12 @@ export class FTClone {
     const half = (a, b) => Math.trunc((a + b) / 2);
     for (const raw of o.contours) {
       if (raw.length < 2) continue;
+      // em64 may be fractional in 1/32 steps (16.16 scale granularity for
+      // upm 2048): mulfix(p*32, em64) === mulfix(p, em64*32) for integers,
+      // so this is a no-op for every integer em64 (certification holds).
       const pts = raw.map(p => ({
-        x: mulfix(p.x * 32, em64x) + px64,
-        y: mulfix(p.y * 32, -em64y) + py64,
+        x: mulfix(p.x, Math.round(em64x * 32)) + px64,
+        y: mulfix(p.y, -Math.round(em64y * 32)) + py64,
         on: p.on,
       }));
       let limit = pts.length - 1;
