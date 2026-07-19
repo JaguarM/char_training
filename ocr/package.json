@@ -1,0 +1,9 @@
+{
+  "name": "oit-courier-hunt",
+  "private": true,
+  "type": "module",
+  "description": "Standalone workspace: identify the rasterizer of the NEW/courier EFTA0075xxxx block, byte for byte",
+  "dependencies": {
+    "mupdf": "^1.26.4"
+  }
+}

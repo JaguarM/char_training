@@ -7,3 +7,11 @@ NEW
 *.cpuprofile
 tools/gate-*
 !tools/gate-ref
+
+# ocr/ = standalone Outside In / courier renderer-hunt workspace (large,
+# per-document working data — code and small fixtures are tracked)
+ocr/candidates
+ocr/pages
+ocr/srcglyphs
+ocr/targets
+ocr/node_modules
