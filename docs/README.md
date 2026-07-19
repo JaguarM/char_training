@@ -126,6 +126,12 @@ the --json label-drift note).
 
 **Elsewhere**
 - `../README.md` — repo intro + quick start (app is Auto-OCR-first).
+- `../ocr/` — the renderer-identification LAB: for any mystery raster
+  document, `ingest → harvest → identify` fingerprints the pages and tries
+  every proven producer family (`ocr/families.mjs`, the machine-readable
+  registry) automatically; its README is the runbook, incl. the
+  found-config → glyph-set integration recipe. Hunt records: `ocr/FINDINGS.md`
+  (courier/Nimbus), [OUTSIDE_IN_ARIAL.md](OUTSIDE_IN_ARIAL.md).
 - `../Recto` — the Recto PDF editor (Django) embeds the engine as its
   `ocr_tool` plugin: verbatim copies of `src/{core,ocr,blindocr}.js` +
   glyph sets, pushed by `tools/sync-recto.mjs` (`npm run sync:recto`),

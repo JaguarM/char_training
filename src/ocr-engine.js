@@ -24,6 +24,10 @@
 (function (root) {
   'use strict';
 
+  // TEMP instrumentation (assessment only — reverted after measuring)
+  const PROF = { init: 0, next: 0, chain: 0, anchor: 0, blend: 0, fail: 0,
+    calls: 0, probeCalls: 0, chainHit: 0, anchorHit: 0, groupWalk: 0, subWalk: 0, candWalk: 0, tryCalls: 0 };
+
   // --union pool: one merged candidate list over all sets, so a single line
   // may mix fonts (bold "From:" label + regular value). Per-glyph `lin` keeps
   // each candidate on its own compositor law; byte-exact matching keeps
@@ -368,6 +372,8 @@
   function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infinity,
     maxFails = Infinity, TOL = 0, QUANT = null, halos = null, bandTop = null,
     explained = null, bandBot = null) {
+    const _t0 = performance.now();
+    PROF.calls++; if (maxGlyphs !== Infinity) PROF.probeCalls++;
     const inHalo = (x, y) => halos && halos.some(h => x >= h[0] && x < h[1] && y >= h[2] && y < h[3]);
     const q = QUANT ? v => QUANT[v] : v => v;           // palette law (see quantMap)
     const lin = set.linear;
@@ -428,6 +434,7 @@
         if (pageAt(x, y) !== q(canAt(x, y))) n++;
       unexpl[x - xFrom] = n;
     }
+    PROF.init += performance.now() - _t0;
     const setCan = (x, y, v) => {
       const i = (y - y0) * bw + (x - xFrom);
       const pv = page.gray[y * W + x];
@@ -474,6 +481,7 @@
     // ONE implementation shared by the chained-pen probe and the anchor-column
     // scan, so acceptance physics can never diverge between the two paths.
     const tryCand = (g, pi, col) => {
+      PROF.tryCalls++;
       const gx = pi + g.dx, gy = baseline + g.dy;
       if (gx < xFrom || gx + g.w > xTo || gy < y0 || gy + g.h > y1) return null;
       // must explain the anchor column itself (hoisted: cheap reject)
@@ -545,7 +553,9 @@
     let chainPenQ = null;                   // expected next pen (¼-px units) after an accept
     const mk = new Int32Array(8);           // chain-probe column masks, cols col-2..col+1
     while (glyphs.length < maxGlyphs) {
+      const _tn = performance.now();
       const col = nextUnexplained(cursor);
+      PROF.next += performance.now() - _tn;
       if (col < 0) break;
       let best = null;
       // advance chaining: within a word the next pen is the previous pen +
@@ -558,6 +568,7 @@
       // 2.4–2.8 px — the space advance is never trusted). Anchor priority
       // col > col−1 > col−2 replicates the scan's back-loop order.
       if (chainPenQ !== null && chain) {
+        const _tc = performance.now();
         for (let i = 0; i < 4; i++) {                    // page masks, cols col-2..col+1
           const x = col - 2 + i;
           if (x < xFrom || x >= xTo) { mk[2 * i] = -1; mk[2 * i + 1] = -1; }
@@ -594,10 +605,13 @@
           }
         }
         best = slot[0] ?? slot[1] ?? slot[2];
+        PROF.chain += performance.now() - _tc;
+        if (best) PROF.chainHit++;
       }
       // candidates whose first ink column lands on col (or col-1/-2: composite
       // columns can hide the true left edge when bytes saturate)
-      if (!best)
+      if (!best) {
+      const _ta = performance.now();
       for (let back = 0; back <= 2; back++) {
         if (col - back < xFrom) break;                 // every candidate's bbox starts left of the window
         colMask(col - back);                           // page ink+skip rows at the anchor column
@@ -605,10 +619,13 @@
         let b0 = -1, b1 = -1;                          // second column; all-ones when outside the window
         if (col - back + 1 < xTo) { colMask(col - back + 1); b0 = pm0; b1 = pm1; }
         for (const grp of grpList) {
+        PROF.groupWalk++;
         if ((grp.m0 & ~a0) | (grp.m1 & ~a1)) continue;     // group needs ink where the page is white
         for (const sub of grp.subs) {
+        PROF.subWalk++;
         if ((sub.n0 & ~b0) | (sub.n1 & ~b1)) continue;
         for (const g of sub.members) {
+        PROF.candWalk++;
           const r = tryCand(g, col - back - g.dx - g.inkLeft, col);  // pen puts first ink col at col-back
           if (!r) continue;
           // tie-break on original candidate order: acceptance must not depend
@@ -620,7 +637,11 @@
         }
         if (best) break;
       }
+      PROF.anchor += performance.now() - _ta;
+      if (best) PROF.anchorHit++;
+      }
       if (!best) {
+        const _tf = performance.now();
         // rasterizer-variance dust: an older rasterizer may spread a curve a
         // pixel wider than our raster, and at glyph junctions (f-hook ∩ i-dot)
         // the deviations of both curves compound beyond any per-pixel tolerance.
@@ -645,6 +666,7 @@
           if (okDust) {
             for (const [x, y] of px) setCan(x, y, pageAt(x, y));
             cursor = col;
+            PROF.fail += performance.now() - _tf;
             continue;
           }
         }
@@ -701,12 +723,14 @@
         if (col > failGuard) records.push({ col, comp: seen });
         failGuard = Math.max(failGuard, compRight);
         cursor = col;
+        PROF.fail += performance.now() - _tf;
         if (fails.length + records.length >= maxFails) break;
         continue;
       }
       // blend the accepted glyph into the canvas: exact pixels take the page
       // value; pending pixels take the glyph-over-canvas prediction so the next
       // glyph composites against it
+      const _tb = performance.now();
       const { g, pi, gx, gy } = best;
       for (const p of g.ink) {
         const rr = (p / g.w) | 0, cc = p % g.w;
@@ -737,6 +761,7 @@
         ...(g.src ? { src: g.src } : {}) });
       accepted.add(`${g.ch}@${pi + g.phx}`);
       chainPenQ = Math.round((pi + g.phx + g.adv) * 4);  // expected next pen on the ¼-px lattice
+      PROF.blend += performance.now() - _tb;
       cursor = col + 1;   // pending overlap columns right of col are revisited; the
     }                     // accepted-set guard prevents re-accepting the same glyph
     // Deferred fail/frag classification (final scans only — probes never pass
@@ -1114,7 +1139,7 @@
   }
 
   const api = { unionSets, quantMap, detectObjects, findBands, anchorGroups,
-    CHAIN_PROBES, scanLine, probeBaseline, spaceCalib, readPage };
+    CHAIN_PROBES, scanLine, probeBaseline, spaceCalib, readPage, _prof: PROF };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.OCREngine = api;
 })(typeof self !== 'undefined' ? self : this);

@@ -76,7 +76,9 @@ per cell — matches the measured 7.418 ± 0.007 valley pitch.
 - `tools/sweep-ft.mjs` — per-target EXACT/SAD hunt over em64 × 64×64 pen
   phases × draws (`--font --ems --draws --sad --sadout --report`).
 - `tools/sweep-builtin.mjs` — fillText-based em64y scan with builtin fonts
-  (found the 113 first).
+  (found the 113 first). *(2026-07-19 lab cleanup: superseded one-shot
+  probes — this one, probe-snap, pathrender/pathdiff, ftdebug, the GDI/GDI+
+  renderers — now live in `tools/attic/`.)*
 - `tools/ftres.mjs` — aligned target/candidate/diff dump for one target.
 - `tools/probe-snap.mjs`, `tools/pathrender.mjs`, `tools/pathdiff.mjs`,
   `tools/ftdebug.mjs` — the probes that pinned the snap grid and the

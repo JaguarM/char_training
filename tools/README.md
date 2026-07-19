@@ -133,7 +133,10 @@ generator expecting byte-identity; new sets should pass `--phases-y 0`.
 `ocr/tools/check-npz.mjs` certifies a generated set against the hunt's
 byte-exact page targets (nimbus_791: 113/113). Proven rasters stay
 committed in `assets/fonts/` (plus `TimesNewRomanXP.ttf`, the tnr8 source
-face).
+face). Finding the CONFIG for a new mystery producer in the first place is
+`ocr/`'s job — the renderer-identification lab (`ingest → harvest →
+identify` tries every proven family in `ocr/families.mjs` automatically;
+`ocr/README.md` is the runbook).
 
 # First-look page diagnosis — `inspect-raster.mjs`
 
