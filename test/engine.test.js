@@ -353,3 +353,55 @@ test('readPage: unreadable band is an honest □ line, not silence', async () =>
   assert.strictEqual(lines[0].set, null);
   assert.strictEqual(lines[0].fails.length, 1);
 });
+
+// ---- stacked bands (line pitch < maxAsc + maxDesc: rows interleave) ----
+
+// tall/descender font: maxAsc 8 ('J'/'T'), maxDesc 4 ('q', unused on page,
+// present so the scan window reaches a neighbour line's glued rows)
+function tallSet() {
+  return makeSet('tall', [
+    makeGlyph('A', ['.##.', '#..#', '####', '#..#', '#..#'], { dy: -5, adv: 6 }),
+    makeGlyph('y', ['#.#', '#.#', '#.#', '.##', '..#', '..#', '..#', '##.'], { dy: -5, adv: 6 }),
+    makeGlyph('q', ['###', '#.#', '###', '..#', '..#', '..#', '..#', '..#', '..#'], { dy: -5, adv: 6 }),
+    makeGlyph('J', ['###', '...', '.#.', '.#.', '.#.', '.#.', '#.#', '.#.'], { dy: -8, adv: 6 }),
+    makeGlyph('T', ['###', '.#.', '.#.', '.#.', '.#.', '.#.', '.#.', '.#.'], { dy: -8, adv: 6 }),
+  ]);
+}
+
+test('readPage: one band holding two stacked lines splits and reads both', async () => {
+  // 'yy' baseline 50 (ink 45..52) touches 'TT' baseline 61 (ink 53..60):
+  // ONE contiguous band; the picked bottom line cannot reach rows 45..52,
+  // so the band must split and read the upper line first — and the upper
+  // segment's judging must stop at the split boundary (T's top row 53).
+  const set = tallSet(), page = makePage(60, 80);
+  drawWord(page, set, 'yy', [5, 11], 50);
+  drawWord(page, set, 'TT', [5, 11], 61);
+  assert.strictEqual(E.findBands(page, zeroMask(page)).length, 1);
+  const { lines } = await E.readPage(page, [set]);
+  assert.strictEqual(lines.length, 2);
+  assert.deepStrictEqual(lines.map(L => L.glyphs.map(g => g.ch).join('')), ['yy', 'TT']);
+  assert.deepStrictEqual(lines.map(L => L.baseline), [50, 61]);
+  for (const L of lines) {
+    assert.strictEqual(L.clean, true);
+    assert.deepStrictEqual(L.fails, []);
+  }
+});
+
+test('readPage: neighbour ascender tip glued to the band above is retracted, not a □', async () => {
+  // 'Ay' baseline 20 (ink 15..22); 'JA' baseline 31 below. J's detached top
+  // row (row 23) is contiguous with the upper band while J's body (25..30,
+  // row 24 blank) is its own band. The upper line's scan window (maxDesc 4)
+  // judges row 23, fails on the tip — then the lower line explains it and
+  // the page-end retro-check must retract the fail.
+  const set = tallSet(), page = makePage(60, 60);
+  drawWord(page, set, 'Ay', [5, 11], 20);
+  drawWord(page, set, 'JA', [5, 11], 31);
+  assert.deepStrictEqual(E.findBands(page, zeroMask(page)), [[15, 24], [25, 31]]);
+  const { lines } = await E.readPage(page, [set]);
+  assert.strictEqual(lines.length, 2);
+  assert.deepStrictEqual(lines.map(L => L.glyphs.map(g => g.ch).join('')), ['Ay', 'JA']);
+  for (const L of lines) {
+    assert.strictEqual(L.clean, true);
+    assert.deepStrictEqual(L.fails, []);
+  }
+});

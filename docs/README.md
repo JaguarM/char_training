@@ -32,6 +32,7 @@ it (BLIND_READER.md bottom sections record the removal and what replaced what).
 | Color (mode-2) pages: plain black ink has R+G+B ≡ 0 (mod 3); non-neutral-connected ink components are flooded away before reading (app: exact per-pixel R≠G≠B via canvas RGBA) | [BLIND_READER.md](BLIND_READER.md) 07-12 PM |
 | Light rules (blockquote quote bars, separators): contiguous near-constant light run ≥40 px (min ≥160, max−min ≤8) is an object — text can never fake it | [BLIND_READER.md](BLIND_READER.md) 07-12 late |
 | courier_1/2.pdf body = Courier New **13px em** (advance 7.8 px, row pitch 15), same corpus MuPDF render family (Times header reads byte-exact at tol 0) | [BLIND_READER.md](BLIND_READER.md) 07-12 courier |
+| NEW/courier 7516xx/7543xx/7569xx block (11 docs) = Outside In-embedded MuPDF, builtin Courier = **URW Nimbus Mono CFF @ em64 791** (12.359375 px), ¼-px-x/int-y pens, single draw, standard blend → set `nimbus791`; pitch < maxAsc+maxDesc ⇒ stacked-band split/retro machinery | `ocr/FINDINGS.md` + [BLIND_READER.md](BLIND_READER.md) 07-19 eve |
 
 Rule of thumb: a new document reading "almost but ±1" against a proven
 rasterizer = **check for a palette before hunting renderers**.
@@ -69,7 +70,10 @@ courier/EFTA00434905 `305/22,796/0□`, courier/EFTA00382108
 `1545/114,273/0□`, times/efta00037366 `17/544/0□`, times/EFTA00010016
 `17/649/0□/17 frags`, times/EFTA00161526 `12/534/0□`, times/EFTA00009888
 `6/112/0□`, times/EFTA00756043 `60/1958/0□/11 frags` at **--tol 1** (its
-producer JPEG-compresses pages — ±1 channel jitter).
+producer JPEG-compresses pages — ±1 channel jitter). 2026-07-19 eve: the
+whole courier 7516xx/7543xx/7569xx block — **all 11 docs 0 □** with
+`--glyphs nimbus791` (~4,960 lines / ~353k glyphs, ~1 s/doc; per-doc table
+in NEW/MANIFEST.md).
 
 Facts that live nowhere else: courier_1/2 truths are the reader's own
 certified transcriptions (no external truth exists). In `--glyphs`, `+`

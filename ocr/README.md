@@ -7,6 +7,12 @@ single draw, ¼-px-x / integer-y pens; 113/279 targets byte-EXACT with
 neighbor-bleed / drawn-rule composition under the same law. The sections
 below describe the original hunt setup (historical).
 
+**INTEGRATED same evening**: `tools/fontgen.mjs` (main repo) renders the
+`nimbus791` glyph set through the certified ftclone (`tools/check-npz.mjs`
+here re-certifies it against the 113 exact targets); with the engine's new
+stacked-band support **all 11 docs read 0 □** — per-doc table in
+`../NEW/MANIFEST.md`, engine notes in `../docs/BLIND_READER.md` 07-19 eve.
+
 This folder is standalone and self-contained. One question only:
 
 > **Which rasterizer (program + font file + settings + any resample stage)

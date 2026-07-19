@@ -106,13 +106,34 @@ node export-glyphs.mjs              # (re)build glyphs.bin
 node export-glyphs.mjs --check      # bundle ⇔ .npz rebuild (npm run glyphs-check)
 ```
 
-The GENERATOR that renders a new font/size into an .npz (PDF text at
-size·0.75 pt → MuPDF 96 dpi gray at all 4×2 subpixel phases, exact FreeType
-advances) was Python (pymupdf + freetype-py) and was retired 2026-07-15 with
-the rest of the Python tooling — tag `python-era` has `fontgen/fontgen.py`
-if a NEW font raster set is ever needed; every proven font's rasters are
-already committed in `assets/fonts/` (plus `TimesNewRomanXP.ttf`, the tnr8
-source face).
+# Glyph raster generator — `fontgen.mjs`
+
+Renders a font file into an `assets/fonts/*.npz` raster set (the exact
+layout the retired Python fontgen produced — tag `python-era`) at every
+¼-px x-phase, through `ocr/tools/ftclone.mjs`: the certified pure-JS clone
+of the mupdf glyph pipeline (FT 26.6 unhinted + ftgrays + FZ_BLEND;
+re-certify anytime with `node ocr/tools/ftclone.mjs` — 0 byte diffs vs the
+wasm). mupdf itself is used only for char→gid and design-unit advances and
+is resolved from `ocr/node_modules` (`cd ocr && npm install` once) — the
+main repo stays dependency-free.
+
+```
+node tools/fontgen.mjs --font ocr/fonts/NimbusMonoPS-Regular.cff \
+     --em64 791 --phases-y 0 --out assets/fonts/nimbus_791.npz
+node tools/fontgen.mjs --font path/to/face.ttf --size 16    # em64 = trunc(size·64)
+```
+
+`--em64` is the sharp identifier of a render config (sizePx = em64/64);
+`--phases-y 0` builds integer-baseline-only sets (the Outside In / builtin
+Courier family) and is the only producer-certified mode. The default
+`0,0.5` fills the corpus-era 8-phase slot layout but renders TRUE
+fractional-y pens — the legacy committed sets' `_1` rasters came through a
+y-rounding pipeline instead, so do NOT regenerate a legacy set with this
+generator expecting byte-identity; new sets should pass `--phases-y 0`.
+`ocr/tools/check-npz.mjs` certifies a generated set against the hunt's
+byte-exact page targets (nimbus_791: 113/113). Proven rasters stay
+committed in `assets/fonts/` (plus `TimesNewRomanXP.ttf`, the tnr8 source
+face).
 
 # First-look page diagnosis — `inspect-raster.mjs`
 

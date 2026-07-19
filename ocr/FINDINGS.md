@@ -84,7 +84,19 @@ per cell — matches the measured 7.418 ± 0.007 valley pitch.
 - `hits-nimbus-791.json` — the 113 exact (id, pen) pairs; `sad-791.json` —
   best-SAD per target at the final config.
 
-## Next session (if 279/279 or a full reader is wanted)
+## Integration (2026-07-19 eve) — the full reader exists
+
+The "next session" list below became unnecessary: the MAIN engine already
+was the contextual compositor. `tools/fontgen.mjs` (main repo, ftclone-
+based) rendered the `nimbus791` set (phy 0 only; `tools/check-npz.mjs` here
+proves it byte-identical to the 113 exact targets), and with stacked-band
+support in `src/ocr-engine.js` (line pitch 12.36 < maxAsc+maxDesc 15 —
+band split + judging clamps + fail retro-check, `docs/BLIND_READER.md`
+07-19 eve) **all 11 docs read end-to-end with 0 □** — neighbor bleed is the
+engine's pending/composite path, rules are objects, per-band pens re-derive
+from pixels. Per-doc table: `../NEW/MANIFEST.md`.
+
+Original plan, kept for provenance:
 
 1. Contextual exact test: for each target src, render the whole band
    (all overlay glyphs at fitted ¼-snapped pens + rules) with `FTClone` and

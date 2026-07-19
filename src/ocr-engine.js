@@ -366,7 +366,8 @@
   // gb−1. A per-pixel shift count keeps the raw canvas recoverable from page
   // space.
   function scanLine(page, mask, set, phy, baseline, xFrom, xTo, maxGlyphs = Infinity,
-    maxFails = Infinity, TOL = 0, QUANT = null, halos = null, bandTop = null) {
+    maxFails = Infinity, TOL = 0, QUANT = null, halos = null, bandTop = null,
+    explained = null, bandBot = null) {
     const inHalo = (x, y) => halos && halos.some(h => x >= h[0] && x < h[1] && y >= h[2] && y < h[3]);
     const q = QUANT ? v => QUANT[v] : v => v;           // palette law (see quantMap)
     const lin = set.linear;
@@ -392,9 +393,13 @@
     const canAt = (x, y) => canvas[(y - y0) * bw + (x - xFrom)];
     const shAt = (x, y) => (lin ? shifts[(y - y0) * bw + (x - xFrom)] : 0);
     const addSh = (x, y, s) => { if (lin) shifts[(y - y0) * bw + (x - xFrom)] += s; };
+    // don't-care pre-absorb: object-mask pixels AND pixels another line's scan
+    // already explained (a neighbouring line's descender/ascender ink inside
+    // this window — at small line pitches adjacent lines' row ranges overlap,
+    // so that ink is settled evidence of the OTHER line, not this one's)
     for (let y = y0; y < y1; y++)
       for (let x = xFrom; x < xTo; x++)
-        if (mask[y * W + x]) {
+        if (mask[y * W + x] || (explained && explained[y * W + x])) {
           canvas[(y - y0) * bw + (x - xFrom)] = pageAt(x, y);
           skip[(y - y0) * bw + (x - xFrom)] = 1;
         }
@@ -410,10 +415,16 @@
     // on the neighbours' ink. The window BOTTOM stays open: a '_'-only band
     // below is deliberately explained through (see readPage's explained map).
     const cTop = bandTop === null || bandTop === undefined ? y0 : Math.max(y0, bandTop);
+    // cBot mirrors cTop for SPLIT bands (see readPage): ink at/below the split
+    // boundary belongs to the NEXT segment's line — its scan judges it. The
+    // bottom stays open (y1) for normal bands: a '_'-only band below is
+    // deliberately read and explained through. Accepted glyphs still blend
+    // and explain ink beyond cBot — only unexplained-ink JUDGING stops there.
+    const cBot = bandBot === null || bandBot === undefined ? y1 : Math.min(y1, Math.max(bandBot, cTop));
     const unexpl = new Int32Array(bw);
     for (let x = xFrom; x < xTo; x++) {
       let n = 0;
-      for (let y = cTop; y < y1; y++)
+      for (let y = cTop; y < cBot; y++)
         if (pageAt(x, y) !== q(canAt(x, y))) n++;
       unexpl[x - xFrom] = n;
     }
@@ -423,7 +434,7 @@
       const before = pv !== q(canvas[i]);
       canvas[i] = v;
       const after = pv !== q(v);
-      if (y >= cTop && before !== after) unexpl[x - xFrom] += after ? 1 : -1;
+      if (y >= cTop && y < cBot && before !== after) unexpl[x - xFrom] += after ? 1 : -1;
     };
     const nextUnexplained = (fromX) => {
       for (let x = Math.max(fromX, xFrom); x < xTo; x++)
@@ -619,7 +630,7 @@
         if (TOL) {
           const px = [];
           for (let x = col; x < Math.min(col + 3, xTo); x++)
-            for (let y = cTop; y < y1; y++)
+            for (let y = cTop; y < cBot; y++)
               if (pageAt(x, y) !== q(canAt(x, y))) px.push([x, y]);
           const okDust = px.length <= 3 && px.every(([x, y]) => {
             if (pageAt(x, y) >= 255 - 6 * TOL && Math.abs(pageAt(x, y) - q(canAt(x, y))) <= 6 * TOL) return true;
@@ -642,7 +653,7 @@
         chainPenQ = null;                        // unexplained ink breaks the pen chain
         if (DBG_ON && maxGlyphs === Infinity) {
           console.log(`    fail @col ${col} baseline ${baseline}`);
-          for (let y = cTop; y < y1; y++)
+          for (let y = cTop; y < cBot; y++)
             if (pageAt(col, y) !== canAt(col, y))
               console.log(`      unexplained (${col},${y}) page=${pageAt(col, y)} canvas=${canAt(col, y)}`);
         }
@@ -656,7 +667,7 @@
         // inside the last blob's extent are not re-reported.
         let compRight = col;
         const stack = [];
-        for (let y = cTop; y < y1; y++)
+        for (let y = cTop; y < cBot; y++)
           if (pageAt(col, y) !== q(canAt(col, y)) && !masked(col, y)) stack.push(col << 16 | y);
         const seen = new Set();
         while (stack.length) {
@@ -667,7 +678,7 @@
           if (px > compRight) compRight = px;
           for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
             const nx = px + dx, ny = py + dy;
-            if (nx < xFrom || nx >= xTo || ny < cTop || ny >= y1 || seen.has(nx << 16 | ny)) continue;
+            if (nx < xFrom || nx >= xTo || ny < cTop || ny >= cBot || seen.has(nx << 16 | ny)) continue;
             if (pageAt(nx, ny) < 255 && !masked(nx, ny) && pageAt(nx, ny) !== q(canAt(nx, ny)))
               stack.push(nx << 16 | ny);
           }
@@ -679,16 +690,15 @@
             skip[(py - y0) * bw + (px - xFrom)] = 1;
           }
         }
-        if (halos) {
-          // fail/frag classification is DEFERRED to line end: at fail time the
-          // flood cannot know which connected ink a LATER try will read (a
-          // box remnant kerned into "TELL ME" measures 22px here, but its
-          // truly-dead remains span 8px) — record the component, judge the
-          // dead survivors afterwards
-          if (col > failGuard) records.push({ col, comp: seen });
-        } else if (col > failGuard && (!fails.length || col > fails[fails.length - 1] + 4)) {
-          fails.push(col);
-        }
+        // fail/frag classification is DEFERRED to line end: at fail time the
+        // flood cannot know which connected ink a LATER try will read (a
+        // box remnant kerned into "TELL ME" measures 22px here, but its
+        // truly-dead remains span 8px) — record the component, judge the
+        // dead survivors afterwards. Recorded regardless of halos: the
+        // page-end retro-check (readPage) also needs the pixels, to retract
+        // a "fail" whose dead ink a LATER line explains (its neighbour's
+        // ascender tip row-glued to this band's bottom).
+        if (col > failGuard) records.push({ col, comp: seen });
         failGuard = Math.max(failGuard, compRight);
         cursor = col;
         if (fails.length + records.length >= maxFails) break;
@@ -740,11 +750,14 @@
     // the box — touch chains through the previous fragment when the gap is
     // under a space width.
     let lastFragRight = -1;
+    const failPix = new Map();                     // fail col -> dead pixels (x<<16|y, page coords)
     for (const r of records) {
       let minX = Infinity, maxX = -1, touch = false;
+      const dead = [];
       for (const k of r.comp) {
         const px = k >> 16, py = k & 0xffff;
         if (!skip[(py - y0) * bw + (px - xFrom)]) continue;
+        dead.push(k);
         if (px < minX) minX = px;
         if (px > maxX) maxX = px;
         if (!touch && inHalo(px, py)) touch = true;
@@ -755,7 +768,12 @@
       if (frag) {
         lastFragRight = Math.max(lastFragRight, maxX);
         if (!frags.length || r.col > frags[frags.length - 1] + 4) frags.push(r.col);
-      } else if (!fails.length || r.col > fails[fails.length - 1] + 4) fails.push(r.col);
+      } else if (!fails.length || r.col > fails[fails.length - 1] + 4) {
+        fails.push(r.col);
+        failPix.set(r.col, dead);
+      } else {
+        failPix.get(fails[fails.length - 1])?.push(...dead);  // same □ blob, merged
+      }
     }
     // coverage certificate: any non-object band pixel the composition law
     // could not reproduce byte-exactly? unexpl[] already carries the running
@@ -763,14 +781,14 @@
     // register), so the residual is just its sum — no second full-window scan.
     let residual = 0;
     for (let x = 0; x < bw; x++) residual += unexpl[x];
-    return { glyphs, fails, frags, residual, canvas, y0, y1, xFrom, xTo };
+    return { glyphs, fails, frags, failPix, residual, canvas, y0, y1, xFrom, xTo };
   }
 
   // try to read the first few glyphs of a band at a candidate (baseline, set, phy);
   // returns matched-ink score. maxFails bounds the work on wrong hypotheses —
   // without it a bad baseline absorbs the whole band column by column.
-  function probeBaseline(page, mask, set, phy, baseline, x0, x1, TOL, quant, bandTop) {
-    const line = scanLine(page, mask, set, phy, baseline, x0, Math.min(x1, x0 + 160), 4, 2, TOL, quant, null, bandTop);
+  function probeBaseline(page, mask, set, phy, baseline, x0, x1, TOL, quant, bandTop, explained, bandBot) {
+    const line = scanLine(page, mask, set, phy, baseline, x0, Math.min(x1, x0 + 160), 4, 2, TOL, quant, null, bandTop, explained, bandBot);
     return line.glyphs.reduce((s, g) => s + g.exact, 0) - line.fails.length * 20;
   }
 
@@ -838,9 +856,22 @@
     // (set, phy) of the previous band — carried ACROSS pages: a document's
     // font rarely changes at a page break, and the fast path verifies anyway
     let n = 0, last = carry?.last ?? null;
-    for (const [top, bot] of bands) {
+    // Work list, not a plain loop: when a band's picked baseline cannot reach
+    // the band's top rows (pitch < maxAsc+maxDesc interleaves adjacent lines'
+    // ink rows into ONE band — routine at small ems, e.g. the 12.36px Outside
+    // In Courier), the band holds MORE than one text line. Such a band is
+    // SPLIT at the line's scan-window top: the rows above are queued as a
+    // band of their own and read FIRST — the upper line lands in transcript
+    // order and its ink is in `explained` before the lower line's scan
+    // judges the shared rows.
+    const work = bands.map(([top, bot]) => ({ top, bot, pick: null }));
+    for (let wi = 0; wi < work.length; wi++) {
+      const { top, bot } = work[wi];
+      // split-created upper segments clamp unexplained-ink judging at the
+      // split boundary (their bot): ink there is the NEXT segment's to judge
+      const clampBot = work[wi].clamp ? bot : null;
       if (opts?.progress && ++n % 6 === 0) {
-        opts.progress(n, bands.length);
+        opts.progress(n, work.length);
         await new Promise(r => setTimeout(r, 0));
       }
       // leftmost/rightmost non-object ink of the band
@@ -878,7 +909,7 @@
       // fast path (mirrors the app): most documents use ONE (font, y-phase)
       // throughout — try the previous band's winner first and accept it when
       // its probe fully reads; fall back to the full sweep otherwise
-      let pick = null;
+      let pick = work[wi].pick;          // pre-pinned by a band split below
       // cross-page layout hint: repeating documents lay page n out on page
       // n−1's BASELINE grid (band tops/bottoms shift with ascender/descender
       // content, baselines don't), so earlier pages' picks whose baseline
@@ -890,10 +921,13 @@
       if (carry?.picks)
         for (const [yb, hint] of carry.picks) {
           if (pick) break;
+          // non-below hints must be bottom-anchored like the probe sweeps
+          // (yb > bot − maxDesc): a mid-band hint would pin a line in the
+          // MIDDLE of a stacked band and orphan everything below it
           if (hint.below ? (yb <= bot || yb > bot + hint.set.maxAsc)
-                         : (yb <= top || yb > bot)) continue;
+                         : (yb <= top || yb > bot || yb < bot - hint.set.maxDesc)) continue;
           const probe = scanLine(page, mask, hint.set, hint.phy, yb,
-            Math.max(0, xp - 2), Math.min(page.w, Math.max(0, xp - 2) + 160), 4, 0, tol, quant, null, top);
+            Math.max(0, xp - 2), Math.min(page.w, Math.max(0, xp - 2) + 160), 4, 0, tol, quant, null, top, explained, clampBot);
           if (probe.glyphs.length >= 3 && probe.fails.length === 0)
             pick = { set: hint.set, phy: hint.phy, yb, below: hint.below,
               score: probe.glyphs.reduce((s, g) => s + g.exact, 0) };
@@ -901,7 +935,7 @@
       if (!pick && last) {
         for (let yb = bot; yb >= bot - last.set.maxDesc && yb > top && !pick; yb--) {
           const probe = scanLine(page, mask, last.set, last.phy, yb,
-            Math.max(0, xp - 2), Math.min(page.w, Math.max(0, xp - 2) + 160), 4, 0, tol, quant, null, top);
+            Math.max(0, xp - 2), Math.min(page.w, Math.max(0, xp - 2) + 160), 4, 0, tol, quant, null, top, explained, clampBot);
           if (probe.glyphs.length >= 3 && probe.fails.length === 0)
             pick = { set: last.set, phy: last.phy, yb,
               score: probe.glyphs.reduce((s, g) => s + g.exact, 0) };
@@ -914,7 +948,7 @@
       for (const set of sets)
         for (const phy of set.byPhy.keys())
           for (let yb = bot; yb >= bot - set.maxDesc && yb > top; yb--) {
-            const score = probeBaseline(page, mask, set, phy, yb, Math.max(0, xp - 2), Math.min(page.w, x1 + 20), tol, quant, top);
+            const score = probeBaseline(page, mask, set, phy, yb, Math.max(0, xp - 2), Math.min(page.w, x1 + 20), tol, quant, top, explained, clampBot);
             if (score > 0 && (!pick || score > pick.score)) pick = { set, phy, yb, score };
           }
       // glyphs whose ink sits entirely above the baseline (a row of '-' or '*':
@@ -924,7 +958,7 @@
         for (const set of sets)
           for (const phy of set.byPhy.keys())
             for (let yb = bot + 1; yb <= bot + set.maxAsc && yb <= page.h; yb++) {
-              const score = probeBaseline(page, mask, set, phy, yb, Math.max(0, xp - 2), Math.min(page.w, x1 + 20), tol, quant, top);
+              const score = probeBaseline(page, mask, set, phy, yb, Math.max(0, xp - 2), Math.min(page.w, x1 + 20), tol, quant, top, explained, clampBot);
               if (score > 0 && (!pick || score > pick.score)) pick = { set, phy, yb, score, below: true };
             }
       if (pick) last = { set: pick.set, phy: pick.phy };
@@ -943,8 +977,46 @@
           residual: 0, boxes: lineObjects.map(ob => [ob.x0 - 2, ob.x1 + 2]), objects: lineObjects, set: null });
       };
       if (!pick) { pushUnread(); continue; }
+      // stacked band: fresh ink remains ABOVE this line's scan window — that
+      // is another text line the window can never reach. Split: queue
+      // [top, window-top) as its own band first, then this line (its pick is
+      // kept). The re-queued lower item has top == window-top, so a band
+      // splits each level at most once even when the upper segment fails.
+      {
+        const winTop = pick.yb - pick.set.maxAsc;
+        if (winTop > top) {
+          let stacked = false;
+          for (let y = top; y < winTop && !stacked; y++) {
+            const off = y * page.w;
+            for (let x = 0; x < page.w; x++)
+              if (page.gray[off + x] < 255 && !mask[off + x] && !explained[off + x]) { stacked = true; break; }
+          }
+          if (stacked) {
+            work.splice(wi, 1, { top, bot: winTop, pick: null, clamp: true }, { top: winTop, bot, pick });
+            wi--;
+            continue;
+          }
+        }
+        // symmetric guard BELOW the window: should a pick ever land mid-band
+        // (a stale hint, a future pick source), the rows below yb + maxDesc
+        // are later lines' — queue them after this one, never drop them
+        const winBot = pick.yb + pick.set.maxDesc;
+        if (winBot < bot) {
+          let below = false;
+          for (let y = winBot; y < bot && !below; y++) {
+            const off = y * page.w;
+            for (let x = 0; x < page.w; x++)
+              if (page.gray[off + x] < 255 && !mask[off + x] && !explained[off + x]) { below = true; break; }
+          }
+          if (below) {
+            work.splice(wi, 1, { top, bot: winBot, pick }, { top: winBot, bot, pick: null });
+            wi--;
+            continue;
+          }
+        }
+      }
       const L = scanLine(page, mask, pick.set, pick.phy, pick.yb,
-        Math.max(0, x0 - 2), Math.min(page.w, x1 + 4), Infinity, Infinity, tol, quant, halos, top);
+        Math.max(0, x0 - 2), Math.min(page.w, x1 + 4), Infinity, Infinity, tol, quant, halos, top, explained, clampBot);
       // a "line" that read NOTHING has no certified baseline — it is an unread
       // band (a dot-only band above a real line probes into that line's glyphs
       // through the +20px window, picks a shifted-but-equivalent baseline, then
@@ -967,10 +1039,16 @@
           }
         if (below > inBand) { pushUnread(); continue; }
       }
-      for (let y = L.y0; y < L.y1; y++)                  // record explained ink
+      // record explained ink — EXCEPT a fail blob's dead pixels: the flood
+      // absorbed them into the canvas (canvas = page there), but they are the
+      // □'s unexplained ink, not explained evidence
+      const deadSet = new Set();
+      if (L.failPix) for (const dead of L.failPix.values()) for (const k of dead) deadSet.add(k);
+      for (let y = L.y0; y < L.y1; y++)
         for (let x = L.xFrom; x < L.xTo; x++)
           if (page.gray[y * page.w + x] < 255 &&
-              page.gray[y * page.w + x] === q(L.canvas[(y - L.y0) * (L.xTo - L.xFrom) + (x - L.xFrom)]))
+              page.gray[y * page.w + x] === q(L.canvas[(y - L.y0) * (L.xTo - L.xFrom) + (x - L.xFrom)]) &&
+              !deadSet.has(x << 16 | y))
             explained[y * page.w + x] = 1;
       L.top = top; L.bot = bot; L.baseline = pick.yb; L.phy = pick.phy; L.set = pick.set;
       // a union pool has no per-band font identity — recover it per LINE by
@@ -1005,6 +1083,22 @@
       lines.push(L);
     }
     if (carry) carry.last = last;
+    // retro-check recorded fails: a fail whose every dead pixel was explained
+    // by ANOTHER line (a neighbour line's ascender tip or descender tail
+    // row-glued into this band) is not unread text — retract it. Own absorbed
+    // pixels never enter `explained`, so the check cannot self-satisfy.
+    for (const L of lines) {
+      if (!L.set || !L.fails.length || !L.failPix) continue;
+      const keep = L.fails.filter(c => {
+        const dead = L.failPix.get(c);
+        return !dead || !dead.length ||
+          dead.some(k => !explained[(k & 0xffff) * page.w + (k >> 16)] && !mask[(k & 0xffff) * page.w + (k >> 16)]);
+      });
+      if (keep.length !== L.fails.length) {
+        L.fails = keep;
+        L.clean = L.fails.length === 0 && L.residual === 0;
+      }
+    }
     // an unread band may be explained by a line BELOW it (an 'i' dot separated
     // from its stem by a blank row precedes its own line's band): re-check
     // against the final explained map before calling it a □

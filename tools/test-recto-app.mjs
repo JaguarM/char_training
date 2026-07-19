@@ -1,9 +1,11 @@
 // test-recto-app.mjs — end-to-end smoke of the Recto ocr_tool plugin (the
 // synced engine running inside the Django PDF editor). Spawns the Django dev
-// server, opens the app headless, waits for the bundled default document
-// (Times-family eDiscovery raster — the proven corpus family), runs Auto OCR
-// on page 1 through the plugin's own entry point, and asserts that byte-clean
-// 'ocr' text boxes landed in the unified text box system.
+// server, opens the app headless, uploads a CERTIFIED document through the
+// real file input (NEW/courier/EFTA00751637.pdf — 0 □, Outside In Nimbus
+// family, exercises the nimbus791 set) — deliberately NOT Recto's bundled
+// default, which is app-side and may be swapped for experiments — runs Auto
+// OCR on page 1 through the plugin's own entry point, and asserts that
+// byte-clean 'ocr' text boxes landed in the unified text box system.
 //
 //   node test-recto-app.mjs [--recto <path-to-Recto>] [--chrome <exe>]
 //
@@ -80,6 +82,16 @@ async function run() {
       if (errors.length) console.error('page errors:', errors.slice(0, 8));
       throw e;
     }
+
+    // Upload the certified test document through the real file input — the
+    // OCR verdict must not depend on whatever document the app opens by
+    // default (that is Recto-side and swappable).
+    const TEST_PDF = join(REPO, 'NEW', 'courier', 'EFTA00751637.pdf');
+    if (!existsSync(TEST_PDF)) throw new Error(`test document missing: ${TEST_PDF}`);
+    const fileInput = await page.$('#pdf-file');
+    if (!fileInput) throw new Error('#pdf-file input not found');
+    await fileInput.uploadFile(TEST_PDF);
+    await page.waitForFunction(() => state.numPages === 7 && state.pageImages?.length === 7);
 
     // Drive the REAL UI (a programmatic OCRTool.run() would mask dead button
     // wiring — that bug happened): toggle the subtoolbar, press "This page",
