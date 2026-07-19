@@ -19,6 +19,7 @@
 //
 //   node tools/harvest.mjs                 # all docs under pages/
 //   node tools/harvest.mjs --doc EFTA00751637 --dry
+//   node tools/harvest.mjs --doc <DOC> --out targets-<hunt>   # per-hunt target dir
 //   knobs: --adv 6.0009765625  --min-obs 3  --max-var 8
 //
 // Labels come from the producer's own OCR overlay: a systematic confusion
@@ -34,6 +35,8 @@ const ADV = opt('adv', 6.0009765625);
 const MIN_OBS = opt('min-obs', 3);
 const MAX_VAR = opt('max-var', 8);
 const DRY = args.includes('--dry');
+const OUTI = args.indexOf('--out');
+const OUT = OUTI >= 0 ? args[OUTI + 1].replace(/[\/]+$/, '') : 'targets';
 const docFilter = [];
 for (let i = 0; i < args.length; i++) if (args[i] === '--doc') docFilter.push(args[i + 1]);
 
@@ -239,6 +242,7 @@ for (const p of promoted) {
 }
 let overflow = 0;
 const targets = [];
+if (!DRY) mkdirSync(`${root}/${OUT}`, { recursive: true });
 for (const [k, list] of [...bySlot.entries()].sort()) {
   list.sort((a, b) => b.cl.obs - a.cl.obs);
   if (list.length > MAX_VAR) { overflow += list.length - MAX_VAR; list.length = MAX_VAR; }
@@ -247,14 +251,13 @@ for (const [k, list] of [...bySlot.entries()].sort()) {
     const id = `${p.cp}_p${slot}_v${i + 1}`;
     targets.push({ id, ch: p.ch, cp: p.cp, phaseSlot: slot, phx: slot / 4, variant: i + 1,
       w: p.cl.w, h: p.cl.h, adv: +medianAdv().toFixed(6), frac: +p.frac.toFixed(4), obs: p.cl.obs, srcs: p.cl.srcs });
-    if (!DRY) writeFileSync(`${root}/targets/${id}.pgm`,
+    if (!DRY) writeFileSync(`${root}/${OUT}/${id}.pgm`,
       Buffer.concat([Buffer.from(`P5\n${p.cl.w} ${p.cl.h}\n255\n`), p.cl.px]));
   });
 }
 
 if (!DRY) {
-  mkdirSync(`${root}/targets`, { recursive: true });
-  writeFileSync(`${root}/targets/index.json`, JSON.stringify({
+  writeFileSync(`${root}/${OUT}/index.json`, JSON.stringify({
     adv: +medianAdv().toFixed(6), source: docs,
     note: 'cells cut on the fitted monospace lattice from pages/<doc>/, ' +
       'trimmed to ink rows +1 white guard row; promoted at >=' + MIN_OBS +

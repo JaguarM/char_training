@@ -21,6 +21,7 @@ import { FAMILIES, SCAN_DEFAULT } from '../families.mjs';
 const root = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
 const args = process.argv.slice(2);
 const optS = (n, d) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : d; };
+const TDIR = optS('targets', 'targets');
 const FX = [0, 16, 32, 48];                       // the ¼-px pen lattice, always
 const W = 48, H = 48, PENX = 12, BASEY = 32;
 
@@ -56,9 +57,9 @@ function exactAt(t, cand, cb) {
   return true;
 }
 
-const { targets } = JSON.parse(readFileSync(`${root}/targets/index.json`, 'utf8'));
+const { targets, source } = JSON.parse(readFileSync(`${root}/${TDIR}/index.json`, 'utf8'));
 for (const t of targets) {
-  t.pgm = readPgm(`${root}/targets/${t.id}.pgm`);
+  t.pgm = readPgm(`${root}/${TDIR}/${t.id}.pgm`);
   t.bbox = inkBbox(t.pgm.px, t.pgm.w, t.pgm.h);
 }
 const byCp = new Map();
@@ -73,6 +74,7 @@ for (const t of targets) {
   const pagesDir = `${root}/pages`;
   if (existsSync(pagesDir))
     for (const d of readdirSync(pagesDir)) {
+      if (source && !source.includes(d)) continue;   // only this hunt's docs
       try {
         const m = JSON.parse(readFileSync(`${pagesDir}/${d}/meta.json`, 'utf8'));
         for (const p of Object.values(m.pages ?? {})) {

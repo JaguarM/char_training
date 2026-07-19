@@ -17,9 +17,19 @@ record it in `families.mjs` + a findings note and integrate.
 ```
 npm install                              # once: the mupdf wasm the tools use
 node tools/ingest.mjs path/to/DOC.pdf    # pages/<DOC>/: byte-exact page rasters + overlay words
-node tools/harvest.mjs                   # targets/: byte-identical glyph clusters, pixel-fitted lattice
-node tools/identify.mjs                  # fingerprint + try EVERY proven family automatically
+node tools/harvest.mjs --doc <DOC> --out targets-<hunt>   # byte-identical glyph clusters
+node tools/identify.mjs --targets targets-<hunt>          # fingerprint + try EVERY proven family
 ```
+
+(Bare `harvest.mjs` / `identify.mjs` use `targets/` — currently the courier
+hunt's 279, which `check-npz.mjs` certifies against; give every new hunt its own
+`--out`/`--targets` dir so hunts never clobber each other.)
+
+**Monospace only, so far**: harvest cuts cells on a fitted MONOSPACE
+lattice. On a proportional face it still emits byte-identical clusters, but
+they are glyph FRAGMENTS cut at a bogus pitch — identify/scan against them
+proves nothing. For proportional faces use the engine-probe route (next
+section, step 2) until a proportional harvester exists.
 
 `identify.mjs` ends in a verdict:
 
@@ -49,22 +59,36 @@ that registry is what makes the next hunt start warm instead of cold.
 
 ## When nothing matches
 
-1. **Known face, unknown size**: `node tools/identify.mjs --scan
-   fonts/<face> [--ems 448..1280]` — exact counts per em64 at the ¼-px pen
-   lattice, ~1 min. A real config is SHARP: the courier scan spikes at
-   em64 791 and nowhere else in ±30.
-2. **Full pen lattice**: `node tools/sweep-ft.mjs --font <face> --ems
+1. **Known face, unknown size (monospace targets)**: `node tools/identify.mjs
+   --scan fonts/<face> [--ems 448..1280] [--targets targets-<hunt>]` — exact
+   counts per em64 at the ¼-px pen lattice, ~1 min. A real config is SHARP:
+   the courier scan spikes at em64 791 and nowhere else in ±30.
+2. **Proportional face / no usable targets — engine probe**: the reader
+   itself is the byte-exact tester, and it loads candidate sets straight
+   from an .npz (no SETS/bundle registration). Measure the glyph size from
+   pixels (x-height ≈ 0.47·em for calibri-likes), then loop em64 over the
+   plausible range:
+
+   ```
+   node ../tools/fontgen.mjs --font C:/Windows/Fonts/<face>.ttf --em64 <N> \
+        --phases-y 0 --chars "<common chars>" --out $TMP/cand_<N>.npz
+   cd ../tools && node blind-read.mjs --pdf <doc.pdf> --page 1 --glyphs $TMP/cand_<N>.npz
+   ```
+
+   Wrong em64 reads 0 lines; the right one reads real text immediately
+   (byte-exactness cannot false-positive). ~1.5 s per candidate.
+3. **Full pen lattice**: `node tools/sweep-ft.mjs --font <face> --ems
    <a>x<b>,... --sad --report hits.json` — all 64×64 pen phases via the
    certified `ftclone.mjs` (places pens fillText can't); `--sad` is the
    compass when nothing is exact yet.
-3. **Arbitrary external renderer**: render into `candidates/<name>/<id>.pgm`
+4. **Arbitrary external renderer**: render into `candidates/<name>/<id>.pgm`
    (any margin, P5) and score with `node tools/check.mjs candidates/<name>`
    (`--id <id>` for a byte dump). Refuted probes for GDI/GDI+/stretch live
    in `tools/attic/` as templates.
-4. **Inspect**: `node tools/view.mjs targets/<id>.pgm --num`, `--crop
+5. **Inspect**: `node tools/view.mjs targets/<id>.pgm --num`, `--crop
    x,y,w,h` on pages, `node tools/levels.mjs` (byte-lattice fingerprint),
    `node tools/ftres.mjs` (aligned target/candidate diff).
-5. Write the findings file; `FINDINGS.md` shows what a solved hunt records.
+6. Write the findings file; `FINDINGS.md` shows what a solved hunt records.
 
 Lessons already paid for (the hunts' scar tissue):
 
