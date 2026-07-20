@@ -16,6 +16,7 @@ const o = { page: 2, cp: 100, x0: 138, x1: 148, y0: 141, y1: 153,
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i], next = () => process.argv[++i];
   if (a === '--page') o.page = +next();
+  else if (a === '--doc') o.doc = next();
   else if (a === '--cp') o.cp = +next();
   else if (a === '--x') [o.x0, o.x1] = next().split('..').map(Number);
   else if (a === '--y') [o.y0, o.y1] = next().split('..').map(Number);
@@ -41,8 +42,17 @@ if (o.law) {
     if (kind !== 'palette') { console.error('unknown law', kind); process.exit(2); }
     const b = readFileSync(pdf);
     const s = b.toString('latin1');
-    const m = new RegExp(obj + ' 0 obj[^]*?stream\\r?\\n').exec(s);
-    const start = m.index + m[0].length, end = s.indexOf('endstream', start);
+    // indexOf, not a lazy regex — .*? over multi-MB latin1 strings hangs
+    let at = -1, from = 0;
+    while ((at = s.indexOf(obj + ' 0 obj', from)) >= 0) {
+      if (at === 0 || /\s/.test(s[at - 1])) break;   // reject e.g. "1491 0 obj"
+      from = at + 1;
+    }
+    if (at < 0) { console.error('palette obj not found'); process.exit(2); }
+    let start = s.indexOf('stream', at) + 'stream'.length;
+    if (s[start] === '\r') start++;
+    if (s[start] === '\n') start++;
+    const end = s.indexOf('endstream', start);
     const pal = b.subarray(start, end);
     const entries = [];
     for (let k = 0; k + 2 < pal.length; k += 3) entries.push([pal[k], pal[k + 1], pal[k + 2]]);
@@ -71,7 +81,7 @@ function readPGM(p) {
   return { w: +tok[1], h: +tok[2], d: b.subarray(i) };
 }
 
-const pg = readPGM(`pages/EFTA00039208/page-${String(o.page).padStart(4, '0')}.pgm`);
+const pg = readPGM(`pages/${o.doc ?? 'EFTA00039208'}/page-${String(o.page).padStart(4, '0')}.pgm`);
 const TW = o.x1 - o.x0 + 1, TH = o.y1 - o.y0 + 1;
 const target = new Uint8Array(TW * TH);
 for (let y = 0; y < TH; y++)

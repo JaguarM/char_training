@@ -39,6 +39,7 @@ maps each fact to the document that proves it.
 | courier_1/2.pdf body = Courier New **13px em** (advance 7.8 px, row pitch 15), same corpus MuPDF render family (Times header reads byte-exact at tol 0) | [BLIND_READER.md](BLIND_READER.md) 07-12 courier |
 | NEW/courier 7516xx/7543xx/7569xx block (11 docs) = MuPDF-lineage renderer with its builtin Courier = **URW Nimbus Mono CFF @ em64 791** (12.359375 px), ¼-px-x/int-y pens, single draw, standard blend → set `nimbus791`; pitch < maxAsc+maxDesc ⇒ stacked-band split/retro machinery. (The producing *program* — "Oracle Outside In" per font resource names — is an unverified guess; only the render law is proven) | `ocr/FINDINGS.md` + [BLIND_READER.md](BLIND_READER.md) 07-19 eve |
 | NEW/calibri family = **Calibri VERSION 1.02** (installed 6.2x has different drawings) through the **"mid" law**: byte = t+(t>>7)−((255−t)>>7), t=255−cov (127/128 spectral hole = fingerprint); colored/gray runs srcover byte = 255−round(cov·(255−C)/255); per-(doc,page) ±1-2 wobble ⇒ harvested sets at --tol 2 + union ladder pass | `ocr/FINDINGS-calibri.md` |
+| EFTA00039208 serif family = builtin URW NimbusRoman/NimbusSans (em64 1024/983/1194/1536) + embedded real-TNR subset, then **linear law on [128,254]** (+1; raw 254 → 255, the pixel vanishes) then a **per-page /Indexed palette** (RGB-nearest over the full palette, ties darker) — read with `blind-read --palette` (true per-page LUT from the PDF) at tol 0; gate doc `nimbusrom` | `ocr/FINDINGS-nimbusrom.md` |
 | EFTA01150379 ("times" 2427-pager) hunt CLOSED — page images stretched+rerendered, face was Cambria not Times: byte-identification unwinnable by construction. Check stretch/resample signatures + verify face from glyph shapes BEFORE any engine hunt | `ocr/RENDERING.md` (closed-families section) |
 
 Rule of thumb: a new document reading "almost but ±1" against a proven
@@ -50,7 +51,7 @@ rasterizer = **check for a palette before hunting renderers**.
 npm test                       # FIRST: fast unit suite (~30 ms) — engine primitives
                                # (scanLine, detectObjects, readPage, quant/TOL/composite
                                # physics) on synthetic pages; test/engine.test.js
-npm run gate                   # 6 reader docs, byte-compared vs tools/gate-ref/
+npm run gate                   # 7 reader docs, byte-compared vs tools/gate-ref/
 cd tools
 node test-blind-app.mjs        # the app's Auto OCR path (blindocr.js)
 node export-glyphs.mjs --check # committed glyphs.bin ⇔ the committed .npz rasters
@@ -60,7 +61,9 @@ node test-recto-app.mjs        # after a sync: the engine inside Recto's ocr_too
 
 **The expected output IS `tools/gate-ref/`** — committed transcripts +
 count summaries per gate doc (v3, big, email --quant, report-raster tol 0,
-courier_1/2); the gate byte-compares against them, so a CHANGE is the
+courier_1/2, nimbusrom `223/13,034/38□` — the 38 are the unsolved red
+footer legend + P1 seal graphic, ocr/FINDINGS-nimbusrom.md); the gate
+byte-compares against them, so a CHANGE is the
 signal, not the absolute. Re-record only after an INTENDED output change:
 `node tools/gate.mjs --out gate-ref --ref none` (each doc's exact reader
 command line lives in gate.mjs DOCS). Everything that still differs from
@@ -92,7 +95,13 @@ per-band-pick sets — pool only what really mixes, or a foreign font
 byte-matches glyph fragments (a times sliver ate courier 'e's). v4 retired
 from the gate 2026-07-12 (last: `30/884/1□` tol 0 `--quant --union`).
 Corpus PDFs are committed; raster caches populate once per document via
-`tools/rasterize.mjs` — report.pdf exists ONLY as its committed cache
+`tools/rasterize.mjs`. Whole folders (thousands of PDFs, arbitrary
+location) go through `npm run batch -- --dir <folder>`
+(tools/batch-read.mjs): one shared Chrome session rasterizes, page-1
+probes pick the best proven family rung, the winner full-reads, and
+`<out>/manifest.jsonl` records per-doc status (exact / partial / no-read)
+resumably — 'partial'/'no-read' docs are the queue for new family hunts
+in ocr/. report.pdf exists ONLY as its committed cache
 (`tools/raster-cache/a42927acc2aaca91/`), the document itself. Speed
 (2026-07-16 PM): ~0.09 s/page — big.pdf ~31.5 s, v3 ~3.3 s (advance
 chaining + anchor index + cross-page hints; BLIND_READER.md bottom, incl.

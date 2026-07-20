@@ -17,6 +17,9 @@
 //   --prune          delete a doc's raster cache after reading (bounds disk:
 //                    a 96 GB corpus can cache tens of GB of rasters)
 //   --probe-page N   probe page (default 1)
+//   --shard i/n      process every n-th doc starting at i (0-based) with a
+//                    per-shard manifest — run n batch processes in parallel
+//                    on a huge corpus (each starts its own Chrome session)
 //   --chrome <exe>   Chrome path override
 //
 // Status per doc: 'exact' (0 □ — every glyph byte-certified at the rung's
@@ -57,7 +60,7 @@ const RUNGS = [
 
 // ---------------- args ----------------
 const o = { dir: null, out: null, limit: Infinity, redo: false, prune: false,
-  probePage: 1, chrome: process.env.CHROME || findChrome() };
+  probePage: 1, shard: null, chrome: process.env.CHROME || findChrome() };
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i], next = () => process.argv[++i];
   if (a === '--dir') o.dir = resolve(process.cwd(), next());
@@ -66,6 +69,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === '--redo') o.redo = true;
   else if (a === '--prune') o.prune = true;
   else if (a === '--probe-page') o.probePage = parseInt(next(), 10);
+  else if (a === '--shard') { const m = /^(\d+)\/(\d+)$/.exec(next()); if (!m) { console.error('--shard i/n'); process.exit(2); } o.shard = [+m[1], +m[2]]; }
   else if (a === '--chrome') o.chrome = next();
   else { console.error(`unknown arg ${a}`); process.exit(2); }
 }
@@ -94,7 +98,16 @@ function runRead(pdfPath, rungArgs, extra) {
 
 // ---------------- browser session (lazy: only if a doc needs rasterizing) ----
 let session = null, tabDocs = 0;
+// pdf.js can hang FOREVER on a pathological PDF (EFTA00009676 wedged the
+// first smoke run) and puppeteer's evaluate has no timeout — race every
+// in-page step and reset the tab on loss, so one bad doc costs its budget,
+// never the batch.
+const withTimeout = (p, ms, what) => Promise.race([p, new Promise((_, rej) => {
+  const t = setTimeout(() => rej(new Error(`timeout: ${what} after ${ms} ms`)), ms);
+  t.unref?.();
+})]);
 async function initTab(s) {
+  await s.page?.close().catch(() => {});
   s.page = await s.browser.newPage();
   await suppressAppInit(s.page);
   await s.page.goto(`${s.base}/src/training.html`, { waitUntil: 'load' });
@@ -127,12 +140,13 @@ async function rasterize(pdfPath, cache) {
   const staged = join(STAGING, `${cache.key}.pdf`);
   copyFileSync(pdfPath, staged);
   try {
-    const { numPages } = await s.page.evaluate(setupInPage,
-      { pdfUrl: `${s.base}/${relative(REPO, staged).replace(/\\/g, '/')}` });
+    const { numPages } = await withTimeout(s.page.evaluate(setupInPage,
+      { pdfUrl: `${s.base}/${relative(REPO, staged).replace(/\\/g, '/')}` }), 120000, 'pdf parse');
     cache.writeMeta(numPages, basename(pdfPath));
     for (let pno = 1; pno <= numPages; pno++) {
       if (cache.havePage(pno)) continue;
-      cache.writePage(pno, (await s.page.evaluate(rasterPageInPage, { pno })).cachePut);
+      cache.writePage(pno,
+        (await withTimeout(s.page.evaluate(rasterPageInPage, { pno }), 60000, `page ${pno}`)).cachePut);
     }
     return numPages;
   } catch (e) {
@@ -143,16 +157,20 @@ async function rasterize(pdfPath, cache) {
 
 // ---------------- main ----------------
 async function main() {
-  const files = [...walkPdfs(o.dir)];
+  let files = [...walkPdfs(o.dir)];
+  if (o.shard) files = files.filter((_, i) => i % o.shard[1] === o.shard[0]);
   mkdirSync(o.out, { recursive: true });
-  const manifestPath = join(o.out, 'manifest.jsonl');
+  // resume set = union of ALL shard manifests (shards may have been re-split)
+  const manifestPath = join(o.out, o.shard ? `manifest-${o.shard[0]}of${o.shard[1]}.jsonl` : 'manifest.jsonl');
   const done = new Map();
-  if (existsSync(manifestPath) && !o.redo)
-    for (const l of readFileSync(manifestPath, 'utf8').split('\n')) {
-      if (!l.trim()) continue;
-      try { const e = JSON.parse(l); done.set(e.file, e); } catch {}
-    }
-  console.log(`${files.length} PDFs under ${o.dir} (${done.size} already in manifest)`);
+  if (!o.redo)
+    for (const mf of readdirSync(o.out).filter(f => /^manifest.*\.jsonl$/.test(f)))
+      for (const l of readFileSync(join(o.out, mf), 'utf8').split('\n')) {
+        if (!l.trim()) continue;
+        try { const e = JSON.parse(l); done.set(e.file, e); } catch {}
+      }
+  console.log(`${files.length} PDFs under ${o.dir}` +
+    (o.shard ? ` (shard ${o.shard[0]}/${o.shard[1]})` : '') + ` (${done.size} already in manifests)`);
 
   const tally = {};
   let processed = 0;
@@ -181,6 +199,11 @@ async function main() {
         entry.probes[rung.name] = `${p.lines}/${p.glyphs}/${p.unread}`;
         if (!best || p.unread < best.p.unread ||
             (p.unread === best.p.unread && p.glyphs > best.p.glyphs)) best = { rung, p };
+        // early accept (speed only — selection is min-□ regardless): a clean
+        // or overwhelmingly-clean probe on an earlier (= more likely) rung
+        // ends the ladder; families with constant graphic remainders (the
+        // nimbusrom red footer) never probe fully clean.
+        if (p.glyphs > 0 && (p.unread === 0 || p.glyphs >= 50 * p.unread)) break;
       }
       if (!best || (best.p.glyphs === 0 && best.p.unread > 0)) {
         entry.status = 'no-read';
