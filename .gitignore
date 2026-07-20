@@ -7,6 +7,8 @@ NEW
 *.cpuprofile
 tools/gate-*
 !tools/gate-ref
+# batch-read.mjs stages out-of-repo PDFs here while rasterizing
+tools/batch-staging
 
 # ocr/ = standalone Outside In / courier renderer-hunt workspace (large,
 # per-document working data — code and small fixtures are tracked)

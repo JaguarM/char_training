@@ -15,7 +15,7 @@
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, resolve, basename, relative } from 'node:path';
 import puppeteer from 'puppeteer-core';
 import { findChrome, findPdf, suppressAppInit } from './paths.mjs';
@@ -33,14 +33,14 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === '--chrome') o.chrome = next();
 }
 
-function freePort() {
+export function freePort() {
   return new Promise((res, rej) => {
     const s = createServer();
     s.on('error', rej);
     s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); });
   });
 }
-async function waitForServer(base, timeoutMs = 15000) {
+export async function waitForServer(base, timeoutMs = 15000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     try { const r = await fetch(`${base}/src/training.html`); if (r.ok) return; } catch {}
@@ -50,7 +50,7 @@ async function waitForServer(base, timeoutMs = 15000) {
 }
 
 // Runs ONCE in the page: parse the PDF, stash it on window.
-async function setupInPage({ pdfUrl }) {
+export async function setupInPage({ pdfUrl }) {
   const ab = await (await fetch(pdfUrl)).arrayBuffer();
   window.__rz = { pdf: await pdfjsLib.getDocument({ data: ab }).promise };
   return { numPages: window.__rz.pdf.numPages };
@@ -58,7 +58,7 @@ async function setupInPage({ pdfUrl }) {
 
 // Runs once PER PAGE: extract the largest embedded image, reduce to the gray
 // page buffer (identical arithmetic to the engine's page buffer), encode.
-async function rasterPageInPage({ pno }) {
+export async function rasterPageInPage({ pno }) {
   const page = await window.__rz.pdf.getPage(pno);
   const imgs = await extractEmbeddedImages(page);
   if (!imgs.length) return { empty: true, cachePut: await rcEncodePage(null) };
@@ -126,4 +126,6 @@ async function main() {
     try { server.kill(); } catch {}
   }
 }
-main().catch(e => { console.error(e); process.exit(1); });
+// batch-read.mjs imports the session pieces above; only run as a CLI.
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href)
+  main().catch(e => { console.error(e); process.exit(1); });

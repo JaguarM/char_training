@@ -9,6 +9,7 @@
     "test": "node test/test.js && node test/engine.test.js",
     "test:engine": "node test/engine.test.js",
     "bench": "node tools/blind-read.mjs",
+    "batch": "node tools/batch-read.mjs",
     "gate": "node tools/gate.mjs",
     "rasterize": "node tools/rasterize.mjs",
     "glyphs-check": "node tools/export-glyphs.mjs --check",

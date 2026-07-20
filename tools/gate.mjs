@@ -35,7 +35,7 @@ const DOCS = [
     '--tol', '0', '--glyphs', LIN] },
   { name: 'courier_1', args: ['--pdf', '../corpus/courier_1.pdf', '--all', '--glyphs', COURIER] },
   { name: 'courier_2', args: ['--pdf', '../corpus/courier_2.pdf', '--all', '--glyphs', COURIER] },
-  { name: 'nimbusrom', args: ['--pdf', '../NEW/EFTA00039208.pdf', '--all', '--palette', '--tol', '0',
+  { name: 'nimbusrom', args: ['--pdf', '../corpus/nimbusrom.pdf', '--all', '--palette', '--tol', '0',
     '--glyphs', NIMBUSROM] },
 ];
 
