@@ -123,6 +123,11 @@ export const FAMILIES = [
     engineSet: 'nimbussansbdlin1536', record: 'FINDINGS-nimbusrom.md (18pt cover title)' },
   { name: 'tnrlin1024', renderable: true, font: `${WIN}/times.ttf`, em64: 1024, fy: [0], gid: 'cmap', post: 'linear254',
     engineSet: 'tnrlin1024', record: 'FINDINGS-nimbusrom.md (embedded REAL TNR subset: ■ + ’ “ ”)' },
+  // Sub-family #2 of the same palette container (court/ECF filings): NO
+  // linear step — post: null + per-page palette. One sub-family per
+  // SOURCE-document producer; body face here is Century Schoolbook.
+  { name: 'censcbk1198', renderable: true, font: `${WIN}/CENSCBK.TTF`, em64: 1198, fy: [0], gid: 'cmap', post: null,
+    engineSet: 'censcbk1198', record: 'FINDINGS-nimbusrom.md §sub-family 2 (EFTA00093044 brief body, EXACT)' },
 
   // ---- page-law families (no glyph render to try — recognize by fingerprint) ----
   { name: 'palette-quant', renderable: false,

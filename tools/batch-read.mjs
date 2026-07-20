@@ -118,6 +118,16 @@ async function initTab(s) {
   await s.page.addScriptTag({ path: resolve(__dirname, 'raster-cache-browser.js') });
   tabDocs = 0;
 }
+// after a timeout the renderer may be spinning in pdf.js — even a polite tab
+// close can stall on the CDP protocol timeout. Kill Chrome outright; the next
+// doc relaunches lazily (~3 s, cheap next to the budget the bad doc burned).
+function killSession() {
+  if (!session) return;
+  try { session.browser.process()?.kill('SIGKILL'); } catch {}
+  try { session.browser.close().catch(() => {}); } catch {}
+  try { session.server.kill(); } catch {}
+  session = null;
+}
 async function ensureSession() {
   if (session) return session;
   if (!o.chrome || !existsSync(o.chrome)) throw new Error('no Chrome found (pass --chrome)');
@@ -150,7 +160,7 @@ async function rasterize(pdfPath, cache) {
     }
     return numPages;
   } catch (e) {
-    await initTab(s).catch(() => {});                    // reset the tab after a bad PDF
+    killSession();                                       // renderer may be wedged — hard reset
     throw e;
   } finally { rmSync(staged, { force: true }); }
 }

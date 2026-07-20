@@ -26,7 +26,10 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === '--ystep') o.ystep = +next();
   else if (a === '--xstep') o.xstep = +next();
   else if (a === '--law') o.law = next();
-  else if (a === '--ink') o.ink = +next();     // gray ink C: srcover byte = 255 − round(cov·(255−C)/255)
+  else if (a === '--ink') {                    // gray ink C[:law] — law: round (srcover, default) | floor | fz (FZ_BLEND: 255−((255−C)·e)>>8, e=cov+(cov>>7))
+    const [c, lm] = next().split(':');
+    o.ink = +c; o.inkLaw = lm ?? 'round';
+  }
   else if (a === '--nolin') o.nolin = true;    // skip the +1 linear step inside the palette LUT
   else { console.error('unknown arg', a); process.exit(2); }
 }
@@ -97,9 +100,17 @@ for (let y = 0; y < TH; y++)
 // integer alignment of the render against the target window.
 const W = TW + 16, H = TH + 16;
 const blend = cov => {
-  const b = o.ink >= 0
-    ? 255 - Math.round(cov * (255 - o.ink) / 255)            // srcover gray ink
-    : (255 * (256 - (cov + (cov >> 7)))) >> 8;               // FZ_BLEND over white
+  let b;
+  if (o.ink >= 0) {
+    const a = 255 - o.ink;
+    b = o.inkLaw === 'fz' ? 255 - ((a * (cov + (cov >> 7))) >> 8)
+      : o.inkLaw === 'floor' ? 255 - ((cov * a / 255) | 0)
+      : o.inkLaw === 'cov' ? (() => {                        // alpha scales COVERAGE, then black FZ_BLEND
+          const c2 = Math.round(cov * a / 255), e = c2 + (c2 >> 7);
+          return (255 * (256 - e)) >> 8;
+        })()
+      : 255 - Math.round(cov * a / 255);                     // srcover gray ink
+  } else b = (255 * (256 - (cov + (cov >> 7)))) >> 8;        // FZ_BLEND over white
   return LAW ? LAW[b] : b;
 };
 

@@ -66,6 +66,11 @@ const SETS = [
   ['nimbusrombdlin1194', 'nimbusrombdlin_1194.npz'], // "PROGRAM STATEMENT" spaced caps
   ['nimbussansbdlin1536', 'nimbussansbdlin_1536.npz'], // Nimbus Sans Bold 18pt cover title
   ['tnrlin1024', 'tnrlin_1024.npz'],                 // REAL Times New Roman (embedded subset): ■ bullets + curly quotes
+  // court/ECF sub-family of the palette container (post: null, no linear) —
+  // FINDINGS-nimbusrom.md §sub-family 2; body EXACT, bold/italic companions
+  ['censcbk1198', 'censcbk_1198.npz'],               // Century Schoolbook 1198 — brief body
+  ['censcbkbd1198', 'censcbkbd_1198.npz'],
+  ['censcbki1198', 'censcbki_1198.npz'],
   ['segoeui16', 'segoeui_16.npz'],
   ['segoeuib16', 'segoeuib_16.npz'],
   ['segoeuii16', 'segoeuii_16.npz'],

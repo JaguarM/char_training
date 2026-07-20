@@ -70,6 +70,27 @@ node tools/blind-read.mjs --pdf <doc.pdf> --palette --tol 0 \
 Color pages: hyperlink blues etc. flood as usual; the palette's near-neutral
 AA entries (spread 1–3) neutralize to exactly the LUT gray.
 
+## Sub-family #2: court/ECF filings (EFTA00093044, found 07-21)
+
+Same palette container + renderer physics (¼-px x, INTEGER y, per-page
+/Indexed palette) but **NO linear step** (`post: null` + palette). Source
+documents are CM/ECF court filings; each source brings its own faces:
+
+| content | face | em64 | ink | verdict |
+|---|---|---|---|---|
+| brief body | **Century Schoolbook** (`C:/Windows/Fonts/CENSCBK.TTF`) | **1198** | black | EXACT 0/165 ('d' of "around", p20, pen 48/64,0) |
+| single-spaced blockquotes | same face | 1198 | gray srcover **C≈26** | maxd 2 — the known srcover ±1 quirk (calibri-family precedent); read tol 2 or harvest |
+| ECF banner ("Case 21-770, Document…") | Nimbus Sans | 1024 | blue → gray **118** srcover | maxd 2, same ±1 quirk |
+| ornate cover ("United States Court of Appeals…") | blackletter, unidentified | — | — | untriaged |
+
+Body reads immediately: p20 = 16 lines / 871 glyphs tol 0 with
+`censcbk_1198 + censcbkbd_1198 + censcbki_1198` + `--palette`.
+Lesson: the overlay claimed "Times-Roman 15.6" — advances measured from
+pixels said em≈22 which fit NO Times; the wide-advance/x-height ratio was
+the Century tell. **Within one container family, expect one sub-family per
+SOURCE-document producer** (BOP docs = Nimbus+linear254; court briefs =
+Century+no-linear; both under the same palette wrapper).
+
 ## Open
 
 - **Red footer legend** (every page, y≈982; P1 y≈941/948): red ink
