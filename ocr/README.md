@@ -59,7 +59,7 @@ findings file.
 Every byte-proven producer config lives there as data — font file, em64
 (trunc(em·64), THE sharp identifier), pen lattice, post-law — plus the
 page-law families the ¼-px engine can't render (palette quantization,
-JPEG jitter, Outside In variant B) with their fingerprints. `identify.mjs`
+JPEG jitter, the unsolved 816×1073 family) with their fingerprints. `identify.mjs`
 consumes it. **Add each newly proven config the moment it is certified** —
 that registry is what makes the next hunt start warm instead of cold.
 

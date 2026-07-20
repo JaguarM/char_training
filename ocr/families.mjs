@@ -26,8 +26,8 @@
 //     ¼-px engine cannot match; carries the fingerprint that identifies it
 //     and where the laws live.
 //
-// fy values are 1/64 px: [0] = integer baselines (Outside In / builtin
-// Courier — the only mode fillText can even produce, y-snap is
+// fy values are 1/64 px: [0] = integer baselines (the builtin-Courier
+// family — the only mode fillText can even produce, y-snap is
 // round-to-int); [0, 32] also tries true ½-px baselines (the corpus-era
 // model). The exact test is bbox-aligned (shift-invariant), so fy variants
 // only matter when they change the RASTER, not the placement.
@@ -88,7 +88,9 @@ export const FAMILIES = [
   // sets from harvest-band.mjs — fedline_page, hdrles_page, ftrfouo_page,
   // bullet16/bullet16b/bulleto16. Layout-constant across the family.
 
-  // ---- Outside In "PDF Image Export" with mupdf builtin base-14 faces ----
+  // ---- MuPDF-lineage renderer with builtin base-14 faces (7516xx block) ----
+  // (Producing program unidentified — "Oracle Outside In" was a guess from
+  // font resource names; only the render law below is byte-proven.)
   // Proven: FINDINGS.md 2026-07-19 — the 7516xx/7543xx/7569xx courier block.
   // em64 791 = 12.359375 px isotropic, ¼-px-x / INTEGER-y pens, single draw.
   // Non-exact remainders on real pages are neighbor-AA / drawn-rule
@@ -106,10 +108,10 @@ export const FAMILIES = [
     fingerprint: 'mode-3 color rasters, ±1 channel jitter on ink, blue mailto links',
     action: 'main engine --tol 1 on mode-3 rasters (times color family)',
     record: 'NEW/MANIFEST.md 07-14' },
-  { name: 'outside-in-arialB', renderable: false,
-    fingerprint: '816×1073 pages, CONTINUOUS pen lattice (zero byte-identical cell repeats), faux-bold headers',
-    action: 'NOT matchable by the ¼-px engine: 144dpi render → 2/3 cyclostationary downsample; open problem',
-    record: '../docs/OUTSIDE_IN_ARIAL.md (reconstructed 07-20 — original lost)' },
+  { name: 'unknown-816x1073', renderable: false,
+    fingerprint: '816×1073 pages (MediaBox 612×804.75pt), CONTINUOUS pen lattice (zero byte-identical cell repeats)',
+    action: 'NOT matchable by the ¼-px engine as-is; producer AND faces unidentified (the trio mixes g-shapes: ≥2 faces) — verify face from glyph shapes before any hunt; open problem',
+    record: 'RENDERING.md open-families note + NEW/MANIFEST.md §arial (07-17 findings doc lost, judged wrong 07-20)' },
   { name: 'stretched-rerender', renderable: false,
     fingerprint: 'no em64 satisfies all glyph features; stem widths CVT-fractional; face shapes contradict the overlay name (EFTA01150379: Cambria single-story ɡ under a "Times" overlay)',
     action: 'HUNT CLOSED (2026-07-19, user-verified from source): page image stretched by an unknown amount and rerendered — byte-exact identification unwinnable by construction. Recognize and STOP; empirical per-doc harvest is the only pixel route',

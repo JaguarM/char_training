@@ -31,8 +31,8 @@ certification, 0 byte diffs vs mupdf-wasm across TTF quads AND CFF cubics —
    config by exacts on isolated targets).
 4. **Pen lattice.** x snaps to **¼ px** (round-to-nearest; boundaries
    .125/.375/.625/.875 — MuPDF's glyph-cache subpixel quantization). y snap
-   is per-family: **½ px** in the corpus family, **integer** in the Outside
-   In / builtin-font family. mupdf-wasm `fillText` y-snaps round-to-int, so
+   is per-family: **½ px** in the corpus family, **integer** in the
+   builtin-font (Nimbus courier) family. mupdf-wasm `fillText` y-snaps round-to-int, so
    it can only produce integer-y rasters ("8-phase oracle" was really 4);
    `ftclone` places pens on any 1/64 — and no proven producer has needed
    fractional y so far. Always **one fill per glyph** (double-draw refuted,
@@ -54,7 +54,7 @@ expecting byte-identity — those came through the y-rounding wasm pipeline.
 
 | law | page byte | fingerprint / notes |
 |---|---|---|
-| **standard** (`post: null`) | blend byte unchanged | the corpus MuPDF family and Outside In courier |
+| **standard** (`post: null`) | blend byte unchanged | the corpus MuPDF family and the Nimbus courier block |
 | **linear** (eDiscovery) | `+1` for raw byte ∈ [128, 254]; kern overlaps multiply raw bytes in 255-space with floor, +1 per contributing light glyph; deliberate one-sided −1 slack on double-ink pixels only | `../docs/REPORT_RENDERER_HUNT.md`; the `*lin*` sets carry the law tag |
 | **mid** (Calibri/Word→JPEG family) | `t + (t>>7) − ((255−t)>>7)`, `t = 255−cov` — every AA byte pushed 1 away from the 127/128 midpoint | **spectral hole at 127/128** is the family fingerprint; per-(doc,page) ±1–2 curve wobble → engine sets are page-byte HARVESTS read at `--tol 2` (`FINDINGS-calibri.md`) |
 | **srcover colored/gray ink** | `255 − round(cov·(255−C)/255)`, C = ink gray | same family's gray runs (C 23 body-gray, ~127 letterhead, ~162/166 markings); keeps ±1 quirks — harvest absorbs them |
@@ -88,7 +88,7 @@ Machine form: `families.mjs`. em64/64 = px.
 | corpus MuPDF (Times NR 12pt @96dpi) | Windows times.ttf | 1024 (16) | ¼ / ½ | standard | times16 (+bd/i) | `../docs/RENDERER_IDENTIFIED.md` |
 | corpus courier body | Windows cour.ttf | 832 (13) | ¼ / ½ | standard | cour13 | `../docs/BLIND_READER.md` 07-12 |
 | eDiscovery report family | Windows times.ttf (+TimesNewRomanXP for tnr8) | 1024 (16) + a 10.667 px small-print set | ¼ / ½ | linear | timeslin16 etc. | `../docs/REPORT_RENDERER_HUNT.md` |
-| Outside In courier block (11 docs) | NimbusMonoPS-Regular.cff (mupdf builtin base-14) | **791** (12.359375, isotropic) | ¼ / **int** | standard | nimbus791 | `FINDINGS.md` |
+| courier 7516xx block (11 docs; producing program unknown — "Outside In" is an unverified resource-name guess) | NimbusMonoPS-Regular.cff (mupdf builtin base-14) | **791** (12.359375, isotropic) | ¼ / **int** | standard | nimbus791 | `FINDINGS.md` |
 | Calibri/Word letterhead family | calibri[b]-jondot.ttf (**version 1.02** — installed 6.2x has different w/x drawings) | 1024, 938 (11pt floor!), 1194 (14pt bold) | ¼ / int | mid + srcover grays | calibri102mid_* + page-cut sets | `FINDINGS-calibri.md` |
 | assorted probe sets (arial16, times13, cour10-16, segoe/verdana/georgia 16 …) | Windows faces | various | ¼ / ½ | standard | same names | exported 07-13/14 |
 
@@ -100,11 +100,19 @@ hdrles_page, ftrfouo_page, bullet16/bullet16b/bulleto16.
 
 ## Families with NO byte-exact glyph render (recognize, don't hunt)
 
-- **Outside In variant B** (`../docs/OUTSIDE_IN_ARIAL.md`): 816×**1073**
-  pages, ~144 dpi render downsampled 2/3 with a **cyclostationary**
-  resample, **continuous** pen positions (zero byte-identical cell repeats
-  across pages), faux-bold headers. The ¼-px phase engine cannot match it
-  by construction. Open problem.
+- **The 816×1073 trio** (formerly NEW/arial: EFTA02715183, EFTA02609263,
+  EFTA02718884 — PDFs since removed from NEW/): **open, and largely
+  UNCHARACTERIZED.** What stands: 816×**1073** pages (MediaBox
+  612×804.75 pt), zero byte-identical cell repeats across sampled pages
+  (⇒ not ¼-px-phase matchable as-is), and every probed pool/size read 0
+  lines. What does NOT stand: the producing program is unknown (the 07-17
+  "Oracle Outside In variant B" attribution was a guess — no access to
+  that software to test), and the faces are **unidentified and not even
+  one face**: EFTA02609263 + EFTA02715183 draw a double-story lowercase g,
+  EFTA02718884 a single-story g. The 07-17 session's downsample/faux-bold
+  "laws" died with its findings doc (lost, and judged wrong 07-20) —
+  re-measure everything from pixels if this is ever resumed, and check the
+  face identity from glyph shapes FIRST (the Cambria lesson below).
 - **Stretched rerender** (EFTA01150379 — hunt CLOSED 2026-07-19, do not
   resume): the page image was stretched by an unknown amount and
   rerendered, and the body face was **Cambria, not Times** (the
@@ -123,8 +131,8 @@ hdrles_page, ftrfouo_page, bullet16/bullet16b/bulleto16.
 | almost-reads, everything ±1 | palette quantization (`--quant`), then JPEG jitter (tol 1) |
 | page bytes never hit 127/128 | mid law (Calibri family) |
 | 0 lines at every plausible em64 of a face | wrong face/size — measure x-height & pitch from pixels; engine-probe sweep (README step 2) |
-| exact hits only at fx∈{0,¼,½,¾}, fy=0 | Outside In / builtin-font family (integer baselines) |
-| zero byte-identical cell repeats across pages | continuous pens (variant B class) — stop, not ¼-px matchable |
+| exact hits only at fx∈{0,¼,½,¾}, fy=0 | builtin-font family (integer baselines, Nimbus courier class) |
+| zero byte-identical cell repeats across pages | continuous pens (816×1073-trio class) — stop, not ¼-px matchable |
 | stems 2-col where a candidate gives 1-col; no em satisfies all features | wrong font FILE (Nimbus-vs-Courier class) or a resample stage (Cambria class) |
 | line pitch < maxAsc+maxDesc | not a render problem — engine stacked-band machinery (`../docs/BLIND_READER.md` 07-19 eve) |
 

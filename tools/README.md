@@ -124,8 +124,8 @@ node tools/fontgen.mjs --font path/to/face.ttf --size 16    # em64 = trunc(sizeÂ
 ```
 
 `--em64` is the sharp identifier of a render config (sizePx = em64/64);
-`--phases-y 0` builds integer-baseline-only sets (the Outside In / builtin
-Courier family) and is the only producer-certified mode. The default
+`--phases-y 0` builds integer-baseline-only sets (the builtin-Courier /
+nimbus791 family) and is the only producer-certified mode. The default
 `0,0.5` fills the corpus-era 8-phase slot layout but renders TRUE
 fractional-y pens â€” the legacy committed sets' `_1` rasters came through a
 y-rounding pipeline instead, so do NOT regenerate a legacy set with this

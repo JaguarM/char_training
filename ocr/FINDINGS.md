@@ -3,9 +3,11 @@
 ## The answer
 
 The 11 `EFTA0075xxxx` documents' Courier body glyphs are produced by a
-**MuPDF-lineage renderer** (Oracle Outside In's PDF image export embeds one)
-with its **built-in base-14 Courier: URW Nimbus Mono (CFF)** — *not* Courier
-New — at:
+**MuPDF-lineage renderer** with its **built-in base-14 Courier: URW Nimbus
+Mono (CFF)** — *not* Courier New — at the config below. (The producing
+*program* is unidentified; the earlier "Oracle Outside In" attribution was
+a guess from the `OPBaseFont` resource names — we have no access to that
+software to test. Only the render law is byte-proven.)
 
 | component   | value |
 |-------------|-------|

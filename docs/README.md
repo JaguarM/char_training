@@ -37,7 +37,7 @@ maps each fact to the document that proves it.
 | Color (mode-2) pages: plain black ink has R+G+B ≡ 0 (mod 3); non-neutral-connected ink components are flooded away before reading (app: exact per-pixel R≠G≠B via canvas RGBA) | [BLIND_READER.md](BLIND_READER.md) 07-12 PM |
 | Light rules (blockquote quote bars, separators): contiguous near-constant light run ≥40 px (min ≥160, max−min ≤8) is an object — text can never fake it | [BLIND_READER.md](BLIND_READER.md) 07-12 late |
 | courier_1/2.pdf body = Courier New **13px em** (advance 7.8 px, row pitch 15), same corpus MuPDF render family (Times header reads byte-exact at tol 0) | [BLIND_READER.md](BLIND_READER.md) 07-12 courier |
-| NEW/courier 7516xx/7543xx/7569xx block (11 docs) = Outside In-embedded MuPDF, builtin Courier = **URW Nimbus Mono CFF @ em64 791** (12.359375 px), ¼-px-x/int-y pens, single draw, standard blend → set `nimbus791`; pitch < maxAsc+maxDesc ⇒ stacked-band split/retro machinery | `ocr/FINDINGS.md` + [BLIND_READER.md](BLIND_READER.md) 07-19 eve |
+| NEW/courier 7516xx/7543xx/7569xx block (11 docs) = MuPDF-lineage renderer with its builtin Courier = **URW Nimbus Mono CFF @ em64 791** (12.359375 px), ¼-px-x/int-y pens, single draw, standard blend → set `nimbus791`; pitch < maxAsc+maxDesc ⇒ stacked-band split/retro machinery. (The producing *program* — "Oracle Outside In" per font resource names — is an unverified guess; only the render law is proven) | `ocr/FINDINGS.md` + [BLIND_READER.md](BLIND_READER.md) 07-19 eve |
 | NEW/calibri family = **Calibri VERSION 1.02** (installed 6.2x has different drawings) through the **"mid" law**: byte = t+(t>>7)−((255−t)>>7), t=255−cov (127/128 spectral hole = fingerprint); colored/gray runs srcover byte = 255−round(cov·(255−C)/255); per-(doc,page) ±1-2 wobble ⇒ harvested sets at --tol 2 + union ladder pass | `ocr/FINDINGS-calibri.md` |
 | EFTA01150379 ("times" 2427-pager) hunt CLOSED — page images stretched+rerendered, face was Cambria not Times: byte-identification unwinnable by construction. Check stretch/resample signatures + verify face from glyph shapes BEFORE any engine hunt | `ocr/RENDERING.md` (closed-families section) |
 
@@ -118,10 +118,6 @@ the --json label-drift note).
   dictionary recipe + the snap-boundary problem. Fed the (removed) legacy
   path; the fontgen glyph sets the blind reader uses come from the same
   identification.
-- [OUTSIDE_IN_ARIAL.md](OUTSIDE_IN_ARIAL.md) — the Outside In "variant B"
-  arial trio (816×1073, continuous pens — not ¼-px matchable; open).
-  **Reconstructed 2026-07-20**: the 07-17 original was never committed and
-  is lost — constants inside are re-measure-before-trusting claims.
 
 **Historical / superseded — in [archive/](archive/) (kept for provenance)**
 - [archive/RENDERER_HUNT_NOTES.md](archive/RENDERER_HUNT_NOTES.md) — the living notes of the
@@ -147,8 +143,9 @@ the --json label-drift note).
   found-config → glyph-set integration recipe. **`ocr/RENDERING.md` = the
   consolidated how-fonts-are-rendered reference** (all pipelines, post-laws,
   family configs, diagnosis cheat-sheet). Hunt records: `ocr/FINDINGS.md`
-  (courier/Nimbus), `ocr/FINDINGS-calibri.md` (Calibri 1.02 / mid law),
-  [OUTSIDE_IN_ARIAL.md](OUTSIDE_IN_ARIAL.md).
+  (courier/Nimbus), `ocr/FINDINGS-calibri.md` (Calibri 1.02 / mid law).
+  (The 2026-07-17 OUTSIDE_IN_ARIAL.md was lost, and its surviving claims
+  were wrong — see RENDERING.md's open-families note on the 816×1073 trio.)
 - `../Recto` — the Recto PDF editor (Django) embeds the engine as its
   `ocr_tool` plugin: verbatim copies of `src/{core,ocr,blindocr}.js` +
   glyph sets, pushed by `tools/sync-recto.mjs` (`npm run sync:recto`),
