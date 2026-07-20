@@ -99,6 +99,31 @@ export const FAMILIES = [
   { name: 'nimbus791', renderable: true, font: 'fonts/NimbusMonoPS-Regular.cff', em64: 791, fy: [0], gid: 'mupdf', post: null,
     engineSet: 'nimbus791', record: 'FINDINGS.md' },
 
+  // ---- eDiscovery serif family: builtin Nimbus + linear[128,254] + palette ----
+  // Proven: FINDINGS-nimbusrom.md 2026-07-20 (EFTA00039208, 12 pages, 13034
+  // glyphs read at tol 0). Pipeline: ftclone blend → linear +1 on raw byte ∈
+  // [128,254] (NOT the report family's 128..253 — raw 254/cov-1 pixels become
+  // WHITE) → per-page /Indexed palette: RGB-nearest entry (full palette
+  // including non-neutral entries, ties darker), page gray = round(mean).
+  // ¼-px x pens, INTEGER y. Unembedded base-14 → URW builtins at these em64s;
+  // EMBEDDED fonts (real TNR subset: ■ bullets, curly quotes) render directly
+  // at the same pens. Reader: blind-read --palette (per-page LUT from the
+  // PDF), tol 0.
+  { name: 'nimbusromlin1024', renderable: true, font: 'fonts/NimbusRoman-Regular.cff', em64: 1024, fy: [0], gid: 'mupdf', post: 'linear254',
+    engineSet: 'nimbusromlin1024', record: 'FINDINGS-nimbusrom.md (body 12pt)' },
+  { name: 'nimbusrombdlin1024', renderable: true, font: 'fonts/NimbusRoman-Bold.cff', em64: 1024, fy: [0], gid: 'mupdf', post: 'linear254',
+    engineSet: 'nimbusrombdlin1024', record: 'FINDINGS-nimbusrom.md (bold + letterhead)' },
+  { name: 'nimbusromlin983', renderable: true, font: 'fonts/NimbusRoman-Regular.cff', em64: 983, fy: [0], gid: 'mupdf', post: 'linear254',
+    engineSet: 'nimbusromlin983', record: 'FINDINGS-nimbusrom.md (OPI/NUMBER header block)' },
+  { name: 'nimbusromilin1024', renderable: true, font: 'fonts/NimbusRoman-Italic.cff', em64: 1024, fy: [0], gid: 'mupdf', post: 'linear254',
+    engineSet: 'nimbusromilin1024', record: 'FINDINGS-nimbusrom.md (italic body)' },
+  { name: 'nimbusrombdlin1194', renderable: true, font: 'fonts/NimbusRoman-Bold.cff', em64: 1194, fy: [0], gid: 'mupdf', post: 'linear254',
+    engineSet: 'nimbusrombdlin1194', record: 'FINDINGS-nimbusrom.md ("P R O G R A M  S T A T E M E N T")' },
+  { name: 'nimbussansbdlin1536', renderable: true, font: 'fonts/NimbusSans-Bold.cff', em64: 1536, fy: [0], gid: 'mupdf', post: 'linear254',
+    engineSet: 'nimbussansbdlin1536', record: 'FINDINGS-nimbusrom.md (18pt cover title)' },
+  { name: 'tnrlin1024', renderable: true, font: `${WIN}/times.ttf`, em64: 1024, fy: [0], gid: 'cmap', post: 'linear254',
+    engineSet: 'tnrlin1024', record: 'FINDINGS-nimbusrom.md (embedded REAL TNR subset: ■ + ’ “ ”)' },
+
   // ---- page-law families (no glyph render to try — recognize by fingerprint) ----
   { name: 'palette-quant', renderable: false,
     fingerprint: 'few distinct page bytes (<~64); reads "almost but ±1" against a proven rasterizer',

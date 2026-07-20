@@ -41,7 +41,7 @@
 // BR_LINE=<baseline> (accept trace), BR_PIX=<col> (per-pixel rejection detail).
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { gunzipSync } from 'node:zlib';
+import { gunzipSync, inflateSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve, join } from 'node:path';
 import { materializeSet } from './glyph-bundle.mjs';
@@ -66,6 +66,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === '--glyphs') o.glyphs = next().split(',');
   else if (a === '--union') o.union = true;
   else if (a === '--quant') o.quant = true;
+  else if (a === '--palette') o.palette = true;
   else if (a === '--matchcols') o.matchcols = parseInt(next(), 10);
   else { console.error(`unknown arg ${a}`); process.exit(2); }
 }
@@ -154,6 +155,49 @@ function cachePages(pdfPath) {
     page: pno => readGray(join(dir, `page-${String(pno).padStart(4, '0')}.gray.gz`)) };
 }
 
+// ---------------- palette LUTs (--palette) ----------------
+// Producers that store pages as /Indexed images (the eDiscovery Nimbus family)
+// quantize the composited page ONCE at the end: page byte = gray of the
+// RGB-nearest palette entry (ties darker) for the renderer's output byte.
+// Reading the per-page palettes straight from the PDF gives the engine the
+// TRUE quant map — the histogram heuristic (--quant) misses entries and
+// mis-breaks ties. Page order is taken as file order of the /Indexed
+// colorspace objects (holds for this producer's strictly sequential layout).
+function paletteLUTs(pdfPath) {
+  const buf = readFileSync(pdfPath);
+  const s = buf.toString('latin1');
+  const luts = new Map();
+  const re = /\[\s*\/Indexed\s*\/DeviceRGB\s*\d+\s+(\d+)\s+0\s+R\s*\]/g;
+  let m, pno = 0;
+  while ((m = re.exec(s))) {
+    pno++;
+    const om = new RegExp(`(?:^|\\s)${m[1]} 0 obj\\b`).exec(s.slice(0, s.length));
+    if (!om) continue;
+    const dictEnd = s.indexOf('stream', om.index);
+    const dict = s.slice(om.index, dictEnd);
+    let start = dictEnd + 'stream'.length;
+    if (s[start] === '\r') start++;
+    if (s[start] === '\n') start++;
+    const end = s.indexOf('endstream', start);
+    let pal = buf.subarray(start, end);
+    if (/\/Filter/.test(dict) && /FlateDecode/.test(dict)) pal = inflateSync(pal);
+    const entries = [];
+    for (let k = 0; k + 2 < pal.length; k += 3) entries.push([pal[k], pal[k + 1], pal[k + 2]]);
+    if (!entries.length) continue;
+    const lut = new Uint8Array(256);
+    for (let v = 0; v < 256; v++) {
+      let best = null, bd = Infinity;
+      for (const e of entries) {
+        const d = (e[0] - v) ** 2 + (e[1] - v) ** 2 + (e[2] - v) ** 2;
+        if (d < bd || (d === bd && e[0] + e[1] + e[2] < best[0] + best[1] + best[2])) { bd = d; best = e; }
+      }
+      lut[v] = Math.round((best[0] + best[1] + best[2]) / 3);
+    }
+    luts.set(pno, lut);
+  }
+  return luts;
+}
+
 // ---------------- glyph sets ----------------
 // All sets live in ONE committed binary bundle (assets/glyphs/glyphs.bin,
 // built + byte-certified from the .npz rasters by export-glyphs.mjs);
@@ -226,6 +270,8 @@ async function main() {
     const list = o.all ? Array.from({ length: cache.numPages }, (_, i) => i + 1) : [o.page];
     pages = list.map(pno => ({ pno, page: cache.page(pno) }));
   }
+  const palLuts = o.palette && o.pdf ? paletteLUTs(o.pdf) : null;
+  if (o.palette && (!palLuts || !palLuts.size)) console.error('  (--palette: no /Indexed palettes found)');
   const truth = o.truth ? readFileSync(o.truth, 'utf8').replace(/\r/g, '').split('\n') : null;
   // letters-only -> first matching truth row (the per-line linear find was
   // O(rows²) — ~20s of big.pdf's gate run was spent HERE, not reading)
@@ -244,7 +290,8 @@ async function main() {
   const carry = { last: null, picks: new Map() };   // cross-page layout hints
   for (const { pno, page } of pages) {
     if (!page) continue;
-    const { lines, objects } = await Engine.readPage(page, sets, { tol: o.tol, quant: o.quant, carry });
+    const { lines, objects } = await Engine.readPage(page, sets,
+      { tol: o.tol, quant: (o.palette && palLuts?.get(pno)) || o.quant, carry });
     const spaceAdv = Engine.spaceCalib(lines);
     const jsonLines = [];
     jsonPages.push({ pno, spaceAdv, objects, lines: jsonLines });

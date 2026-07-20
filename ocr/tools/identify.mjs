@@ -106,9 +106,10 @@ async function gidMapFor(fontPath, cps) {
   return new Map(cps.map(cp => [cp, f.encodeCharacter(cp)]));
 }
 const postMap = (dst, post) => {
-  if (post !== 'linear') return dst;
+  if (post !== 'linear' && post !== 'linear254') return dst;
+  const hi = post === 'linear254' ? 254 : 253;   // linear254: raw 254 (cov 1) → 255, drops the pixel
   const out = Uint8Array.from(dst);
-  for (let i = 0; i < out.length; i++) if (out[i] >= 128 && out[i] <= 253) out[i]++;
+  for (let i = 0; i < out.length; i++) if (out[i] >= 128 && out[i] <= hi) out[i]++;
   return out;
 };
 // exact-count of one (font-clone, em64, fy-list, post) config; earlyStop

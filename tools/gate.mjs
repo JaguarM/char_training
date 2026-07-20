@@ -22,6 +22,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const LIN = 'tnr8lin16,timesbdlin16,timesilin16,timeslin16,tnr8lin10';
 const COURIER = 'times16+timesbd16+timesi16,cour13';
+// EFTA00039208 serif family (ocr/FINDINGS-nimbusrom.md): URW builtins +
+// linear[128,254] + per-page /Indexed palette (--palette). Expected: 223
+// lines / 13034 glyphs / 38 □ (red footer legend + P1 seal graphic only).
+const NIMBUSROM = 'nimbusromlin1024+nimbusrombdlin1024+nimbusromlin983+nimbusromilin1024+nimbusrombdlin1194+nimbussansbdlin1536+tnrlin1024';
 
 const DOCS = [
   { name: 'v3', args: ['--pdf', '../corpus/v3.pdf', '--all', '--truth', '../corpus/v3.txt'] },
@@ -31,6 +35,8 @@ const DOCS = [
     '--tol', '0', '--glyphs', LIN] },
   { name: 'courier_1', args: ['--pdf', '../corpus/courier_1.pdf', '--all', '--glyphs', COURIER] },
   { name: 'courier_2', args: ['--pdf', '../corpus/courier_2.pdf', '--all', '--glyphs', COURIER] },
+  { name: 'nimbusrom', args: ['--pdf', '../NEW/EFTA00039208.pdf', '--all', '--palette', '--tol', '0',
+    '--glyphs', NIMBUSROM] },
 ];
 
 let outDir = join(__dirname, 'gate-out'), refDir = null, refGiven = false;

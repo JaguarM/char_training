@@ -1007,7 +1007,12 @@
       det = page._det = { gray: page.gray, mask: d.mask, objects: d.objects,
         bands: findBands(page, d.mask), quant: null };
     }
-    const quant = opts?.quant ? (det.quant ??= quantMap(page)) : null;
+    // opts.quant: true derives the map from the page histogram (quantMap); a
+    // 256-entry LUT is applied as-is — for producers whose true palette is
+    // known (the bench reads it from the PDF's /Indexed colorspace).
+    const quant = opts?.quant
+      ? (opts.quant.length === 256 ? opts.quant : (det.quant ??= quantMap(page)))
+      : null;
     const q = quant ? v => quant[v] : v => v;
     const { mask, objects } = det;
     // box halos (rect ±2): an unexplained cluster that TOUCHES a halo and is

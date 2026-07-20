@@ -53,6 +53,10 @@ const SIZE_PX = EM64 / 64;
 const PHASES_X = [0, 0.25, 0.5, 0.75];
 const PHASES_Y = optS('phases-y', '0,0.5').split(',').map(Number);
 const CHARS = optS('chars', DEFAULT_CHARS);
+// --linear: bake the eDiscovery post-law into the set bytes (raw ∈ [128,253]
+// → +1) and tag meta.pipeline 'linear-remap' so the engine's linear-set
+// machinery (glyph-bundle alphaOf, scanLine shift accounting) engages.
+const LINEAR = args.includes('--linear');
 const OUT = resolve(REPO, optS('out', `assets/fonts/${FONT.replace(/^.*[\\/]/, '').replace(/\..*$/, '')}_${EM64}.npz`));
 const fontPath = resolve(REPO, FONT);
 
@@ -100,7 +104,11 @@ for (const c of CHARS) {
     const gw = x1 - x0 + 1, gh = y1 - y0 + 1;
     const raster = Buffer.alloc(gw * gh);
     for (let r = 0; r < gh; r++)
-      for (let col = 0; col < gw; col++) raster[r * gw + col] = dst[(y0 + r) * W + x0 + col];
+      for (let col = 0; col < gw; col++) {
+        let b = dst[(y0 + r) * W + x0 + col];
+        if (LINEAR && b >= 128 && b <= 254) b++;   // raw 254 (cov 1) → 255: producer drops it (EFTA00039208 byte-proven)
+        raster[r * gw + col] = b;
+      }
     glyphs.set(key, { raster, w: gw, h: gh, dx: x0 - PENX, dy: y0 - BASEY });
     nInk++;
   }
@@ -165,7 +173,8 @@ function writeZip(path, entries) {            // entries: [name, Buffer][]
 const meta = {
   fontfile: FONT.replace(/\\/g, '/'), size_px: SIZE_PX, chars: CHARS,
   phases_x: PHASES_X, phases_y: PHASES_Y,
-  pipeline: `ftclone em64 ${EM64} unhinted-ft ftgrays single-draw (certified vs mupdf-wasm; ocr/FINDINGS.md)`,
+  pipeline: `ftclone em64 ${EM64} unhinted-ft ftgrays single-draw (certified vs mupdf-wasm; ocr/FINDINGS.md)`
+    + (LINEAR ? ' linear-remap' : ''),
 };
 const advBuf = Buffer.alloc(advances.length * 8);
 advances.forEach((a, i) => advBuf.writeDoubleLE(a, i * 8));

@@ -55,7 +55,8 @@ expecting byte-identity — those came through the y-rounding wasm pipeline.
 | law | page byte | fingerprint / notes |
 |---|---|---|
 | **standard** (`post: null`) | blend byte unchanged | the corpus MuPDF family and the Nimbus courier block |
-| **linear** (eDiscovery) | `+1` for raw byte ∈ [128, 254]; kern overlaps multiply raw bytes in 255-space with floor, +1 per contributing light glyph; deliberate one-sided −1 slack on double-ink pixels only | `../docs/REPORT_RENDERER_HUNT.md`; the `*lin*` sets carry the law tag |
+| **linear** (eDiscovery) | `+1` for raw byte ∈ [128, 253] (report family) or [128, **254**] (Nimbus family — raw 254/cov-1 becomes WHITE, the pixel vanishes); kern overlaps multiply raw bytes in 255-space with floor, +1 per contributing light glyph; deliberate one-sided −1 slack on double-ink pixels only | `../docs/REPORT_RENDERER_HUNT.md`, `FINDINGS-nimbusrom.md`; the `*lin*` sets carry the law tag |
+| **linear + true palette** (eDiscovery Nimbus family) | blend → linear[128,254] → per-page `/Indexed` palette: RGB-nearest over the FULL palette **including non-neutral entries** (ties darker), page gray = round(mean(entry)) | `FINDINGS-nimbusrom.md`; read with `blind-read --palette` (LUT from the PDF — the histogram `--quant` mis-breaks ties); engine `readPage` accepts a 256-LUT as `opts.quant` |
 | **mid** (Calibri/Word→JPEG family) | `t + (t>>7) − ((255−t)>>7)`, `t = 255−cov` — every AA byte pushed 1 away from the 127/128 midpoint | **spectral hole at 127/128** is the family fingerprint; per-(doc,page) ±1–2 curve wobble → engine sets are page-byte HARVESTS read at `--tol 2` (`FINDINGS-calibri.md`) |
 | **srcover colored/gray ink** | `255 − round(cov·(255−C)/255)`, C = ink gray | same family's gray runs (C 23 body-gray, ~127 letterhead, ~162/166 markings); keeps ±1 quirks — harvest absorbs them |
 | **palette quantization** | `Q(composited page)`: nearest available neutral gray, ties darker | `/Indexed` page image / gappy histogram; reads "almost but ±1" against a proven rasterizer → **always check for a palette before hunting renderers**. Engine `--quant` (v4/email-P1 family, `../docs/BLIND_READER.md` 07-12) |
@@ -89,6 +90,7 @@ Machine form: `families.mjs`. em64/64 = px.
 | corpus courier body | Windows cour.ttf | 832 (13) | ¼ / ½ | standard | cour13 | `../docs/BLIND_READER.md` 07-12 |
 | eDiscovery report family | Windows times.ttf (+TimesNewRomanXP for tnr8) | 1024 (16) + a 10.667 px small-print set | ¼ / ½ | linear | timeslin16 etc. | `../docs/REPORT_RENDERER_HUNT.md` |
 | courier 7516xx block (11 docs; producing program unknown — "Outside In" is an unverified resource-name guess) | NimbusMonoPS-Regular.cff (mupdf builtin base-14) | **791** (12.359375, isotropic) | ¼ / **int** | standard | nimbus791 | `FINDINGS.md` |
+| eDiscovery Nimbus serif family (EFTA00039208) | NimbusRoman-Regular/-Bold.cff, NimbusSans-Bold.cff (mupdf builtins) + **embedded real TNR** (times.ttf) for ■/curly quotes | 1024 body, **983** header block, 1194 spaced caps, **1536** title | ¼ / **int** | linear[128,254] + per-page palette | nimbusrom*lin*, nimbussansbdlin1536, tnrlin1024 (read `--palette`) | `FINDINGS-nimbusrom.md` |
 | Calibri/Word letterhead family | calibri[b]-jondot.ttf (**version 1.02** — installed 6.2x has different w/x drawings) | 1024, 938 (11pt floor!), 1194 (14pt bold) | ¼ / int | mid + srcover grays | calibri102mid_* + page-cut sets | `FINDINGS-calibri.md` |
 | assorted probe sets (arial16, times13, cour10-16, segoe/verdana/georgia 16 …) | Windows faces | various | ¼ / ½ | standard | same names | exported 07-13/14 |
 
@@ -128,7 +130,9 @@ hdrles_page, ftrfouo_page, bullet16/bullet16b/bulleto16.
 
 | symptom | first suspect |
 |---|---|
-| almost-reads, everything ±1 | palette quantization (`--quant`), then JPEG jitter (tol 1) |
+| almost-reads, everything ±1 | palette quantization (`--quant` — and if the PDF has `/Indexed` pages, `--palette` for the TRUE per-page LUT), then JPEG jitter (tol 1) |
+| geometry perfect, AA off by ±1–2, sporadic predicted-254 pixels white on page | wrong linear-law domain — try [128,254] (`fontgen --linear`), then the palette |
+| right size but every Windows-face set reads 0 | face substitution: try the URW builtins (Nimbus Roman/Sans/Mono) — overlay font names are claims |
 | page bytes never hit 127/128 | mid law (Calibri family) |
 | 0 lines at every plausible em64 of a face | wrong face/size — measure x-height & pitch from pixels; engine-probe sweep (README step 2) |
 | exact hits only at fx∈{0,¼,½,¾}, fy=0 | builtin-font family (integer baselines, Nimbus courier class) |
