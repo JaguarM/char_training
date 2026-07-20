@@ -93,6 +93,24 @@ async function run() {
     await fileInput.uploadFile(TEST_PDF);
     await page.waitForFunction(() => state.numPages === 7 && state.pageImages?.length === 7);
 
+    // The adapter auto-reads every loaded document and then picks the shown
+    // text layer. Wait for that cycle to settle FIRST — clicking the manual
+    // buttons mid-auto-run would race it — then assert the choice: this is a
+    // scanned document (no embedded text), so the OCR layer must be shown.
+    await page.waitForFunction(() => OCRTool.state.autoDone && !OCRTool.state.running);
+    const auto = await page.evaluate(() => ({
+      ocrBoxes: utbState.boxes.filter(b => b.type === 'ocr').length,
+      ocrHidden: document.body.classList.contains('hide-ocr-text'),
+      embeddedHidden: document.body.classList.contains('hide-embedded-text'),
+      status: document.getElementById('ocr-status')?.textContent ?? '',
+    }));
+    if (!(auto.ocrBoxes > 0 && !auto.ocrHidden && auto.embeddedHidden)) {
+      console.error(`  FAIL: auto OCR/layer choice — ${auto.ocrBoxes} boxes, ` +
+        `ocrHidden=${auto.ocrHidden}, embeddedHidden=${auto.embeddedHidden}`);
+      console.error(`  status: ${auto.status}`);
+      failed = true;
+    }
+
     // Drive the REAL UI (a programmatic OCRTool.run() would mask dead button
     // wiring — that bug happened): toggle the subtoolbar, press "This page",
     // then wait for actual 'ocr' boxes — a dead button times out here.

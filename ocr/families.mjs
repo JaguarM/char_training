@@ -3,6 +3,8 @@
 // `identify.mjs` tries every renderable entry automatically against
 // harvested targets, so a new hunt starts from all known answers instead of
 // from a blank page (or from whatever a human remembers to paste in).
+// Human-readable companion: RENDERING.md (the full pipeline + post-law +
+// diagnosis reference this registry mirrors).
 //
 // Add a family the moment it is byte-proven; point `record` at the document
 // that proves it. Constants here are COPIES for machine use — the proving
@@ -107,7 +109,11 @@ export const FAMILIES = [
   { name: 'outside-in-arialB', renderable: false,
     fingerprint: '816×1073 pages, CONTINUOUS pen lattice (zero byte-identical cell repeats), faux-bold headers',
     action: 'NOT matchable by the ¼-px engine: 144dpi render → 2/3 cyclostationary downsample; open problem',
-    record: '../docs/OUTSIDE_IN_ARIAL.md' },
+    record: '../docs/OUTSIDE_IN_ARIAL.md (reconstructed 07-20 — original lost)' },
+  { name: 'stretched-rerender', renderable: false,
+    fingerprint: 'no em64 satisfies all glyph features; stem widths CVT-fractional; face shapes contradict the overlay name (EFTA01150379: Cambria single-story ɡ under a "Times" overlay)',
+    action: 'HUNT CLOSED (2026-07-19, user-verified from source): page image stretched by an unknown amount and rerendered — byte-exact identification unwinnable by construction. Recognize and STOP; empirical per-doc harvest is the only pixel route',
+    record: 'RENDERING.md closed-families section; full record in Desktop/standalone_proj/ocr-times-hunt-2026-07-18.zip' },
 ];
 
 // Plausible em64 range for --scan when nothing above matches: ~7px to ~20px

@@ -12,6 +12,12 @@ Success = a renderer that reproduces harvested targets EXACTLY (every
 byte). Once ~20 targets are EXACT with one config, the method is found —
 record it in `families.mjs` + a findings note and integrate.
 
+**Read [RENDERING.md](RENDERING.md) before hunting** — the consolidated
+reference of every proven rendering pipeline (the shared FT/ftgrays/blend
+glyph pipeline, all post-laws, pen lattices, family configs, and a
+fast-diagnosis cheat-sheet). Most "new" documents are a known family at an
+unknown size, or a known family behind a palette/jitter page law.
+
 ## The pipeline — a new mystery document is 3 commands
 
 ```
@@ -108,6 +114,13 @@ Lessons already paid for (the hunts' scar tissue):
 - fillText y-snaps pens round-to-int (the "8-phase oracle" was 4 rasters);
   `ftclone` places pens on any 1/64 and is byte-certified against the wasm
   — re-run `node tools/ftclone.mjs` after ANY edit to it.
+- **Before any engine hunt: (1) test for resample/stretch signatures,
+  (2) verify the face identity from distinctive glyph shapes** — never from
+  overlay/name claims. The EFTA01150379 "times" hunt burned days proving
+  laws of a rerender pipeline: the page images were stretched+rerendered
+  and the face was Cambria (single-story ɡ), not Times. Byte-exact
+  identification of such a doc is unwinnable by construction — recognize
+  and stop (RENDERING.md closed-families section).
 
 ## Integration — identified config → reading documents
 
@@ -131,8 +144,10 @@ including the stacked-band engine work small line pitches need — is
 ## Layout
 
 ```
+RENDERING.md      THE how-fonts-are-rendered reference (all proven pipelines)
 families.mjs      the proven-producer registry (identify.mjs reads it)
 FINDINGS.md       courier/Nimbus hunt record (SOLVED + integrated)
+FINDINGS-calibri.md  Calibri 1.02 / mid-law hunt record (SOLVED + integrated)
 pages/<DOC>/      ingested docs: page-NNNN.pgm + .words.json + meta.json
 targets/          harvested ground truth + index.json (id, ch claim, cp,
                   phaseSlot, adv, frac, obs, srcs — every target re-findable

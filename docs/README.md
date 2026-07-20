@@ -2,7 +2,7 @@
 
 Start here. This file is the map: the system in ten lines, the proven physics,
 the regression gate, and what every other document is (and whether it is still
-current). Last full revision: 2026-07-12.
+current). Last full revision: 2026-07-20.
 
 ## The system in ten lines
 
@@ -21,6 +21,11 @@ it (BLIND_READER.md bottom sections record the removal and what replaced what).
 
 ## Proven physics (byte-exact facts — do not re-derive)
 
+**The consolidated rendering reference is [../ocr/RENDERING.md](../ocr/RENDERING.md)**
+— every proven glyph pipeline, post-law, pen lattice, and family config in
+one place (machine-readable mirror: `ocr/families.mjs`). The table below
+maps each fact to the document that proves it.
+
 | Fact | Where proven |
 |---|---|
 | Corpus pages = MuPDF, Times NR 12pt @ 96dpi gray (16px em), 816×1056; gray = 255−coverage, no gamma | [RENDERER_IDENTIFIED.md](RENDERER_IDENTIFIED.md) |
@@ -33,6 +38,8 @@ it (BLIND_READER.md bottom sections record the removal and what replaced what).
 | Light rules (blockquote quote bars, separators): contiguous near-constant light run ≥40 px (min ≥160, max−min ≤8) is an object — text can never fake it | [BLIND_READER.md](BLIND_READER.md) 07-12 late |
 | courier_1/2.pdf body = Courier New **13px em** (advance 7.8 px, row pitch 15), same corpus MuPDF render family (Times header reads byte-exact at tol 0) | [BLIND_READER.md](BLIND_READER.md) 07-12 courier |
 | NEW/courier 7516xx/7543xx/7569xx block (11 docs) = Outside In-embedded MuPDF, builtin Courier = **URW Nimbus Mono CFF @ em64 791** (12.359375 px), ¼-px-x/int-y pens, single draw, standard blend → set `nimbus791`; pitch < maxAsc+maxDesc ⇒ stacked-band split/retro machinery | `ocr/FINDINGS.md` + [BLIND_READER.md](BLIND_READER.md) 07-19 eve |
+| NEW/calibri family = **Calibri VERSION 1.02** (installed 6.2x has different drawings) through the **"mid" law**: byte = t+(t>>7)−((255−t)>>7), t=255−cov (127/128 spectral hole = fingerprint); colored/gray runs srcover byte = 255−round(cov·(255−C)/255); per-(doc,page) ±1-2 wobble ⇒ harvested sets at --tol 2 + union ladder pass | `ocr/FINDINGS-calibri.md` |
+| EFTA01150379 ("times" 2427-pager) hunt CLOSED — page images stretched+rerendered, face was Cambria not Times: byte-identification unwinnable by construction. Check stretch/resample signatures + verify face from glyph shapes BEFORE any engine hunt | `ocr/RENDERING.md` (closed-families section) |
 
 Rule of thumb: a new document reading "almost but ±1" against a proven
 rasterizer = **check for a palette before hunting renderers**.
@@ -65,15 +72,18 @@ ink confined to a box's halo — the box's own REDACTED content, not unread
 text. App test expects: all pages byte-clean; v3 P1 38 in-truth, email P1
 48/54 letter-exact vs defect-carrying truth, courier_1 P1 57/57.
 
-NEW/ certified (truths beside the PDFs, all round-trip 0-diff):
-courier/EFTA00434905 `305/22,796/0□`, courier/EFTA00382108
+NEW/ certified (truths beside the PDFs, all round-trip 0-diff; current
+folder layout + per-doc status: `NEW/MANIFEST.md` — NEW/ is untracked and
+temporary, folders come and go):
+courier-ez/EFTA00434905 `305/22,796/0□`, courier-ez/EFTA00382108
 `1545/114,273/0□`, times/efta00037366 `17/544/0□`, times/EFTA00010016
 `17/649/0□/17 frags`, times/EFTA00161526 `12/534/0□`, times/EFTA00009888
 `6/112/0□`, times/EFTA00756043 `60/1958/0□/11 frags` at **--tol 1** (its
 producer JPEG-compresses pages — ±1 channel jitter). 2026-07-19 eve: the
 whole courier 7516xx/7543xx/7569xx block — **all 11 docs 0 □** with
 `--glyphs nimbus791` (~4,960 lines / ~353k glyphs, ~1 s/doc; per-doc table
-in NEW/MANIFEST.md).
+in NEW/MANIFEST.md). 2026-07-19 late: NEW/calibri both docs 0 □ (tol 2 +
+union ladder pass, app/Recto parity verified — `ocr/FINDINGS-calibri.md`).
 
 Facts that live nowhere else: courier_1/2 truths are the reader's own
 certified transcriptions (no external truth exists). In `--glyphs`, `+`
@@ -108,6 +118,10 @@ the --json label-drift note).
   dictionary recipe + the snap-boundary problem. Fed the (removed) legacy
   path; the fontgen glyph sets the blind reader uses come from the same
   identification.
+- [OUTSIDE_IN_ARIAL.md](OUTSIDE_IN_ARIAL.md) — the Outside In "variant B"
+  arial trio (816×1073, continuous pens — not ¼-px matchable; open).
+  **Reconstructed 2026-07-20**: the 07-17 original was never committed and
+  is lost — constants inside are re-measure-before-trusting claims.
 
 **Historical / superseded — in [archive/](archive/) (kept for provenance)**
 - [archive/RENDERER_HUNT_NOTES.md](archive/RENDERER_HUNT_NOTES.md) — the living notes of the
@@ -130,8 +144,11 @@ the --json label-drift note).
   document, `ingest → harvest → identify` fingerprints the pages and tries
   every proven producer family (`ocr/families.mjs`, the machine-readable
   registry) automatically; its README is the runbook, incl. the
-  found-config → glyph-set integration recipe. Hunt records: `ocr/FINDINGS.md`
-  (courier/Nimbus), [OUTSIDE_IN_ARIAL.md](OUTSIDE_IN_ARIAL.md).
+  found-config → glyph-set integration recipe. **`ocr/RENDERING.md` = the
+  consolidated how-fonts-are-rendered reference** (all pipelines, post-laws,
+  family configs, diagnosis cheat-sheet). Hunt records: `ocr/FINDINGS.md`
+  (courier/Nimbus), `ocr/FINDINGS-calibri.md` (Calibri 1.02 / mid law),
+  [OUTSIDE_IN_ARIAL.md](OUTSIDE_IN_ARIAL.md).
 - `../Recto` — the Recto PDF editor (Django) embeds the engine as its
   `ocr_tool` plugin: verbatim copies of `src/{core,ocr,blindocr}.js` +
   glyph sets, pushed by `tools/sync-recto.mjs` (`npm run sync:recto`),

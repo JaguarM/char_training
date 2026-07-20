@@ -82,7 +82,8 @@ but with jitter pixels neutralized differently than the id-lab pgm ingest.
   template anchored on a faint column misaligns when the scan absorbs that
   column — the ION 'O' lesson). Repeated chars land in ¼-phase slots (≤4).
 - `tools/gen-white.mjs` — reader-view pgm materializer (above).
-- `tools/graylaw.mjs` — cov→byte scatter fitter for colored runs.
+- `tools/attic/graylaw.mjs` — cov→byte scatter fitter for colored runs
+  (retired to attic with the hunt's other one-shot probes).
 - `tools/attic/fy-probe.mjs` — single-glyph (em64, fx, fy, C) pen-lattice probe
   with ±3 slide; the workhorse for face/size/color identification.
 - `harvest-prop.mjs` gained `--c <gray>` (srcover candidates, adaptive seed).
