@@ -144,6 +144,14 @@ scattered tol-0 single-glyph matches from the old pool (revision-shared
 drawings), and probe-times on an unread 'h' pinned face+em+law in 3 runs.
 **Probe interior pages (p3+) before declaring a palette candidate dead.**
 
+Full-doc numbers (07-21 late, `tools/per-page-read.ps1`, 45 s/page guard):
+**262/347 pages read = 3,743 L / 229,422 g / 4,923 □** (worst page 65 □ —
+mostly ¶-number junction residue); **85 pages TIMED OUT** — exhibit scans
+with color/jitter ink (p19 first). ~25 % grinder pages is why the naked
+`blind-read --all` run went >20 min before being killed; ALWAYS use the
+per-page driver (or batch-read) on unknown big compilations. Grinder root
+cause = the §93044 full-page-gray problem, still untriaged.
+
 ## Census-candidate triage 07-21 PM (top 8 of scan10k-50k, all probed from pixels)
 
 - `EFTA00316714` 347pp → **sub-family #3, reads** (above).

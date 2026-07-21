@@ -27,7 +27,11 @@ for ($p = 1; $p -le $Pages; $p++) {
     -RedirectStandardOutput $log -RedirectStandardError (Join-Path $OutDir "page-$tag.err")
   if (-not $proc.WaitForExit($TimeoutSec * 1000)) {
     $proc.Kill()
-    Move-Item $log "$log.TIMEOUT" -Force
+    $proc.WaitForExit()   # release the redirect handles before renaming
+    for ($try = 0; $try -lt 10; $try++) {
+      try { Move-Item $log "$log.TIMEOUT" -Force -ErrorAction Stop; break }
+      catch { Start-Sleep -Milliseconds 300 }
+    }
     Write-Output "p${p}: TIMEOUT (skipped)"
   }
 }
