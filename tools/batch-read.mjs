@@ -26,13 +26,15 @@
 // proven tolerance), 'partial' (reads with □ remainders — candidate for a
 // family hunt in ocr/), 'no-read' (no rung reads P1 — unknown producer),
 // 'empty' (no ink), 'raster-error' (pdf.js could not open/extract).
+// 'pagesSkipped' on an entry lists pages dropped by the per-page fallback
+// (marker line in the transcript at each skip).
 //
 // PDFs outside the repo are staged (copied) into tools/batch-staging/ while
 // rasterizing — serve.mjs only serves repo-relative paths, and the cache key
 // is the content hash, so the staged copy fills the ORIGINAL file's cache.
 import { spawn, spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync,
-  rmSync, appendFileSync, statSync } from 'node:fs';
+  rmSync, appendFileSync, statSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve, join, relative, basename } from 'node:path';
 import puppeteer from 'puppeteer-core';
@@ -51,7 +53,11 @@ const STAGING = join(__dirname, 'batch-staging');
 const RUNGS = [
   { name: 'corpus', args: ['--glyphs', 'times16+timesbd16+timesi16,cour13,arial16'] },                   // docs/RENDERER_IDENTIFIED.md
   { name: 'nimbus791', args: ['--glyphs', 'nimbus791'] },                                                // ocr/FINDINGS.md (courier block)
-  { name: 'nimbusrom', args: ['--palette', '--glyphs',                                                   // ocr/FINDINGS-nimbusrom.md
+  // probeMs 20s (10× a real P1 probe): on alien /Indexed docs (cleaned scans)
+  // a plausible-looking LUT can send the engine into a near-endless
+  // probeBaseline sweep — EFTA00009676 burned unbounded time here. Real
+  // family docs probe in ~2 s.
+  { name: 'nimbusrom', probeMs: 20000, args: ['--palette', '--glyphs',                                   // ocr/FINDINGS-nimbusrom.md
     'nimbusromlin1024+nimbusrombdlin1024+nimbusromlin983+nimbusromilin1024+nimbusrombdlin1194+nimbussansbdlin1536+tnrlin1024'] },
   { name: 'calibri', args: ['--tol', '2', '--glyphs',                                                    // ocr/FINDINGS-calibri.md
     'calibri102mid_1024+calibrib102mid_1024+calibri102g23_1024+bullet16+bullet16b+bulleto16,calibri102mid_938,calibrib102mid_1194,fedline_page,hdrles_page,ftrfouo_page'] },
@@ -85,15 +91,45 @@ function* walkPdfs(dir) {
   }
 }
 
-// run blind-read as the gate does; -> { lines, glyphs, unread, frags } | null
-function runRead(pdfPath, rungArgs, extra) {
+// run blind-read as the gate does; -> { lines, glyphs, unread, frags } | null.
+// timeoutMs kills a wedged read (a garbage-input pathology in any rung must
+// cost one budget, never the batch — the palette-LUT hang on EFTA00009676
+// took this exact shape before it was root-caused).
+function runRead(pdfPath, rungArgs, extra, timeoutMs) {
   const r = spawnSync(process.execPath, ['blind-read.mjs', '--pdf', pdfPath, ...rungArgs, ...extra],
-    { cwd: __dirname, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
-  if (r.status !== 0) return null;
+    { cwd: __dirname, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024,
+      timeout: timeoutMs, killSignal: 'SIGKILL' });
+  if (r.error?.code === 'ETIMEDOUT') return 'timeout';
+  if (r.status !== 0 || r.error) return null;
   const m = /(\d+) lines, (\d+) glyphs, (\d+) unreadable/.exec(r.stdout);
   if (!m) return null;
   const f = /(\d+) box fragments/.exec(r.stdout);
   return { lines: +m[1], glyphs: +m[2], unread: +m[3], frags: f ? +f[1] : 0 };
+}
+
+// full read; on doc-level timeout fall back to per-page reads — a single
+// pathological page (e.g. an embedded scan grinding the engine under the
+// family LUT: EFTA00040347 p4 ran >5 min alone) must cost one page budget
+// and an honest skip marker, never the whole transcript.
+function fullRead(pdfPath, rungArgs, numPages, outTxt) {
+  const full = runRead(pdfPath, rungArgs, ['--all', '--out', outTxt], 300000 + 5000 * numPages);
+  if (full !== 'timeout') return full;
+  const tot = { lines: 0, glyphs: 0, unread: 0, frags: 0, pagesSkipped: [] };
+  const parts = [];
+  for (let pno = 1; pno <= numPages; pno++) {
+    const tmp = `${outTxt}.p${pno}`;
+    const p = runRead(pdfPath, rungArgs, ['--page', String(pno), '--out', tmp], 60000);
+    if (!p || p === 'timeout') {
+      tot.pagesSkipped.push(pno);
+      parts.push(`[page ${pno} unread: ${p === 'timeout' ? 'engine budget exceeded' : 'read error'}]`);
+    } else {
+      tot.lines += p.lines; tot.glyphs += p.glyphs; tot.unread += p.unread; tot.frags += p.frags;
+      parts.push(readFileSync(tmp, 'utf8').replace(/\n$/, ''));
+    }
+    rmSync(tmp, { force: true });
+  }
+  writeFileSync(outTxt, parts.join('\n') + '\n');
+  return tot;
 }
 
 // ---------------- browser session (lazy: only if a doc needs rasterizing) ----
@@ -204,8 +240,8 @@ async function main() {
       entry.probes = {};
       let best = null;
       for (const rung of RUNGS) {
-        const p = runRead(pdfPath, rung.args, ['--page', String(probePage)]);
-        if (!p) { entry.probes[rung.name] = 'error'; continue; }
+        const p = runRead(pdfPath, rung.args, ['--page', String(probePage)], rung.probeMs ?? 60000);
+        if (!p || p === 'timeout') { entry.probes[rung.name] = p ? 'timeout' : 'error'; continue; }
         entry.probes[rung.name] = `${p.lines}/${p.glyphs}/${p.unread}`;
         if (!best || p.unread < best.p.unread ||
             (p.unread === best.p.unread && p.glyphs > best.p.glyphs)) best = { rung, p };
@@ -222,12 +258,16 @@ async function main() {
       } else {
         const outTxt = join(o.out, rel.replace(/\.pdf$/i, '.txt'));
         mkdirSync(dirname(outTxt), { recursive: true });
-        const full = runRead(pdfPath, best.rung.args, ['--all', '--out', outTxt]);
+        const full = fullRead(pdfPath, best.rung.args, numPages, outTxt);
         if (!full) entry.status = 'read-error';
         else {
           Object.assign(entry, { rung: best.rung.name, ...full });
           entry.status = full.glyphs === 0 ? (full.unread ? 'no-read' : 'empty')
-            : full.unread === 0 ? 'exact' : 'partial';
+            : full.unread === 0 ? 'exact'
+            : full.unread > 4 * full.glyphs ? 'no-read'   // a scan's stray tol-matches are not a read
+            : 'partial';
+          if (entry.pagesSkipped?.length && entry.status === 'exact') entry.status = 'partial';
+          if (!entry.pagesSkipped?.length) delete entry.pagesSkipped;
         }
       }
       if (o.prune && entry.key) rmSync(join(__dirname, 'raster-cache', entry.key), { recursive: true, force: true });

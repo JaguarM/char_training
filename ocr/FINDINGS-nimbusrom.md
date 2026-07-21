@@ -70,6 +70,19 @@ node tools/blind-read.mjs --pdf <doc.pdf> --palette --tol 0 \
 Color pages: hyperlink blues etc. flood as usual; the palette's near-neutral
 AA entries (spread 1–3) neutralize to exactly the LUT gray.
 
+## --palette resolution (rewritten 07-21)
+
+`blind-read --palette` now resolves palettes through **mupdf's object API**
+(indirect refs, object streams, filters all handled; largest /Indexed image
+per page wins; `readStream()` must be called on the indirect REF — the
+resolved object refuses, mupdf-js quirk). The original raw-byte scrape
+mislocated objects on any PDF with a different layout and built garbage LUTs
+that passed the white check — the engine then ground near-endlessly
+(EFTA00039421, EFTA00009676). Guards kept: hival+1 entry cap, white-stays-
+white plausibility. Bonus: mupdf-resolved palettes read EFTA00039208 p2 at
+1 □ (the scrape's 7 □ were mislocated-palette casualties). Gate 7/7
+byte-identical after the rewrite.
+
 ## Sub-family #2: court/ECF filings (EFTA00093044, found 07-21)
 
 Same palette container + renderer physics (¼-px x, INTEGER y, per-page

@@ -42,7 +42,7 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { gunzipSync, inflateSync } from 'node:zlib';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, resolve, join } from 'node:path';
 import { materializeSet } from './glyph-bundle.mjs';
 import Engine from '../src/ocr-engine.js';
@@ -161,39 +161,73 @@ function cachePages(pdfPath) {
 // RGB-nearest palette entry (ties darker) for the renderer's output byte.
 // Reading the per-page palettes straight from the PDF gives the engine the
 // TRUE quant map — the histogram heuristic (--quant) misses entries and
-// mis-breaks ties. Page order is taken as file order of the /Indexed
-// colorspace objects (holds for this producer's strictly sequential layout).
-function paletteLUTs(pdfPath) {
-  const buf = readFileSync(pdfPath);
-  const s = buf.toString('latin1');
+// mis-breaks ties.
+//
+// Resolution goes through mupdf's object API (ocr/node_modules, same loader
+// as fontgen.mjs): the earlier raw-byte scrape mislocated objects on any PDF
+// whose palettes sit in object streams — it then built a garbage LUT from
+// whatever bytes it hit, which passed the white check and sent the engine
+// into a near-endless read (EFTA00039421, EFTA00009676). Per page: largest
+// /Indexed image in the page resources wins; per-entry cap hival+1 ≤ 256 by
+// spec; a palette that darkens white (lut[255] < 250) is a scan image, not a
+// page of this family — skipped.
+async function paletteLUTs(pdfPath) {
+  let mupdf;
+  try {
+    const dir = join(REPO, 'ocr', 'node_modules', 'mupdf');
+    const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'));
+    const exp = pkg.exports;
+    const entry = typeof exp === 'string' ? exp
+      : exp?.['.'] ? (typeof exp['.'] === 'string' ? exp['.'] : exp['.'].import ?? exp['.'].default)
+      : pkg.module ?? pkg.main;
+    mupdf = await import(pathToFileURL(join(dir, entry)).href);
+  } catch { console.error('  (--palette: mupdf not available — run cd ocr && npm install)'); return new Map(); }
   const luts = new Map();
-  const re = /\[\s*\/Indexed\s*\/DeviceRGB\s*\d+\s+(\d+)\s+0\s+R\s*\]/g;
-  let m, pno = 0;
-  while ((m = re.exec(s))) {
-    pno++;
-    const om = new RegExp(`(?:^|\\s)${m[1]} 0 obj\\b`).exec(s.slice(0, s.length));
-    if (!om) continue;
-    const dictEnd = s.indexOf('stream', om.index);
-    const dict = s.slice(om.index, dictEnd);
-    let start = dictEnd + 'stream'.length;
-    if (s[start] === '\r') start++;
-    if (s[start] === '\n') start++;
-    const end = s.indexOf('endstream', start);
-    let pal = buf.subarray(start, end);
-    if (/\/Filter/.test(dict) && /FlateDecode/.test(dict)) pal = inflateSync(pal);
-    const entries = [];
-    for (let k = 0; k + 2 < pal.length; k += 3) entries.push([pal[k], pal[k + 1], pal[k + 2]]);
-    if (!entries.length) continue;
-    const lut = new Uint8Array(256);
-    for (let v = 0; v < 256; v++) {
-      let best = null, bd = Infinity;
-      for (const e of entries) {
-        const d = (e[0] - v) ** 2 + (e[1] - v) ** 2 + (e[2] - v) ** 2;
-        if (d < bd || (d === bd && e[0] + e[1] + e[2] < best[0] + best[1] + best[2])) { bd = d; best = e; }
+  let doc;
+  try { doc = mupdf.Document.openDocument(readFileSync(pdfPath), 'application/pdf'); }
+  catch { return luts; }
+  const n = doc.countPages();
+  for (let p = 0; p < n; p++) {
+    try {
+      const page = doc.loadPage(p);
+      const xo = page.getObject()?.get('Resources')?.get('XObject');
+      if (!xo || !xo.isDictionary?.()) continue;
+      let best = null, bestPx = -1;
+      xo.forEach(val => {
+        try {
+          const im = val.resolve?.() ?? val;
+          if (im.get('Subtype')?.asName?.() !== 'Image') return;
+          const px = (im.get('Width')?.asNumber?.() ?? 0) * (im.get('Height')?.asNumber?.() ?? 0);
+          const cs = im.get('ColorSpace')?.resolve?.() ?? im.get('ColorSpace');
+          if (!cs?.isArray?.() || cs.get(0)?.asName?.() !== 'Indexed') return;
+          if (px > bestPx) { bestPx = px; best = cs; }
+        } catch {}
+      });
+      if (!best) continue;
+      const hival = Math.min(best.get(2)?.asNumber?.() ?? 255, 255);
+      // readStream must be called on the indirect REF (resolve() yields an
+      // object whose isStream()/readStream() refuse — mupdf-js quirk)
+      const lookup = best.get(3);
+      let pal = null;
+      try { pal = lookup.readStream().asUint8Array(); } catch {}
+      if (!pal) { try { pal = Uint8Array.from(lookup.asByteString()); } catch {} }
+      if (!pal || pal.length < 3) continue;
+      const entries = [];
+      const nEnt = Math.min(Math.floor(pal.length / 3), hival + 1);
+      for (let k = 0; k + 2 < nEnt * 3; k += 3) entries.push([pal[k], pal[k + 1], pal[k + 2]]);
+      if (!entries.length) continue;
+      const lut = new Uint8Array(256);
+      for (let v = 0; v < 256; v++) {
+        let bst = null, bd = Infinity;
+        for (const e of entries) {
+          const d = (e[0] - v) ** 2 + (e[1] - v) ** 2 + (e[2] - v) ** 2;
+          if (d < bd || (d === bd && e[0] + e[1] + e[2] < bst[0] + bst[1] + bst[2])) { bd = d; bst = e; }
+        }
+        lut[v] = Math.round((bst[0] + bst[1] + bst[2]) / 3);
       }
-      lut[v] = Math.round((best[0] + best[1] + best[2]) / 3);
-    }
-    luts.set(pno, lut);
+      if (lut[255] < 250) continue;            // darkens white: scan image, not this family
+      luts.set(p + 1, lut);
+    } catch {}
   }
   return luts;
 }
@@ -270,7 +304,7 @@ async function main() {
     const list = o.all ? Array.from({ length: cache.numPages }, (_, i) => i + 1) : [o.page];
     pages = list.map(pno => ({ pno, page: cache.page(pno) }));
   }
-  const palLuts = o.palette && o.pdf ? paletteLUTs(o.pdf) : null;
+  const palLuts = o.palette && o.pdf ? await paletteLUTs(o.pdf) : null;
   if (o.palette && (!palLuts || !palLuts.size)) console.error('  (--palette: no /Indexed palettes found)');
   const truth = o.truth ? readFileSync(o.truth, 'utf8').replace(/\r/g, '').split('\n') : null;
   // letters-only -> first matching truth row (the per-line linear find was
