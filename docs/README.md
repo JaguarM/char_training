@@ -103,9 +103,10 @@ probes pick the best proven family rung, the winner full-reads, and
 resumably — 'partial'/'no-read' docs are the queue for new family hunts
 in ocr/. report.pdf exists ONLY as its committed cache
 (`tools/raster-cache/a42927acc2aaca91/`), the document itself. Speed
-(2026-07-16 PM): ~0.09 s/page — big.pdf ~31.5 s, v3 ~3.3 s (advance
-chaining + anchor index + cross-page hints; BLIND_READER.md bottom, incl.
-the --json label-drift note).
+(2026-07-21): ~0.067 s/page — big.pdf ~22.6 s, v3 ~2.4 s (advance
+chaining + anchor index + cross-page hints, then 07-21: white-word skip +
+run-based dust CC in detectObjects, census-rare ink trial order;
+BLIND_READER.md bottom, incl. the --json label-drift note).
 
 ## Document map
 

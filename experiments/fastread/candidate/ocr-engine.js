@@ -24,6 +24,12 @@
 (function (root) {
   'use strict';
 
+  // fastread instrumentation (candidate copy only): trial counts + pixel walks
+  // + detectObjects sub-phase ms (fused pass / object assembly / mask / dust)
+  const ST = { calls: 0, pix: 0, acc: 0, rejEarly: 0,
+    detFuse: 0, detAsm: 0, detMask: 0, detDust: 0 };
+  const NOW = typeof performance !== 'undefined' ? () => performance.now() : () => Date.now();
+
   // --union pool: one merged candidate list over all sets, so a single line
   // may mix fonts (bold "From:" label + regular value). Per-glyph `lin` keeps
   // each candidate on its own compositor law; byte-exact matching keeps
@@ -96,24 +102,25 @@
     const vdS = new Int32Array(w).fill(-1), vdGap = new Int32Array(w);
     const vlS = new Int32Array(w).fill(-1), vlMn = new Int32Array(w), vlMx = new Int32Array(w);
     // ---- white-word fast path ----
-    // A white pixel's effect on every machine is fixed: the row machines are
-    // all quiescent (-1) after at most two whites (dark bridges one gap; light
-    // and short close on the first), and a white pixel changes a COLUMN
-    // machine only if that column has an open run. So: view the page 4 bytes
-    // at a time; when a word is 0xFFFFFFFF and the row machines are idle, the
-    // only work left is closing open column runs — tracked in a bitset, so
-    // idle columns (margins: most of the page) cost one bit test. Runs close
-    // at the same (x,y) as the per-pixel code, so rows/shortRuns/vcols come
-    // out identical (a shortRun can only ever close per-pixel: sS open means
-    // the word wasn't all-white, and the first white after it is per-pixel).
+    // A white pixel's effect on every machine is fixed: row machines are all
+    // quiescent (-1) after at most two whites (dark bridges one gap; light and
+    // short close on the first), and a white pixel changes a COLUMN machine
+    // only if that column has an open run. So: view the page 4 bytes at a
+    // time; when a word is 0xFFFFFFFF and the row machines are idle, the only
+    // work is closing open column runs — tracked in a bitset so idle columns
+    // (margins: most of the page) cost one bit test. Runs close at the same
+    // (x,y) as the per-pixel code, so rows/shortRuns/vcols come out identical
+    // (shortRuns can only ever close per-pixel: sS opens ⇒ the word wasn't
+    // all-white, and the first white after it is processed per-pixel).
+    let _t = NOW();
     const len = w * h;
     let wsrc = gray;
     if (gray.byteOffset & 3) { wsrc = new Uint8Array((len + 3) & ~3); wsrc.set(gray); }
     const words = new Uint32Array(wsrc.buffer, wsrc.byteOffset, len >> 2);
     const colAct = new Uint32Array((w + 31) >> 5);        // superset of columns with open runs
-    // raw ink runs (gray<255, no mask knowledge yet), harvested by THIS scan
-    // so the dust pass below never rereads the page. Flat typed arrays, grown
-    // by doubling: [aX0,aX1] inclusive, row aY, run min byte aMin.
+    // raw ink runs (gray<255, no mask knowledge yet), harvested by THIS scan so
+    // the dust pass below never rereads the page. Flat typed arrays, grown by
+    // doubling: [aX0,aX1] inclusive, row aY, run min byte aMin.
     let aCap = 4096, nRaw = 0;
     let aX0 = new Int32Array(aCap), aX1 = new Int32Array(aCap),
       aY = new Int32Array(aCap), aMin = new Int32Array(aCap);
@@ -140,6 +147,7 @@
       for (let x = 0; x <= w; x++) {                      // x == w: row sentinel column
         if (rowLive && dS < 0 && lS < 0 && sS < 0 && ((off + x) & 3) === 0) {
           while (x + 4 <= w && words[(off + x) >> 2] === 0xFFFFFFFF) {
+            ST.fastPx += 4;
             if (colAct[x >> 5] | (colAct[(x + 3) >> 5])) {
               for (let k = 0; k < 4; k++) {
                 const xx = x + k;
@@ -148,6 +156,7 @@
             }
             x += 4;
           }
+          if (x > w) break;                               // cannot happen (x+4<=w guard); safety
         }
         const v = rowLive && x < w ? gray[off + x] : 255;
         if (rowLive) {
@@ -204,6 +213,7 @@
         }
       }
     }
+    ST.detFuse += NOW() - _t; _t = NOW();
     rows.sort((a, b) => a.y - b.y || a.x0 - b.x0);
     const objects = [];
     for (const r of rows) {
@@ -341,6 +351,7 @@
     // the blanket ±2 in Y: underlines live UNDER text and their over/under
     // rows are a legitimate glyph∩rule composite zone (link rows regressed
     // when rules went adaptive).
+    ST.detAsm += NOW() - _t; _t = NOW();
     const mask = new Uint8Array(w * h);
     const rowIvs = new Array(h);           // per-row masked x-intervals [x0,x1) — lets the
                                            // dust pass split raw runs without reading mask bytes
@@ -364,19 +375,18 @@
       }
     }
     // ---- dust & ghost masking (see comment above the mask builder) ----
+    ST.detMask += NOW() - _t; _t = NOW();
     {
       // Connected components (8-conn, over gray<255 && !mask) via row runs +
       // union-find — replaces the per-pixel DFS flood (9 neighbour checks per
-      // ink pixel, formerly the single most expensive loop in this function).
-      // Semantics are identical: same components, same n/minv/bbox, and every
-      // downstream consumer (transitive keep, swarm grouping) is a
-      // fixpoint/partition — component order provably cannot change the
-      // outcome. Runs come from the fused scan's raw harvest, split where the
-      // object mask covers them (rowIvs mirrors the mask bytes exactly — the
-      // mask has no other writers before this point), so this pass reads NO
-      // page bytes except to recompute the min byte of a piece the mask
-      // truncated (the cut part may have held the min).
+      // ink pixel, the most expensive loop in detectObjects). Semantics are
+      // identical: same components, same n/minv/bbox, and every downstream
+      // consumer (transitive keep, swarm grouping) is a fixpoint/partition —
+      // component ORDER cannot change the outcome. Pixels are masked run-wise
+      // instead of via per-pixel lists.
       const bigs = [], smalls = [];
+      // runs, flat typed arrays (grown by doubling): rX0/rX1 inclusive, per-run
+      // row rY, union-find parent rPar, run min byte rMin
       let cap = 4096, nRuns = 0;
       let rX0 = new Int32Array(cap), rX1 = new Int32Array(cap), rY = new Int32Array(cap),
         rPar = new Int32Array(cap), rMin = new Int32Array(cap);
@@ -385,6 +395,12 @@
         rX0 = g2(rX0); rX1 = g2(rX1); rY = g2(rY); rPar = g2(rPar); rMin = g2(rMin); };
       const find = (a) => { let r = a; while (rPar[r] !== r) r = rPar[r];
         while (rPar[a] !== r) { const nx = rPar[a]; rPar[a] = r; a = nx; } return r; };
+      // Runs come from the fused scan's raw harvest, split where the object
+      // mask covers them (rowIvs mirrors the mask bytes exactly — the mask has
+      // no other writers before this point), so this pass reads NO page bytes
+      // except to recompute the min byte of a piece the mask truncated (the
+      // cut part may have held the min). Same run set, order, and 8-conn graph
+      // as scanning (gray<255 && !mask) directly.
       let ps = 0, pe = 0, cs = 0, curY = -2;              // prev-row run window
       const emit = (x0, x1, y, minv) => {
         if (nRuns === cap) grow();
@@ -422,7 +438,7 @@
         }
         if (cur <= end) piece(cur, end, i);
       }
-      // accumulate per-root n/minv/bbox (root-indexed typed arrays)
+      // accumulate per-root n/minv/bbox (root-indexed typed arrays, no Map)
       const cN = new Int32Array(nRuns), cMin = new Int32Array(nRuns),
         cX0 = new Int32Array(nRuns), cX1 = new Int32Array(nRuns),
         cY0 = new Int32Array(nRuns), cY1 = new Int32Array(nRuns);
@@ -434,12 +450,12 @@
         if (rX0[i] < cX0[r]) cX0[r] = rX0[i]; if (rX1[i] > cX1[r]) cX1[r] = rX1[i];
         if (rY[i] < cY0[r]) cY0[r] = rY[i]; if (rY[i] > cY1[r]) cY1[r] = rY[i];
       }
-      // classify roots in first-run (raster) order; cls 1 = mask its pixels
+      // classify roots in first-run (raster) order; 1 = mask its pixels
       const cls = new Uint8Array(nRuns);
       for (let i = 0; i < nRuns; i++) {
         const r = find(i);
         if (!cN[r] || cls[r]) continue;                   // visited via earlier run
-        cls[r] = 2;                                       // classified, keep
+        cls[r] = 2;                                       // 2 = classified, keep
         if (cMin[r] >= 244) cls[r] = 1;                   // ghost
         else if (cN[r] > 12) bigs.push([cX0[r], cX1[r], cY0[r], cY1[r]]);
         else if (cX1[r] - cX0[r] < 4 && cY1[r] - cY0[r] < 4)
@@ -486,6 +502,7 @@
         for (let xx = rX0[i]; xx <= rX1[i]; xx++) mask[b + xx] = 1;
       }
     }
+    ST.detDust += NOW() - _t;
     mask._rows = mRows;
     return { mask, objects };
   }
@@ -519,38 +536,9 @@
   // predictions (pred > 254−2·TOL) prove nothing from a white page and stay
   // out of the mask. Tie-break on the original candidate order (_i) keeps
   // acceptance independent of group iteration order.
-  // ---- discriminating-first ink order ----
-  // tryCand walks a candidate's ink arrays in order and hard-rejects at the
-  // first pixel the page cannot support; its verdict is order-invariant
-  // (reject iff ANY pixel hard-fails, counts are sums), so the walk order is
-  // free to choose. Build order (column-major, left→right) is pessimal: the
-  // scanner anchors every candidate by its first ink column, so the left edge
-  // nearly always matches and wrong candidates die late (~9 px). Reorder by
-  // pool-census rarity — pixels whose (row, col, byte-bucket) prediction is
-  // shared by the fewest pool mates first — and rejects die in ~3 px. Applied
-  // once per pool (guarded), in the aligned frame row = dy+r, col = c−inkLeft.
-  function rareOrder(cands) {
-    const census = new Map();
-    const key = (g, k) =>
-      ((g.dy + g.inkR[k] + 64) << 12) | ((g.inkC[k] - g.inkLeft) << 3) | (g.inkB[k] >> 5);
-    for (const g of cands) for (let k = 0; k < g.inkC.length; k++)
-      census.set(key(g, k), (census.get(key(g, k)) || 0) + 1);
-    for (const g of cands) {
-      const n = g.inkC.length;
-      if (g._rare || n < 2) { g._rare = 1; continue; }
-      g._rare = 1;
-      const idx = Array.from({ length: n }, (_, k) => k);
-      const sc = idx.map(k => census.get(key(g, k)));
-      idx.sort((a, b) => sc[a] - sc[b] || g.inkB[a] - g.inkB[b] || a - b);
-      const pick = (arr) => arr.constructor.from(idx, k => arr[k]);
-      g.inkC = pick(g.inkC); g.inkR = pick(g.inkR); g.inkB = pick(g.inkB); g.inkA = pick(g.inkA);
-    }
-  }
-
   function anchorGroups(set, phy, quant, TOL) {
     const cands = set.byPhy.get(phy) ?? [];
     const ASC = set.maxAsc, span = ASC + set.maxDesc;
-    if (!cands._rare) { rareOrder(cands); cands._rare = true; }
     if (span > 64) return null;                        // mask would overflow: plain path
     cands.forEach((g, i) => { g._i = i; });
     // Per glyph column, TWO row masks. Ink mask (m): rows whose fresh-canvas
@@ -778,11 +766,13 @@
       if (gx < xFrom || gx + g.w > xTo || gy < y0 || gy + g.h > y1) return null;
       // must explain the anchor column itself (hoisted: cheap reject)
       if (col < gx || col >= gx + g.w) return null;
+      ST.calls++;
       let exact = 0, pending = 0, skipped = 0;
       const linG = g.lin ?? lin;
       const { inkC, inkR, inkB, inkA } = g, nInk = inkC.length;
       const rowBase = gy * W + gx, canBase = (gy - y0) * bw + (gx - xFrom);
       for (let k = 0; k < nInk; k++) {
+        ST.pix++;
         const cc = inkC[k], rr = inkR[k];
         const pOff = rowBase + rr * W + cc;
         if (skip[canBase + rr * bw + cc]) { skipped++; continue; }  // object/absorbed pixel: no evidence either way
@@ -794,7 +784,7 @@
           const d = QUANT ? QUANT[gb] : gb;
           if (pv >= d - TOL && pv <= d + TOL) exact++;
           else if (pv < d - TOL) pending++;              // darker: future glyph may composite
-          else return null;
+          else { ST.rejEarly++; return null; }
           continue;
         }
         // tol mode: a neighbour may have absorbed this pixel's composite
@@ -826,7 +816,7 @@
           console.log(`      pix '${g.ch}' pen ${pi + g.phx} @(${gx + cc},${gy + rr}) gb=${gb} cv=${cv} pv=${pv} minPred=${minPred}`);
         if (hit) exact++;
         else if (pv < q(minPred) - t) pending++;         // darker: future glyph may composite
-        else return null;
+        else { ST.rejEarly++; return null; }
       }
       // pending is for kern overlap (a few columns) — a glyph "hiding" inside
       // solid ink shows up as mostly-pending and must not be accepted; a glyph
@@ -835,6 +825,7 @@
       if (considered < nInk * 0.5 ||
           exact < considered * 0.5 || pending > considered * 0.35) return null;
       if (accepted.has(`${g.ch}@${pi + g.phx}`)) return null;  // after the pixel work: rare
+      ST.acc++;
       return { g, pi, gx, gy, exact, pending, score: exact - pending * 0.25 };
     };
 
@@ -1476,7 +1467,7 @@
   }
 
   const api = { unionSets, quantMap, detectObjects, findBands, anchorGroups,
-    CHAIN_PROBES, scanLine, probeBaseline, spaceCalib, readPage };
+    CHAIN_PROBES, scanLine, probeBaseline, spaceCalib, readPage, _stats: ST };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.OCREngine = api;
 })(typeof self !== 'undefined' ? self : this);

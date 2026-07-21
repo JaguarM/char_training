@@ -1031,3 +1031,37 @@ green; recto-test PASS — and now uploads `NEW/courier/EFTA00751637.pdf`
 through the real file input instead of trusting Recto's app-side default
 document (which is currently swapped to the unsolved efta00018586 for
 Recto-side experiments — the plugin itself is a verbatim synced copy).
+
+## 2026-07-21 — detectObjects fast paths + discriminating-first trial order (byte-identical speedups)
+
+Three engine changes, all proven output-identical (experiments/fastread
+glyph-stream hash on big + v3, gate 7/7 BYTE-IDENTICAL, app + Recto tests):
+
+- **White-word fast path in the fused detector pass.** The page is viewed 4
+  bytes at a time (`Uint32`); an all-white word with idle row machines (always
+  true after ≤2 whites) reduces to closing open COLUMN runs, tracked in a
+  per-column bitset — idle columns (margins) cost one bit test per 4 px. Runs
+  close at the same (x,y) as per-pixel code; shortRuns can only close
+  per-pixel (an open sS means the word wasn't all-white), so
+  rows/shortRuns/vcols are identical. The same scan now also harvests RAW ink
+  runs (x0/x1/minv per row) into typed arrays.
+- **Dust/ghost sweep: per-pixel DFS flood → row-run connected components.**
+  The flood (9 neighbour checks per ink pixel) was the single most expensive
+  loop in detectObjects. Now: the harvested raw runs are split where the
+  object mask covers them (per-row interval list mirroring the mask bytes;
+  a truncated piece re-reads the page only to recompute its min byte), then
+  union-find merges 8-connected runs; per-root n/minv/bbox accumulate in
+  typed arrays. Downstream consumers (transitive keep, swarm grouping) are
+  fixpoints/partitions, so component order cannot change the outcome.
+- **Census-rare ink trial order** (rareOrder, applied once per pool in
+  anchorGroups): tryCand's verdict is order-invariant (hard-reject iff ANY
+  ink pixel fails; counts are sums), and build order (column-major) is
+  pessimal because candidates anchor by their first ink column. Pixels are
+  reordered rarest-(row,col,byte-bucket)-first over the pool census; wrong
+  candidates die in ~3 px instead of ~9 (27.6 trials per accepted glyph
+  measured on big).
+
+Speed: big.pdf full read 26.7 → 22.6 s bench (gate doc 23.3 s), v3 3.1 → 2.4 s;
+detectObjects phase 9.1 → 5.9 s on big. Measurement harness + instrumented
+counters: experiments/fastread/ (temporary, deletable — everything landed
+here is self-contained in src/ocr-engine.js).
