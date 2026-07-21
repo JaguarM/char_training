@@ -111,6 +111,63 @@ the Century tell. **Within one container family, expect one sub-family per
 SOURCE-document producer** (BOP docs = Nimbus+linear254; court briefs =
 Century+no-linear; both under the same palette wrapper).
 
+## Sub-family #3: ECF federal briefs, OLD-revision NimbusRoman (EFTA00316714, found 07-21 PM)
+
+Same palette container, NO linear step (like sub-family #2), but the source
+is a federal securities brief (Case 1:08-cv-02793-RWS, Bear Stearns, 347 pp)
+whose unembedded **Times-Roman gets the builtin substitution** — and the
+producer's NimbusRoman is an **OLD revision**: 1.12.0–1.23.0 all render the
+probe glyphs identically and fit `bad=2/88` (both bad px = neighbor bleed),
+while the lab's unnumbered `NimbusRoman-Regular.cff` misses (`bad=6`) —
+revision IS load-bearing here, unlike the BOP block. Font resources are all
+unembedded base-14 with `OPBaseFont` naming (the Outside In producer
+signature).
+
+| run | face | em64 | ink | verdict |
+|---|---|---|---|---|
+| body + TOC (dot leaders incl.) | NimbusRoman old-rev | 1024 | black | EXACT — p3 TOC reads 28 L / 2,290 g / **0 □** tol 0 with `nimbusrom1024` ALONE |
+| paragraph numbers "12." | same face | 1024 | **gray srcover C=35** | probe bad=0/88 maxd=2 at pen (0,0) — the ±1 srcover quirk ⇒ tol 2; junction cols between digits keep the known gray-set composite residue (~2 □/numbered ¶) |
+| case caption cover (P1) | unidentified (ornate) | — | — | no-read, untriaged |
+
+New fontgen sets (registry): `nimbusrom1024`, `nimbusrombd1024`,
+`nimbusromi1024` (from `ocr/fonts/NimbusRoman-*-1.12.0/-Bold/-Italic.cff`),
+`nimbusromg35_1024` (`--ink 35`). Read command:
+
+```
+node tools/blind-read.mjs --pdf <doc> --palette --tol 2 \
+  --glyphs nimbusrom1024+nimbusrombd1024+nimbusromi1024+nimbusromg35_1024
+```
+
+Hunt method note: the batch ladder's P1 probe MISSES this family (P1 = an
+ornate cover) — the doc surfaced as 'no-read'; interior-page probing found
+scattered tol-0 single-glyph matches from the old pool (revision-shared
+drawings), and probe-times on an unread 'h' pinned face+em+law in 3 runs.
+**Probe interior pages (p3+) before declaring a palette candidate dead.**
+
+## Census-candidate triage 07-21 PM (top 8 of scan10k-50k, all probed from pixels)
+
+- `EFTA00316714` 347pp → **sub-family #3, reads** (above).
+- `EFTA00281516` 478pp → **resample-render class**: neutral, deterministic
+  (column-constant stems) but stems land as TWO uniform light columns
+  (135/135 where ftclone gives 74+135) — geometric mismatch no byte law can
+  close, the 816×1073-trio signature in a 1056 palette container. Overlay is
+  garbage-OCR. Skip (user rule: recognize, record, move on).
+- `EFTA00285909` 321pp → resampled: raster placed at 498×714 pt (not
+  full-page); strokes fuzzy mid-gray. Skip.
+- `EFTA00240536` 241pp, `EFTA00178967` 266pp, `EFTA00182748` 256pp →
+  **skewed scans**: placement matrix has rotation terms (±6.12/∓7.92) —
+  scanned paper re-wrapped in the palette container. 182748 additionally
+  GRINDS blind-read (>5 min, killed): 183 grays of near-white haze = the
+  alien-LUT/low-contrast-CC grinder precedent. Always timeout-guard.
+- `EFTA00176235` 239pp → flat placement but global haze (bg 248–253,
+  shadow rows under glyphs) — JPEG-textured, not tol-0 material. Skip.
+- `EFTA00230208` 229pp → partial via batch jitter1 rung
+  (105 L / 1,926 g / 5,118 □, 373 s) — untriaged, future candidate.
+
+Census chunks 50k–100k and 100k–150k scanned 07-21 PM (`scan50k-100k.csv`,
+`scan100k-150k.csv`): 150 + 159 candidates, nearly all ≤9 pp (that byte
+range of the dataset is short docs); two 110-pp twins EFTA00496507/496633.
+
 ## Remaining-□ census (07-21, post-Times pool) — all diagnosed from pixels
 
 - **Vestigial table vrules** (39421 p44–60 region, ~9 lines/page unread at

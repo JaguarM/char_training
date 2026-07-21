@@ -70,6 +70,10 @@ export const SETS = [
   ['censcbkg27_1198', 'censcbkg27_1198.npz'],        // gray srcover C=27 blockquotes (read at tol 2 — ±1 quirk)
   ['censcbkig27_1198', 'censcbkig27_1198.npz'],      // gray italic companion (case names inside blockquotes)
   ['nimbussansg118_1024', 'nimbussansg118_1024.npz'], // ECF banner gray 118 (tol 2)
+  ['nimbusrom1024', 'nimbusrom_1024.npz'],           // OLD-revision (1.12–1.23) Nimbus Roman em64 1024, NO linear — ECF court briefs whose unembedded Times-Roman gets the builtin substitution (EFTA00316714)
+  ['nimbusrombd1024', 'nimbusrombd_1024.npz'],       // bold companion
+  ['nimbusromi1024', 'nimbusromi_1024.npz'],         // italic companion (case citations)
+  ['nimbusromg35_1024', 'nimbusromg35_1024.npz'],    // gray srcover C=35 paragraph numbers (tol 2 — ±1 srcover quirk)
   ['segoeui16', 'segoeui_16.npz'],
   ['segoeuib16', 'segoeuib_16.npz'],
   ['segoeuii16', 'segoeuii_16.npz'],
@@ -117,6 +121,13 @@ export const POOLS = {
     // probeBaseline sweep — EFTA00009676 burned unbounded time here. Real
     // family docs probe in ~2 s.
     probeMs: 20000 },
+  // ECF court briefs, palette container sub-family #3 (FINDINGS-nimbusrom.md):
+  // OLD-rev NimbusRoman substitution, NO linear; tol 2 for the gray-35
+  // srcover paragraph numbers (±1 quirk). NOTE: these docs' P1 is an ornate
+  // cover that never reads — the P1 probe misses the family (EFTA00316714
+  // surfaced as 'no-read'); probe interior pages when hunting by hand.
+  nimbusromCourt: { glyphs: 'nimbusrom1024+nimbusrombd1024+nimbusromi1024+nimbusromg35_1024',
+    palette: true, tol: 2, probeMs: 20000 },
   // NEW/calibri block (ocr/FINDINGS-calibri.md)
   calibri:   { glyphs: 'calibri102mid_1024+calibrib102mid_1024+calibri102g23_1024+bullet16+bullet16b+bulleto16,calibri102mid_938,calibrib102mid_1194,fedline_page,hdrles_page,ftrfouo_page',
     tol: 2 },
@@ -128,7 +139,8 @@ export const POOLS = {
 // the manifest label must differ (the 'nimbusrom' rung label predates the
 // wide pool — existing manifest.jsonl / census CSVs record it)
 export const BATCH_LADDER = ['corpus', 'nimbus791',
-  { name: 'nimbusrom', pool: 'nimbusromWide' }, 'calibri', 'jitter1'];
+  { name: 'nimbusrom', pool: 'nimbusromWide' }, 'nimbusromCourt', 'calibri',
+  'jitter1'];
 
 // The browser app's default roster — MUST equal DEFAULT_SETS in
 // src/blindocr.js (npm test enforces; the app cannot import Node modules)
