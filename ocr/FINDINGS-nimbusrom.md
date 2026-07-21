@@ -164,9 +164,19 @@ drawings), and probe-times on an unread 'h' pinned face+em+law in 3 runs.
 - `EFTA00230208` 229pp → partial via batch jitter1 rung
   (105 L / 1,926 g / 5,118 □, 373 s) — untriaged, future candidate.
 
-Census chunks 50k–100k and 100k–150k scanned 07-21 PM (`scan50k-100k.csv`,
-`scan100k-150k.csv`): 150 + 159 candidates, nearly all ≤9 pp (that byte
-range of the dataset is short docs); two 110-pp twins EFTA00496507/496633.
+**Census COMPLETE 07-21 PM — all 531,281 files** (12 scan*.csv chunks,
+~3,793 palette+TNR dct=0 candidates). Fat regions: 450k–531k
+(EFTA01225932 519pp, EFTA01260277 332pp, EFTA01085356 295pp), 200k–250k.
+Chunks 50k–150k and 350k–400k are nearly all ≤9 pp docs.
+
+**Sub-family #3 GENERALIZES** (batch ladder, 200k–250k top-6, 07-21 late):
+`nimbusromCourt` rung caught EFTA00610965 (96pp, 4,408 L / 246,443 g /
+533 □ — 99.8 % of glyphs) and EFTA00615869 (64pp CVRA affidavit, 2,139 L /
+135,184 g / 2,834 □; ¶ numbers are BLACK in this source and read).
+Second-wave skips: EFTA00606159/607796 = 3-comp haze class;
+EFTA00623759/624128 (176/128pp twins, 1-comp) = non-¼-px lattice — thin
+drifting stems + sub-glyph fringe rows, probe refuted roman/italic
+Nimbus+Times at ems 940–1060 (bad ≥43, maxd ≥144).
 
 ## Remaining-□ census (07-21, post-Times pool) — all diagnosed from pixels
 
