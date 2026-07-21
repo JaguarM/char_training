@@ -445,38 +445,77 @@
         else if (cX1[r] - cX0[r] < 4 && cY1[r] - cY0[r] < 4)
           smalls.push({ x0: cX0[r], x1: cX1[r], y0: cY0[r], y1: cY1[r], minv: cMin[r], r });
       }
-      for (const o of objects) bigs.push([o.x0, o.x1, o.y0, o.y1]);
-      // transitive: an ellipsis dot 10px from the word but 4px from its
-      // sibling dot is text — each kept small extends the neighbourhood
-      let changed = true;
-      while (changed) {
-        changed = false;
+      // All neighbourhood questions below ("is this speck near text / near a
+      // sibling speck?") are answered from a 16px bucket grid instead of
+      // walking every big blob per speck (smalls × bigs × restart rounds —
+      // the dominant remaining cost on residue-heavy pages). The keep set is
+      // a monotone closure and the swarm groups are a partition, so the
+      // verdicts are identical to the old restart-loop by construction.
+      // Pages with no smalls skip every allocation here.
+      if (smalls.length) {
+        for (const o of objects) bigs.push([o.x0, o.x1, o.y0, o.y1]);
+        const gw = (w >> 4) + 2, gh = (h >> 4) + 2;
+        const cellsOf = (x0, x1, y0, y1, f) => {
+          const cx0 = Math.max(0, x0 >> 4), cx1 = Math.min(gw - 1, x1 >> 4);
+          const cy0 = Math.max(0, y0 >> 4), cy1 = Math.min(gh - 1, y1 >> 4);
+          for (let cy = cy0; cy <= cy1; cy++)
+            for (let cx = cx0; cx <= cx1; cx++) f(cy * gw + cx);
+        };
+        // transitive keep: an ellipsis dot 10px from the word but 4px from
+        // its sibling dot is text — each kept small extends the neighbourhood
+        // (grid seed from the bigs, then BFS speck-to-speck)
+        const bigGrid = new Array(gw * gh), smGrid = new Array(gw * gh);
+        for (const b of bigs)
+          cellsOf(b[0] - 8, b[1] + 8, b[2] - 8, b[3] + 8, c => (bigGrid[c] ??= []).push(b));
+        for (const s of smalls)
+          cellsOf(s.x0, s.x1, s.y0, s.y1, c => (smGrid[c] ??= []).push(s));
+        const queue = [];
         for (const s of smalls) {
-          if (s.keep) continue;
-          for (const [bx0, bx1, by0, by1] of bigs)
-            if (s.x0 <= bx1 + 8 && s.x1 >= bx0 - 8 && s.y0 <= by1 + 8 && s.y1 >= by0 - 8) {
-              s.keep = true; bigs.push([s.x0, s.x1, s.y0, s.y1]); changed = true; break;
-            }
+          let hit = false;
+          cellsOf(s.x0, s.x1, s.y0, s.y1, c => {
+            if (hit || !bigGrid[c]) return;
+            for (const [bx0, bx1, by0, by1] of bigGrid[c])
+              if (s.x0 <= bx1 + 8 && s.x1 >= bx0 - 8 && s.y0 <= by1 + 8 && s.y1 >= by0 - 8) {
+                hit = true; return;
+              }
+          });
+          if (hit) { s.keep = true; queue.push(s); }
         }
+        while (queue.length) {
+          const q = queue.pop();
+          cellsOf(q.x0 - 8, q.x1 + 8, q.y0 - 8, q.y1 + 8, c => {
+            const lst = smGrid[c]; if (!lst) return;
+            for (const t of lst)
+              if (!t.keep && t.x0 <= q.x1 + 8 && t.x1 >= q.x0 - 8 &&
+                  t.y0 <= q.y1 + 8 && t.y1 >= q.y0 - 8) { t.keep = true; queue.push(t); }
+          });
+        }
+        // isolated smalls: faint ones are residue outright; DARK ones are real
+        // punctuation unless they come in a swarm (emblem residue is dozens of
+        // specks chained ≤12px apart — a sentence period stranded after a
+        // whitened hyperlink is alone and stays readable)
+        const iso = smalls.filter(s => !s.keep && s.minv < 160);
+        const isoGrid = new Array(gw * gh);
+        for (const s of iso) { s.grp = null;
+          cellsOf(s.x0, s.x1, s.y0, s.y1, c => (isoGrid[c] ??= []).push(s)); }
+        const groups2 = [];
+        for (const s of iso) {
+          if (s.grp) continue;
+          const g2 = [s]; s.grp = g2;
+          for (let gi = 0; gi < g2.length; gi++) {
+            const q = g2[gi];
+            cellsOf(q.x0 - 12, q.x1 + 12, q.y0 - 12, q.y1 + 12, c => {
+              const lst = isoGrid[c]; if (!lst) return;
+              for (const t of lst)
+                if (!t.grp && q.x0 <= t.x1 + 12 && q.x1 >= t.x0 - 12 &&
+                    q.y0 <= t.y1 + 12 && q.y1 >= t.y0 - 12) { t.grp = g2; g2.push(t); }
+            });
+          }
+          groups2.push(g2);
+        }
+        for (const g2 of groups2)
+          if (g2.length < 4) for (const s of g2) s.keep = true;
       }
-      // isolated smalls: faint ones are residue outright; DARK ones are real
-      // punctuation unless they come in a swarm (emblem residue is dozens of
-      // specks chained ≤12px apart — a sentence period stranded after a
-      // whitened hyperlink is alone and stays readable)
-      const iso = smalls.filter(s => !s.keep && s.minv < 160);
-      for (const s of iso) s.grp = null;
-      const groups2 = [];
-      for (const s of iso) {
-        if (s.grp) continue;
-        const g2 = [s]; s.grp = g2;
-        for (let gi = 0; gi < g2.length; gi++)
-          for (const t of iso)
-            if (!t.grp && g2[gi].x0 <= t.x1 + 12 && g2[gi].x1 >= t.x0 - 12 &&
-                g2[gi].y0 <= t.y1 + 12 && g2[gi].y1 >= t.y0 - 12) { t.grp = g2; g2.push(t); }
-        groups2.push(g2);
-      }
-      for (const g2 of groups2)
-        if (g2.length < 4) for (const s of g2) s.keep = true;
       for (const s of smalls)
         if (!s.keep) cls[s.r] = 1;
       // one masking sweep: ghosts + unkept smalls, run-wise

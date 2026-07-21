@@ -1065,3 +1065,15 @@ Speed: big.pdf full read 26.7 → 22.6 s bench (gate doc 23.3 s), v3 3.1 → 2.4
 detectObjects phase 9.1 → 5.9 s on big. Measurement harness + instrumented
 counters: experiments/fastread/ (temporary, deletable — everything landed
 here is self-contained in src/ocr-engine.js).
+
+**07-21 addendum — speck neighbourhood grid.** The dust logic's remaining cost
+was the "is this speck near text?" comparisons: every speck walked the whole
+big-blob list, restarting on each promotion, and the swarm pass compared every
+lonely speck against every other. Both now run on a 16px bucket grid (bigs
+padded +8 dropped into the cells they cover; specks probe only their own
+cells; promotions propagate by BFS instead of restarting; swarm components
+found the same way at radius 12). The keep set is a monotone closure and the
+swarm groups a partition, so verdicts are identical by construction — gate
+7/7 + app + Recto re-verified. Pages with zero specks skip every allocation.
+Synthetic residue page (2,400 letters + 800 specks): detectObjects
+210 → 8.7 ms/page, identical mask.
