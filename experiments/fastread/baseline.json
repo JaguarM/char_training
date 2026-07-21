@@ -1,0 +1,16 @@
+{
+ "big:all:times16": {
+  "digest": "694c6a92eebef849",
+  "totLines": 18307,
+  "totGlyphs": 1338832,
+  "totFails": 0,
+  "recorded": "2026-07-21"
+ },
+ "big:20:times16": {
+  "digest": "584c34954d6810e7",
+  "totLines": 1061,
+  "totGlyphs": 74671,
+  "totFails": 0,
+  "recorded": "2026-07-21"
+ }
+}
