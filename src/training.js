@@ -2,39 +2,23 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 // core.js (loaded first) attaches the DOM-free helpers used below as globals:
-// charToStem, stemToChar, STEM_TO_CHAR, TEMPLATE_LEFT_CROP, PLACEHOLDER,
-// makeRowBands, gray.
+// PLACEHOLDER, gray. ocr.js (loaded next) defines the PageEngine class — the
+// page-buffer engine (grayscale reduction + RGBA access) that CanvasViewer
+// instantiates below.
 //
-// ocr.js (loaded next) defines the PageEngine class — the page-buffer engine
-// (grayscale reduction + RGBA access) that CanvasViewer instantiates below.
+// 2026-07-21: the app is a VIEWER — open a PDF, Auto OCR it, inspect the
+// certified overlay, export .txt/.json. The manual-era features (row text
+// editing, draggable start anchors, double-click save-glyph-as-template)
+// were removed; the purple line-start ticks remain as a read-quality check
+// (measured starts should stack into the clean left edge real documents
+// have). Resurrect the editing era from git history if ever needed.
 
 
 // ---------------------------------------------------------------------------
-// Config — placeholder row grid shown before Auto OCR runs, plus the font
-// used to draw typed text and size manual glyph boxes. Auto OCR replaces the
-// grid with measured bands and measured pens; these are display defaults only.
+// Config — kept as the viewer's (tiny) settings object; Auto OCR measures
+// everything from the pixels, so nothing here shapes the read.
 // ---------------------------------------------------------------------------
-class Config {
-  constructor() {
-    // Horizontal lines (text rows)
-    this.rowBase = 40;     // Y of the first row's top edge
-    this.rowHeight = 15;   // height of each row band
-    this.rowPitch = 18;    // vertical distance between consecutive rows
-    this.rowCount = 54;    // number of rows
-
-    // Font used to derive each character's cutout width (typed text only)
-    this.fontFamily = 'Times New Roman';
-    this.fontSize = 16;    // px, in image space
-
-    this.startX = 64;      // default X of each row's draggable start anchor
-  }
-
-  get fontSpec() { return `${this.fontSize}px ${this.fontFamily}`; }
-
-  makeRowBands() {
-    return makeRowBands(this.rowBase, this.rowHeight, this.rowPitch, this.rowCount);
-  }
-}
+class Config {}
 
 
 // ---------------------------------------------------------------------------
@@ -73,7 +57,7 @@ async function extractEmbeddedImages(page) {
 
 
 // ---------------------------------------------------------------------------
-// CanvasViewer
+// CanvasViewer — pan/zoom page display + Auto OCR overlay
 // ---------------------------------------------------------------------------
 class CanvasViewer {
   constructor(canvas, wrap, infoEl, config) {
@@ -84,25 +68,20 @@ class CanvasViewer {
     this.config = config;
 
     this.img = null;
-    this.rowBands = config.makeRowBands();
+    this.rowBands = [];    // measured ink bands, installed by Auto OCR
     this.filename = '';
 
     this.tx = 0; this.ty = 0; this.scale = 1;
     this.dragging = false;
     this.dragStart = { x: 0, y: 0 };
     this.txStart = { tx: 0, ty: 0 };
-    this.dirHandle = null;
 
-    // Per-row line state. Every row owns a draggable start anchor (rowStartX)
-    // and its own transcription (rowText); activeRow is the one being edited.
-    this.activeRow = 0;
-    this.rowStartX = [];   // x of each row's start anchor
-    this.rowText = [];     // text per row (typed or OCR'd)
-    this.rowScores = [];   // per-char match score (1.0 exact / 0 placeholder, null = manual/blank)
-    this.rowMode = [];     // 'ocr' | 'manual' | undefined, per row
+    // Per-row read state (all installed by Auto OCR)
+    this.rowStartX = [];   // first measured pen per row — the purple tick
+    this.rowText = [];     // text per row
+    this.rowPens = [];     // per row: entries [{ch,pen,adv,score,i}] or undefined
+    this.blindObjects = null; // page-level non-text objects
     this.allBoxes = [];    // [{char, x0, x1, y0, y1, score, row, i}] for every row
-    this._hoverKey = null; // "row:i" of the box under the cursor
-    this._dragAnchorRow = -1; // row whose anchor is currently being dragged
 
     this.engine = new PageEngine();
 
@@ -117,7 +96,6 @@ class CanvasViewer {
     this.canvas.addEventListener('mousedown', e => this.onMouseDown(e));
     window.addEventListener('mousemove', e => this.onMouseMove(e));
     window.addEventListener('mouseup', e => this.onMouseUp(e));
-    this.canvas.addEventListener('dblclick', e => this._extractAtEvent(e));
   }
 
   resize() {
@@ -136,61 +114,21 @@ class CanvasViewer {
     this.resetLine();
     this.updateInfo();
     this.resetFit();
-    const li = document.getElementById('line-input');
-    if (li) li.value = '';
   }
 
   resetLine() {
-    this.activeRow = 0;
+    this.rowBands = [];
     this.rowStartX = [];
     this.rowText = [];
-    this.rowScores = [];
-    this.rowMode = [];
-    this.rowPens = [];        // per row: blind-OCR entries [{ch,pen,adv,score,i}] or undefined
-    this.blindObjects = null; // page-level non-text objects from blind OCR
+    this.rowPens = [];
+    this.blindObjects = null;
     this.allBoxes = [];
-    this._hoverKey = null;
-    this.ensureRows();
-  }
-
-  // Make sure every current row has a start anchor + text/score slots.
-  // Auto (blind) OCR may install MORE measured bands than the configured grid
-  // has rows — never truncate those away.
-  ensureRows() {
-    const n = Math.max(this.config.rowCount, this.rowBands.length);
-    for (let i = 0; i < n; i++) {
-      if (this.rowStartX[i] === undefined) this.rowStartX[i] = this.config.startX;
-      if (this.rowText[i] === undefined) this.rowText[i] = '';
-      if (this.rowScores[i] === undefined) this.rowScores[i] = [];
-    }
-    this.rowStartX.length = n;
-    this.rowText.length = n;
-    this.rowScores.length = n;
-    this.rowMode.length = n;
-    if (this.activeRow >= n) this.activeRow = n - 1;
-    if (this.activeRow < 0) this.activeRow = 0;
-  }
-
-  setActiveRow(r) {
-    this.activeRow = r;
-    this.rebuildBoxes();
-    this.render();
-    const li = document.getElementById('line-input');
-    if (li) { li.value = this.rowText[r] ?? ''; li.focus(); }
   }
 
   // ------------------------------------------------------------------
-  // OCR = Auto OCR only (blindocr.js below). The legacy grid/template path
-  // (matchAt template matching, reader.js line reader, templates/ dict) was
-  // removed 2026-07-13 — see docs/BLIND_READER.md for the record.
-  // ------------------------------------------------------------------
-
-  // ------------------------------------------------------------------
-  // Auto OCR (blind) — grid-free reading via blindocr.js: measured bands,
-  // measured baselines, measured pens/spaces, auto font pick, object
-  // detection. Results are mapped into the normal row model so every
-  // existing interaction (row select, edit, box hover, double-click
-  // extract) works unchanged, with glyph boxes at the MEASURED pens.
+  // Auto OCR (blindocr.js): measured bands, measured baselines, measured
+  // pens/spaces, auto font pick, object detection — no settings, and every
+  // line carries a byte-exactness certificate.
   // ------------------------------------------------------------------
   async _ensureBlindSets() {
     if (!this._blindSets) this._blindSets = await BlindOCR.loadSets();
@@ -263,15 +201,8 @@ class CanvasViewer {
     const { res, pass } = out;
     this._blindPassHint = pass;
     this.rowBands = res.lines.map(L => ({ y0: L.top, y1: L.bot }));
-    this.activeRow = 0;
-    this.rowStartX = res.lines.map(L => L.entries[0]?.pen ?? this.config.startX);
+    this.rowStartX = res.lines.map(L => L.entries[0]?.pen);
     this.rowText = res.lines.map(L => L.text);
-    this.rowScores = res.lines.map(L => {
-      const sc = [];
-      for (const e of L.entries) sc[e.i] = e.score;
-      return sc;
-    });
-    this.rowMode = res.lines.map(() => 'ocr');
     this.rowPens = res.lines.map(L => L.entries);
     this.blindObjects = res.objects;
     this.rebuildBoxes();
@@ -289,76 +220,21 @@ class CanvasViewer {
       (pass.tol ? ' · near-identical renderer (tolerant mode)' : '');
   }
 
-  setLineText(text) {
-    this.ensureRows();
-    const r = this.activeRow;
-    const old = this.rowText[r] || '';
-    const oldScores = this.rowScores[r] || [];
-    // Keep the score/colour of unchanged characters; new or changed ones become
-    // manual (null score → blue).
-    const scores = [];
-    for (let i = 0; i < text.length; i++) {
-      scores[i] = (i < old.length && old[i] === text[i]) ? (oldScores[i] ?? null) : null;
-    }
-    this.rowText[r] = text;
-    this.rowScores[r] = scores;
-    this.rowMode[r] = 'manual'; // hand-edited → never auto-overwritten by a save refresh
-    if (this.rowPens) this.rowPens[r] = undefined; // measured pens no longer match edited text
-    this.rebuildBoxes();
-    this.render();
-  }
-
-  _measureCtx() {
-    if (!this._mctx) this._mctx = document.createElement('canvas').getContext('2d');
-    this._mctx.font = this.config.fontSpec;
-    return this._mctx;
-  }
-
-  // X (image space) of the next character after `text`, from `startX`, using the
-  // font's advance widths. The single layout rule: OCR, rescoring, and drawing all
-  // call it, so a glyph is always cropped/matched/drawn at the same place.
-  charX(startX, text) {
-    return startX + this._measureCtx().measureText(text).width;
-  }
-
-  // Per-character boxes for a row, walking the font's cumulative advance widths
-  // from its anchor (so kerning is respected). Each carries its match score.
+  // Per-character boxes for a row, at the MEASURED pens — boxes sit exactly
+  // on the drawn glyphs regardless of layout.
   boxesForRow(r) {
-    const text = this.rowText[r] || '';
-    if (!text || r < 0 || r >= this.rowBands.length) return [];
     const band = this.rowBands[r];
-    // Blind-OCR rows carry MEASURED pens — boxes sit exactly on the drawn
-    // glyphs regardless of layout, no font-advance walk needed.
-    if (this.rowPens && this.rowPens[r]) {
-      return this.rowPens[r].map(e => ({
-        char: e.ch, x0: e.pen, x1: e.pen + e.adv,
-        y0: band.y0, y1: band.y1, score: e.score, row: r, i: e.i,
-      }));
-    }
-    const startX = this.rowStartX[r];
-    const scores = this.rowScores[r] || [];
-    const out = [];
-    for (let i = 0; i < text.length; i++) {
-      out.push({
-        char: text[i],
-        x0: this.charX(startX, text.slice(0, i)),
-        x1: this.charX(startX, text.slice(0, i + 1)),
-        y0: band.y0, y1: band.y1,
-        score: scores[i] ?? null, row: r, i,
-      });
-    }
-    return out;
+    if (!band || !this.rowPens[r]) return [];
+    return this.rowPens[r].map(e => ({
+      char: e.ch, x0: e.pen, x1: e.pen + e.adv,
+      y0: band.y0, y1: band.y1, score: e.score, row: r, i: e.i,
+    }));
   }
 
-  // Rebuild the boxes for every row so any displayed character can be hit-tested
-  // and double-clicked, regardless of which row is active.
   rebuildBoxes() {
-    this.ensureRows();
     this.allBoxes = [];
-    for (let r = 0; r < this.rowBands.length; r++) {
-      if (!this.rowText[r]) continue;
+    for (let r = 0; r < this.rowBands.length; r++)
       for (const b of this.boxesForRow(r)) this.allBoxes.push(b);
-    }
   }
 
   // ------------------------------------------------------------------
@@ -380,7 +256,7 @@ class CanvasViewer {
     if (!this.img) return;
     this.infoEl.textContent =
       `${this.filename}  ·  ${this.img.width}×${this.img.height} px  ·  ` +
-      `Auto OCR reads with no settings  ·  Type=fill line  Dbl-click box=extract`;
+      `Auto OCR reads with no settings`;
   }
 
   render() {
@@ -410,8 +286,7 @@ class CanvasViewer {
     this.ctx.textBaseline = 'middle';
     for (let i = 0; i < this.rowBands.length; i++) {
       const { y0, y1 } = this.rowBands[i];
-      const active = i === this.activeRow;
-      this.ctx.strokeStyle = active ? 'rgba(120, 200, 255, 0.95)' : 'rgba(80, 150, 255, 0.55)';
+      this.ctx.strokeStyle = 'rgba(80, 150, 255, 0.55)';
       this.ctx.beginPath(); this.ctx.moveTo(0, y0); this.ctx.lineTo(this.img.width, y0); this.ctx.stroke();
       this.ctx.beginPath(); this.ctx.moveTo(0, y1); this.ctx.lineTo(this.img.width, y1); this.ctx.stroke();
 
@@ -434,217 +309,42 @@ class CanvasViewer {
     this.ctx.restore();
   }
 
-  // Every row's characters, the hovered cutout outline, and each row's draggable
-  // start anchor. Colour: green = exact match, orange = placeholder, blue = typed.
+  // Every row's characters (green = byte-certified match, orange = □
+  // placeholder) plus the purple line-start tick — a read-quality check:
+  // measured starts should stack into the clean left edge real documents have.
   renderLines() {
     if (this.rowBands.length === 0) return;
-    this.ensureRows();
     const hair = 1 / this.scale;
 
-    // Characters, in the selected font/size, one per box so each can carry its colour.
-    this.ctx.font = this.config.fontSpec;
+    this.ctx.font = '16px "Times New Roman"';
     this.ctx.textAlign = 'left';
     this.ctx.textBaseline = 'middle';
     for (const b of this.allBoxes) {
       if (b.char === ' ') continue;
       const cy = (b.y0 + b.y1) / 2;
-      const dim = b.row === this.activeRow ? 1 : 0.6;
-      const rgb = b.char === PLACEHOLDER ? '235,140,0' : b.score != null ? '0,210,70' : null;
-      if (rgb) {
-        this.ctx.fillStyle = `rgba(${rgb},0.28)`;
-        this.ctx.fillRect(b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0);
-        this.ctx.fillStyle = `rgba(${rgb},${dim})`;
-      } else {
-        this.ctx.fillStyle = `rgba(60,130,255,${dim})`; // manual / confirmed
-      }
+      const rgb = b.char === PLACEHOLDER ? '235,140,0' : b.score != null ? '0,210,70' : '60,130,255';
+      this.ctx.fillStyle = `rgba(${rgb},0.28)`;
+      this.ctx.fillRect(b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0);
+      this.ctx.fillStyle = `rgba(${rgb},1)`;
       this.ctx.fillText(b.char, b.x0, cy);
     }
 
-    // Hovered cutout outline — the exact region matched/saved (offset and shrunk
-    // by TEMPLATE_LEFT_CROP, matching cropPixels / extractBox).
+    // Line-start ticks (purple), at each row's first measured pen
+    this.ctx.strokeStyle = 'rgba(190, 90, 255, 0.8)';
     this.ctx.lineWidth = hair;
-    for (const b of this.allBoxes) {
-      if (b.char === ' ' || `${b.row}:${b.i}` !== this._hoverKey) continue;
-      const w = Math.max(1, (b.x1 - b.x0) - 1 - TEMPLATE_LEFT_CROP);
-      this.ctx.strokeStyle = 'rgba(255, 210, 0, 0.95)';
-      this.ctx.strokeRect(b.x0 + TEMPLATE_LEFT_CROP, b.y0, w, b.y1 - b.y0);
-    }
-
-    // Draggable start anchors (purple): a vertical tick + a handle above the band.
     for (let r = 0; r < this.rowBands.length; r++) {
-      const band = this.rowBands[r];
       const x = this.rowStartX[r];
-      const active = r === this.activeRow;
-      const color = active ? 'rgba(200, 90, 255, 0.95)' : 'rgba(190, 90, 255, 0.5)';
-      this.ctx.strokeStyle = color;
-      this.ctx.fillStyle = color;
-      this.ctx.lineWidth = hair * (active ? 2 : 1);
+      if (x === undefined) continue;
+      const band = this.rowBands[r];
       this.ctx.beginPath();
       this.ctx.moveTo(x, band.y0);
       this.ctx.lineTo(x, band.y1);
       this.ctx.stroke();
-
     }
   }
 
   // ------------------------------------------------------------------
-  // Coordinate helpers
-  // ------------------------------------------------------------------
-  toImage(clientX, clientY) {
-    const rect = this.canvas.getBoundingClientRect();
-    return {
-      x: (clientX - rect.left - this.tx) / this.scale,
-      y: (clientY - rect.top - this.ty) / this.scale,
-    };
-  }
-
-  // The character box under a point, across every row (not just the active one).
-  boxAt(imgX, imgY) {
-    return this.allBoxes.find(b =>
-      b.char !== ' ' && imgX >= b.x0 && imgX < b.x1 && imgY >= b.y0 && imgY <= b.y1) || null;
-  }
-
-  // Row whose start anchor is near the given image-space point, else -1.
-  anchorAt(imgX, imgY) {
-    const tolX = 7 / this.scale;
-    const padY = 10 / this.scale;
-    for (let r = 0; r < this.rowBands.length; r++) {
-      const band = this.rowBands[r];
-      if (Math.abs(imgX - this.rowStartX[r]) <= tolX &&
-          imgY >= band.y0 - padY && imgY <= band.y1 + padY) return r;
-    }
-    return -1;
-  }
-
-  // ------------------------------------------------------------------
-  // Extraction (double-click a character box)
-  // ------------------------------------------------------------------
-  _extractAtEvent(e) {
-    if (!this.img) return;
-    const { x, y } = this.toImage(e.clientX, e.clientY);
-    const box = this.boxAt(x, y);
-    if (!box) return;
-
-    // Make the clicked box's row active so typing / OCR target it.
-    if (box.row !== this.activeRow) {
-      this.activeRow = box.row;
-      const li = document.getElementById('line-input');
-      if (li) li.value = this.rowText[box.row] || '';
-    }
-
-    // flash to confirm the hit
-    this.ctx.save();
-    this.ctx.translate(this.tx, this.ty);
-    this.ctx.scale(this.scale, this.scale);
-    this.ctx.fillStyle = 'rgba(255, 255, 0, 0.4)';
-    this.ctx.fillRect(box.x0, box.y0, box.x1 - box.x0, box.y1 - box.y0);
-    this.ctx.restore();
-    setTimeout(() => this.render(), 150);
-
-    this.extractBox(box);
-  }
-
-  async findAvailableFilename(stem) {
-    if (!this.dirHandle) return `${stem}.png`;
-    try { await this.dirHandle.getFileHandle(`${stem}.png`, { create: false }); }
-    catch { return `${stem}.png`; }
-    for (let n = 2; ; n++) {
-      try { await this.dirHandle.getFileHandle(`${stem}_${n}.png`, { create: false }); }
-      catch { return `${stem}_${n}.png`; }
-    }
-  }
-
-  async extractBox(box) {
-    const h = Math.max(1, Math.round(box.y1 - box.y0));
-    const x0 = Math.round(box.x0);
-    // Grayscale crop at the cell's left, `cw` columns wide — the same geometry
-    // cropPixels/matchAt read back. Narrower than the advance so neighbouring
-    // crops don't share a column.
-    const cut = cw => {
-      const off = document.createElement('canvas');
-      off.width = cw; off.height = h;
-      const ctx = off.getContext('2d');
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(this.img, x0 + TEMPLATE_LEFT_CROP, Math.round(box.y0), cw, h, 0, 0, cw, h);
-      return off;
-    };
-
-    let w = Math.max(1, Math.round(box.x1 - box.x0) - 1 - TEMPLATE_LEFT_CROP);
-    const off = cut(w);
-
-    const label = await this.promptLabel(off, box.char === PLACEHOLDER ? '' : box.char);
-    if (label === null) return;
-    const stem = charToStem(label);
-
-    // A □ box carries the placeholder's own advance, not the glyph's. Now that we
-    // know the character, re-cut to its advance so the saved template is the
-    // right width (matching how a normal box is already one advance wide).
-    let saveCanvas = off;
-    if (box.char === PLACEHOLDER) {
-      w = Math.max(1, Math.round(this._measureCtx().measureText(label).width) - 1 - TEMPLATE_LEFT_CROP);
-      saveCanvas = cut(w);
-    }
-
-    const blob = await new Promise(resolve => saveCanvas.toBlob(resolve, 'image/png'));
-
-    if (window.showDirectoryPicker) {
-      if (!this.dirHandle) {
-        try { this.dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' }); }
-        catch { this.infoEl.textContent = 'Folder selection cancelled.'; return; }
-      }
-      const filename = await this.findAvailableFilename(stem);
-      try {
-        const fh = await this.dirHandle.getFileHandle(filename, { create: true });
-        const w2 = await fh.createWritable();
-        await w2.write(blob); await w2.close();
-        this.infoEl.textContent = `Saved: ${filename}  (${w}×${h}px)`;
-      } catch { this.infoEl.textContent = `Error saving ${filename}`; }
-    } else {
-      const filename = `${stem}.png`;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = filename; a.click();
-      URL.revokeObjectURL(url);
-      this.infoEl.textContent = `Downloaded: ${filename}  (${w}×${h}px)`;
-    }
-  }
-
-  promptLabel(charCanvas, suggestion = '') {
-    return new Promise(resolve => {
-      const modal = document.getElementById('label-modal');
-      const preview = document.getElementById('label-preview');
-      const input = document.getElementById('label-input');
-
-      const SCALE = 6;
-      preview.width = charCanvas.width * SCALE;
-      preview.height = charCanvas.height * SCALE;
-      const pctx = preview.getContext('2d');
-      pctx.imageSmoothingEnabled = false;
-      pctx.drawImage(charCanvas, 0, 0, preview.width, preview.height);
-
-      input.value = suggestion;
-      modal.classList.remove('hidden');
-      input.focus();
-      input.select();
-
-      const cleanup = () => { modal.classList.add('hidden'); input.removeEventListener('keydown', onKey); };
-      const onKey = e => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          const val = input.value.trim();
-          cleanup();
-          resolve(val.length > 0 ? val : null); // empty Enter = cancel
-        } else if (e.key === 'Escape') {
-          e.preventDefault(); cleanup(); resolve(null);
-        }
-      };
-      input.addEventListener('keydown', onKey);
-      modal.onclick = e => { if (e.target === modal) { cleanup(); resolve(null); } };
-    });
-  }
-
-  // ------------------------------------------------------------------
-  // Pan / zoom / hover
+  // Pan / zoom
   // ------------------------------------------------------------------
   onWheel(e) {
     e.preventDefault();
@@ -660,20 +360,6 @@ class CanvasViewer {
 
   onMouseDown(e) {
     if (e.button !== 0) return;
-
-    // Grab a start anchor if one is under the cursor → drag it (and activate
-    // that row). Otherwise fall back to panning.
-    if (this.img) {
-      const { x, y } = this.toImage(e.clientX, e.clientY);
-      const r = this.anchorAt(x, y);
-      if (r !== -1) {
-        this._dragAnchorRow = r;
-        this.setActiveRow(r);
-        this.wrap.classList.add('dragging');
-        return;
-      }
-    }
-
     this.dragging = true;
     this.dragStart = { x: e.clientX, y: e.clientY };
     this.txStart = { tx: this.tx, ty: this.ty };
@@ -681,31 +367,13 @@ class CanvasViewer {
   }
 
   onMouseMove(e) {
-    if (this._dragAnchorRow !== -1) {
-      const { x } = this.toImage(e.clientX, e.clientY);
-      this.rowStartX[this._dragAnchorRow] = Math.max(0, Math.min(this.img.width, x));
-      this.rebuildBoxes();
-      this.render();
-      return;
-    }
-    if (this.dragging) {
-      this.tx = this.txStart.tx + (e.clientX - this.dragStart.x);
-      this.ty = this.txStart.ty + (e.clientY - this.dragStart.y);
-      this.render();
-      return;
-    }
-    if (!this.img) return;
-    const { x, y } = this.toImage(e.clientX, e.clientY);
-    // cursor hint when over a draggable anchor
-    this.canvas.style.cursor = this.anchorAt(x, y) !== -1 ? 'ew-resize' : '';
-    // hover highlight over any character box
-    const box = this.boxAt(x, y);
-    const key = box ? `${box.row}:${box.i}` : null;
-    if (key !== this._hoverKey) { this._hoverKey = key; this.render(); }
+    if (!this.dragging) return;
+    this.tx = this.txStart.tx + (e.clientX - this.dragStart.x);
+    this.ty = this.txStart.ty + (e.clientY - this.dragStart.y);
+    this.render();
   }
 
   onMouseUp() {
-    if (this._dragAnchorRow !== -1) this._dragAnchorRow = -1;
     this.dragging = false;
     this.wrap.classList.remove('dragging');
   }
@@ -784,11 +452,7 @@ document.addEventListener('DOMContentLoaded', () => {
   nextBtn.addEventListener('click', () => loadPage(currentPageIndex + 1));
   pageSelect.addEventListener('change', e => loadPage(parseInt(e.target.value, 10)));
 
-  // Line transcription input — type the line's text, boxes follow font widths
-  const lineInput = document.getElementById('line-input');
-  lineInput.addEventListener('input', () => viewer.setLineText(lineInput.value));
-
-  // OCR = Auto OCR (grid-free, self-verifying).
+  // Auto OCR the shown page.
   document.getElementById('blind-ocr-btn').addEventListener('click',
     () => viewer.blindOcrPage().catch(e => { viewer.infoEl.textContent = `Auto OCR failed: ${e.message}`; }));
 

@@ -16,5 +16,8 @@
     "app-test": "node tools/test-blind-app.mjs",
     "sync:recto": "node tools/sync-recto.mjs",
     "recto-test": "node tools/test-recto-app.mjs"
+  },
+  "dependencies": {
+    "mupdf": "^1.28.0"
   }
 }

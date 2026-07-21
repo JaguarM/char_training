@@ -73,3 +73,41 @@ test('gray maps a known RGBA buffer to the expected grayscale values', () => {
   assert.strictEqual(px[1], 0);
   assert.strictEqual(px[2], 60); // (30 + 60 + 90) / 3
 });
+
+// ---------------------------------------------------------------------------
+// Registry drift net (tools/glyph-registry.mjs is THE source of truth for
+// sets/pools/rosters). The browser app cannot import Node modules, so its
+// DEFAULT_SETS is a literal in src/blindocr.js — this test fails the moment
+// the two lists (or a pool's set names, or the npz manifest) drift.
+// ---------------------------------------------------------------------------
+test('glyph registry: rosters, pools and npz manifest agree', async () => {
+  const { readFileSync, existsSync } = require('node:fs');
+  const { join } = require('node:path');
+  const REPO = join(__dirname, '..');
+  const { SETS, POOLS, BATCH_LADDER, APP_ROSTER, poolSetNames } =
+    await import('../tools/glyph-registry.mjs');
+  const names = new Set(SETS.map(([n]) => n));
+
+  // every npz the manifest names is committed
+  for (const [n, npz] of SETS)
+    assert.ok(existsSync(join(REPO, 'assets', 'fonts', npz)), `${n}: assets/fonts/${npz} missing`);
+
+  // every pool references only known sets; ladder references only known pools
+  for (const [pn, pool] of Object.entries(POOLS))
+    for (const s of poolSetNames(pool))
+      assert.ok(names.has(s), `pool ${pn}: unknown set "${s}"`);
+  for (const r of BATCH_LADDER) {
+    const pn = typeof r === 'string' ? r : r.pool;
+    assert.ok(POOLS[pn], `BATCH_LADDER: unknown pool "${pn}"`);
+  }
+  for (const s of APP_ROSTER)
+    assert.ok(names.has(s), `APP_ROSTER: unknown set "${s}"`);
+
+  // the app's literal DEFAULT_SETS must equal APP_ROSTER exactly
+  const src = readFileSync(join(REPO, 'src', 'blindocr.js'), 'utf8');
+  const m = src.match(/const DEFAULT_SETS = \[([^\]]*)\]/);
+  assert.ok(m, 'DEFAULT_SETS literal not found in src/blindocr.js');
+  const appSets = [...m[1].matchAll(/'([^']+)'/g)].map(x => x[1]);
+  assert.deepStrictEqual(appSets, APP_ROSTER,
+    'src/blindocr.js DEFAULT_SETS drifted from registry APP_ROSTER');
+});

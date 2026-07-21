@@ -92,7 +92,13 @@ Facts that live nowhere else: courier_1/2 truths are the reader's own
 certified transcriptions (no external truth exists). In `--glyphs`, `+`
 joins sets into ONE union pool (fonts that mix on a line), `,` separates
 per-band-pick sets — pool only what really mixes, or a foreign font
-byte-matches glyph fragments (a times sliver ate courier 'e's). v4 retired
+byte-matches glyph fragments (a times sliver ate courier 'e's).
+**`tools/glyph-registry.mjs` (2026-07-21) is the ONE registry** for set
+manifests, certified family pools, the batch ladder, and the app roster —
+adding a template set is one line there (export-glyphs, gate and batch-read
+all read it; `npm test` fails if the app's literal DEFAULT_SETS drifts).
+The ocr/ lab deliberately keeps its own `families.mjs` — the lab stays
+self-contained. v4 retired
 from the gate 2026-07-12 (last: `30/884/1□` tol 0 `--quant --union`).
 Corpus PDFs are committed; raster caches populate once per document via
 `tools/rasterize.mjs`. Whole folders (thousands of PDFs, arbitrary

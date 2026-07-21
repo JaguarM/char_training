@@ -17,15 +17,17 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve, join } from 'node:path';
+import { POOLS } from './glyph-registry.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const LIN = 'tnr8lin16,timesbdlin16,timesilin16,timeslin16,tnr8lin10';
-const COURIER = 'times16+timesbd16+timesi16,cour13';
-// EFTA00039208 serif family (ocr/FINDINGS-nimbusrom.md): URW builtins +
-// linear[128,254] + per-page /Indexed palette (--palette). Expected: 223
-// lines / 13034 glyphs / 38 □ (red footer legend + P1 seal graphic only).
-const NIMBUSROM = 'nimbusromlin1024+nimbusrombdlin1024+nimbusromlin983+nimbusromilin1024+nimbusrombdlin1194+nimbussansbdlin1536+tnrlin1024';
+// Certified family read commands come from the ONE registry
+// (tools/glyph-registry.mjs). Expected nimbusrom output: 223 lines /
+// 13034 glyphs / 38 □ (red footer legend + P1 seal graphic only —
+// ocr/FINDINGS-nimbusrom.md).
+const LIN = POOLS.linear.glyphs;
+const COURIER = POOLS.courierDoc.glyphs;
+const NIMBUSROM = POOLS.nimbusrom.glyphs;
 
 const DOCS = [
   { name: 'v3', args: ['--pdf', '../corpus/v3.pdf', '--all', '--truth', '../corpus/v3.txt'] },

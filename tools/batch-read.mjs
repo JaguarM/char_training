@@ -37,6 +37,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync,
   rmSync, appendFileSync, statSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve, join, relative, basename } from 'node:path';
+import { POOLS, BATCH_LADDER } from './glyph-registry.mjs';
 import puppeteer from 'puppeteer-core';
 import { findChrome, suppressAppInit } from './paths.mjs';
 import { openRasterCache } from './raster-cache.mjs';
@@ -47,22 +48,18 @@ const REPO = resolve(__dirname, '..');
 const STAGING = join(__dirname, 'batch-staging');
 
 // ---- the ladder: every byte-proven family, cheapest/most-common first.
-// Pools are the certified read commands from the family records; only
+// Rungs come from the ONE registry (tools/glyph-registry.mjs); only
 // calibri (tol 2, per-page harvest wobble) and jitter (tol 1, JPEG ±1)
 // read above tol 0 — those tolerances are part of the family proof.
-const RUNGS = [
-  { name: 'corpus', args: ['--glyphs', 'times16+timesbd16+timesi16,cour13,arial16'] },                   // docs/RENDERER_IDENTIFIED.md
-  { name: 'nimbus791', args: ['--glyphs', 'nimbus791'] },                                                // ocr/FINDINGS.md (courier block)
-  // probeMs 20s (10× a real P1 probe): on alien /Indexed docs (cleaned scans)
-  // a plausible-looking LUT can send the engine into a near-endless
-  // probeBaseline sweep — EFTA00009676 burned unbounded time here. Real
-  // family docs probe in ~2 s.
-  { name: 'nimbusrom', probeMs: 20000, args: ['--palette', '--glyphs',                                   // ocr/FINDINGS-nimbusrom.md
-    'nimbusromlin1024+nimbusrombdlin1024+nimbusromlin983+nimbusromilin1024+nimbusrombdlin1194+nimbussansbdlin1536+tnrlin1024+timeslin16+timesilin16+timesbdlin16'] },
-  { name: 'calibri', args: ['--tol', '2', '--glyphs',                                                    // ocr/FINDINGS-calibri.md
-    'calibri102mid_1024+calibrib102mid_1024+calibri102g23_1024+bullet16+bullet16b+bulleto16,calibri102mid_938,calibrib102mid_1194,fedline_page,hdrles_page,ftrfouo_page'] },
-  { name: 'jitter1', args: ['--tol', '1', '--glyphs', 'times16+timesbd16+timesi16,arial16'] },           // NEW/MANIFEST.md (mode-3 color times)
-];
+const RUNGS = BATCH_LADDER.map(entry => {
+  const name = typeof entry === 'string' ? entry : entry.name;
+  const pool = POOLS[typeof entry === 'string' ? entry : entry.pool];
+  const args = ['--glyphs', pool.glyphs];
+  if (pool.tol) args.unshift('--tol', String(pool.tol));
+  if (pool.palette) args.unshift('--palette');
+  return { name, args, ...(pool.probeMs ? { probeMs: pool.probeMs } : {}) };
+});
+
 
 // ---------------- args ----------------
 const o = { dir: null, out: null, limit: Infinity, redo: false, prune: false,

@@ -60,13 +60,13 @@ Headless test of the browser port (`blindocr.js` + `CanvasViewer.blindOcrPage`
 document-level API. Run after touching `blindocr.js` or `training.js` — the
 port carries the full bench feature set (union pools, color, strike, quant).
 
-# Erased-letter information limit — `guess-letter.mjs`
+# Erased-letter information limit — (tool retired 2026-07-21)
 
-The stress-test tool behind [../docs/MISSING_LETTER.md](../docs/MISSING_LETTER.md)
-(erase one glyph, infer it back at evidence levels 1–2; also `--calibrate`
-for the δ/x0 physics numbers). The former level 3 — full-line re-render
-through real MuPDF — went with the Python tooling; its recorded result
-("L3 ≈ L1", advance-lattice bound) stands in the doc.
+The research behind [../docs/MISSING_LETTER.md](../docs/MISSING_LETTER.md)
+was completed 2026-07-09; its tool, `guess-letter.mjs`, was removed from the
+tree 2026-07-21 (the findings — L1 4.6% / L2 53% / L3 advance-lattice-bound,
+plus the δ/x0 calibration — live in the doc). Resurrect from git history if
+the experiment ever needs re-running.
 
 # Static server — `serve.mjs`
 

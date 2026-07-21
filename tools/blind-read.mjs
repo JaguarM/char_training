@@ -42,7 +42,7 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { gunzipSync, inflateSync } from 'node:zlib';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { dirname, resolve, join } from 'node:path';
 import { materializeSet } from './glyph-bundle.mjs';
 import Engine from '../src/ocr-engine.js';
@@ -172,16 +172,11 @@ function cachePages(pdfPath) {
 // spec; a palette that darkens white (lut[255] < 250) is a scan image, not a
 // page of this family — skipped.
 async function paletteLUTs(pdfPath) {
+  // mupdf is a ROOT dependency (package.json) — the earlier reach into
+  // ocr/node_modules coupled --palette to the standalone lab's install state
   let mupdf;
-  try {
-    const dir = join(REPO, 'ocr', 'node_modules', 'mupdf');
-    const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'));
-    const exp = pkg.exports;
-    const entry = typeof exp === 'string' ? exp
-      : exp?.['.'] ? (typeof exp['.'] === 'string' ? exp['.'] : exp['.'].import ?? exp['.'].default)
-      : pkg.module ?? pkg.main;
-    mupdf = await import(pathToFileURL(join(dir, entry)).href);
-  } catch { console.error('  (--palette: mupdf not available — run cd ocr && npm install)'); return new Map(); }
+  try { mupdf = await import('mupdf'); }
+  catch { console.error('  (--palette: mupdf not available — run npm install)'); return new Map(); }
   const luts = new Map();
   let doc;
   try { doc = mupdf.Document.openDocument(readFileSync(pdfPath), 'application/pdf'); }

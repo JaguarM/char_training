@@ -200,7 +200,7 @@ A single erased letter in this pipeline is recoverable:
   advance 8.0 stood here": 1 of 27 equal possibilities. Language priors (never
   used above) are the only remaining channel.
 
-Reproduce (levels 1–2): `node tools/guess-letter.mjs --sample 300 --seed 11` ·
+Reproduce (levels 1–2): `node tools/guess-letter.mjs --sample 300 --seed 11` (tool removed 2026-07-21 — resurrect from git history) ·
 `--pdf ../corpus/big.pdf --sample 600 --seed 13` · `--targeted` variants ·
 `--calibrate 80`. `assets/glyphs/glyphs_times16.json` regenerates via
 `node tools/export-glyphs.mjs`; level 3 (MuPDF re-render worker) retired with

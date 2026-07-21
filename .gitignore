@@ -17,4 +17,5 @@ ocr/pages
 ocr/srcglyphs
 ocr/targets
 ocr/node_modules
-*.pgm
+*.pgm# root npm deps (mupdf for blind-read --palette)
+node_modules
