@@ -27,7 +27,7 @@ Python, no native dependencies. The last Python tooling was retired
 
 | Path | Purpose |
 |---|---|
-| `src/training.html` · `training.js` · `training.css` | Browser UI: PDF viewing, Auto OCR, text editing, glyph extraction |
+| `src/training.html` · `training.js` · `training.css` | Browser UI: PDF viewing + Auto OCR overlay + .txt/.json export (viewer-only since 2026-07-21 — the manual editing/extraction era lives in git history) |
 | `src/blindocr.js` | Browser port of the blind reader (Auto OCR / Auto OCR All / .txt + .json export) |
 | `src/ocr.js` | PageEngine: whole-page grayscale buffer + RGBA access the reader works from |
 | `src/core.js` | DOM-free logic (stem↔char maps, geometry, the gray() page law); unit-tested in Node (`npm test`) |

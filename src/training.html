@@ -25,12 +25,6 @@
     <button class="btn" id="next-page-btn" disabled>&gt;</button>
   </div>
 
-  <label class="line-field">
-    Line text:
-    <input type="text" id="line-input" spellcheck="false" autocomplete="off"
-           placeholder="click a line's start, then type its text…">
-  </label>
-
   <div class="legend">
     <div class="legend-item"><span class="swatch swatch-purple"></span> line start</div>
     <div class="legend-item"><span class="swatch swatch-blue"></span> text rows</div>
@@ -38,15 +32,7 @@
     <div class="legend-item"><span class="swatch swatch-orange"></span> placeholder</div>
   </div>
 
-  <div id="info">No image loaded &nbsp;·&nbsp; Drag anchor = line start &nbsp;·&nbsp; Scroll = zoom &nbsp;·&nbsp; Drag = pan</div>
-</div>
-
-<div id="label-modal" class="hidden">
-  <div id="label-modal-inner">
-    <canvas id="label-preview"></canvas>
-    <input id="label-input" type="text" spellcheck="false" autocomplete="off" maxlength="64" placeholder="label…" />
-    <div id="label-hint">Enter &nbsp;=&nbsp; save &nbsp;·&nbsp; Esc &nbsp;=&nbsp; cancel</div>
-  </div>
+  <div id="info">No image loaded &nbsp;·&nbsp; Scroll = zoom &nbsp;·&nbsp; Drag = pan</div>
 </div>
 
 <div id="main-content">
@@ -55,10 +41,11 @@
       <h3>How to use</h3>
       <p class="settings-help"><b>Auto OCR</b> reads the page with no settings: line
       positions, baselines, font, size and spacing are measured from the pixels, and
-      every line carries a byte-exactness certificate (green = certified). Redaction
-      boxes and rules are detected and shown as overlays. <b>Auto OCR All</b> +
-      Download .txt / .json export the whole document. Click a row to edit its text;
-      double-click any glyph box to extract it.</p>
+      every line carries a byte-exactness certificate (green = certified, orange □ =
+      honest unread). Redaction boxes and rules are detected and shown as overlays;
+      the purple tick at each line's measured start should stack into the clean left
+      edge real documents have — a quick visual read-quality check. <b>Auto OCR
+      All</b> + Download .txt / .json export the whole document.</p>
     </div>
   </div>
 

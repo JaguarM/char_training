@@ -49,25 +49,6 @@ body {
 .swatch-green  { background: rgba(0, 210, 70, 0.90); }
 .swatch-orange { background: rgba(235, 140, 0, 0.90); }
 
-.line-field {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #999;
-}
-#line-input {
-  width: 280px;
-  background: #1a1a1a;
-  border: 1px solid #555;
-  border-radius: 4px;
-  color: #fff;
-  font-family: monospace;
-  font-size: 13px;
-  padding: 5px 8px;
-}
-#line-input:focus { outline: none; border-color: #55aaff; }
-
 .btn.active { background: #3a5a3a; border-color: #4a8a4a; color: #7fdf7f; }
 
 #info {
@@ -174,55 +155,4 @@ body {
 
 #canvas {
   display: block;
-}
-
-/* ── Label modal ─────────────────────────────────────────────────────────── */
-#label-modal {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.55);
-  z-index: 100;
-}
-#label-modal.hidden { display: none; }
-
-#label-modal-inner {
-  background: #252525;
-  border: 1px solid #444;
-  border-radius: 6px;
-  padding: 18px 20px 14px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  min-width: 160px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-}
-
-#label-preview {
-  image-rendering: pixelated;
-  border: 1px solid #444;
-  background: #fff;
-}
-
-#label-input {
-  width: 100%;
-  background: #1a1a1a;
-  border: 1px solid #555;
-  border-radius: 4px;
-  color: #fff;
-  font-family: monospace;
-  font-size: 20px;
-  text-align: center;
-  padding: 6px 10px;
-  outline: none;
-}
-#label-input:focus { border-color: #55aaff; }
-
-#label-hint {
-  font-size: 10px;
-  color: #555;
-  letter-spacing: 0.03em;
 }
