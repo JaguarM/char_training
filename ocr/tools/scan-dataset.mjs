@@ -23,6 +23,7 @@ const args = process.argv.slice(2);
 const opt = (n, d) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : d; };
 const DIR = opt('dir', 'F:/_Epstein/dataset9-more-complete');
 const LIMIT = +opt('limit', 0);
+const OFFSET = +opt('offset', 0);   // skip the first N sorted files (chunked runs: 10k done → --offset 10000)
 const CSV = opt('csv', null);
 const MAXB = 64 * 1024 * 1024;      // skip giants; the family docs are ~1MB
 
@@ -32,8 +33,9 @@ const count = (s, needle) => {
   return n;
 };
 
-const files = readdirSync(DIR).filter(f => f.toLowerCase().endsWith('.pdf')).sort();
+let files = readdirSync(DIR).filter(f => f.toLowerCase().endsWith('.pdf')).sort();
 console.error(`${files.length} PDFs in ${DIR}`);
+if (OFFSET) files = files.slice(OFFSET);
 const rows = [];
 let done = 0;
 for (const f of files) {
