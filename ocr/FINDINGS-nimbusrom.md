@@ -64,8 +64,15 @@ Q(205)=204; 239+1=240→tie→239; 253+1=254→(254,254,255)).
 
 ```
 node tools/blind-read.mjs --pdf <doc.pdf> --palette --tol 0 \
-  --glyphs nimbusromlin1024+nimbusrombdlin1024+nimbusromlin983+nimbusromilin1024+nimbusrombdlin1194+nimbussansbdlin1536+tnrlin1024
+  --glyphs nimbusromlin1024+nimbusrombdlin1024+nimbusromlin983+nimbusromilin1024+nimbusrombdlin1194+nimbussansbdlin1536+tnrlin1024+timeslin16+timesilin16+timesbdlin16
 ```
+
+The three `times*lin16` sets (REAL Windows Times `times.ttf`/`timesbd`/`timesi`
+em64 1024 + linear254) joined the pool 07-21: BOP docs embed real-TNR subsets
+not just for ■/quotes but for whole SECTIONS — legal citation blocks
+("Hemphill v. United States," etc.), double-spaced memoranda. On
+EFTA00039421 they alone took 6209 □ → 965 □. Strictly better on all 7 BOP
+docs (never worse, no cross-font theft observed at tol 0 in one union group).
 
 Color pages: hyperlink blues etc. flood as usual; the palette's near-neutral
 AA entries (spread 1–3) neutralize to exactly the LUT gray.
@@ -103,6 +110,62 @@ pixels said em≈22 which fit NO Times; the wide-advance/x-height ratio was
 the Century tell. **Within one container family, expect one sub-family per
 SOURCE-document producer** (BOP docs = Nimbus+linear254; court briefs =
 Century+no-linear; both under the same palette wrapper).
+
+## Remaining-□ census (07-21, post-Times pool) — all diagnosed from pixels
+
+- **Vestigial table vrules** (39421 p44–60 region, ~9 lines/page unread at
+  tol 0): 1-px columns of STRICTLY constant gray **254**, 18 rows tall,
+  bracketing table cells (pairs 9 px apart). They are the [128,254] law's
+  ghost of light cell borders (raw 253 + 1). Too short for the engine's
+  ≥40 px light-vrule detector → unexplained ink → whole line unread. At
+  tol 2 the text all reads and the □ count = the rule-segment count exactly
+  (p46: 126). Candidate engine fix: accept strictly-constant (mn==mx),
+  value ≥250, ≥16-row light columns as vrules — NOT DONE (gate risk),
+  recorded only. p156 has the same at value 253.
+- **Shaded table cells** (39421 p156–159): black text on gray-85/-129 cell
+  fills — inverted-background problem, engine treats the fill as a box.
+  Needs band harvesting or fill-aware matching; not attempted.
+- **Colored letterhead** (40347 p1/p5 top block, its remaining ~2/3):
+  "LAW OFFICES OF BOBBI C. STERNHEIM" + address lines are COLORED ink
+  (spread>3 → whitened away as graphics; big line ~22px serif caps, small
+  lines ~13px). Same bucket as hyperlink blues. harvest-band from the
+  whitened view if it must read; boilerplate on every letter of this
+  attorney.
+- 40347 p5 also has 4 neutral-ink unread lines (overlay: Times-Roman ~11.8)
+  — probe didn't pin times/nimbus at 980..1040 on my first window (window
+  may have been contaminated); open.
+
+## Gray-ink sets (07-21, fontgen --ink)
+
+`fontgen --ink C` renders srcover gray ink over white (b = 255 −
+round(cov·(255−C)/255)). Generated `censcbkg27_1198`, `censcbkig27_1198`,
+`nimbussansg118_1024` (inks measured from pixels: blockquote 27, banner 118).
+Blockquote LINES READ correctly at tol 2 in a grouped pool
+(`censcbk1198+bd+i,censcbkg27_1198+censcbkig27_1198,nimbussansg118_1024` —
+one union group per ink, else cross-theft), with correct per-band font picks.
+**BUT** each line carries ~50 phantom fail clusters: kern-junction pixels off
+by ±1–2 because BOTH the bundle's alphaOf inversion AND the engine's
+composite prediction assume BLACK ink (FZ_BLEND); gray srcover composites
+obey a different law. tol does not forgive them — the unexplained-ink test
+(`pageAt !== q(canAt)`, ocr-engine ~834) is byte-exact by design. Fix would
+be per-set ink support in alphaOf + composite (engine surgery, gate risk) —
+NOT DONE; sets are registered and usable for text extraction, not for 0-□
+certification. Probe ground truth: 'd' p18 censcbk em64 1198 ink 27 round law
+= bad 29/150, maxd 2 (best of round/floor/fz/cov at C 26/27/28).
+
+## EFTA00093044 (court sub-family) read notes 07-21
+
+- **Full-doc baseline** (per-page aggregate, black censcbk trio, tol 0):
+  **543 lines / 27,118 glyphs / 8,591 □, pages 332/337/338/341 SKIPPED
+  (60 s timeout each)**. Doc structure: pp2–46 censcbk brief (reads);
+  pp47–171 = hearing TRANSCRIPTS in a thin face at ink gray ~82 (0 read,
+  future hunt); pp172+ = mixed appendix, visibly blurry/resampled (user
+  07-21: skip hard files for now).
+- **p332 (+337/338/341) are pathological**: full pages of gray-26/27 text.
+  The engine grinds effectively forever there (last session's job burned
+  13 h CPU on p332; a rerun sat >15 min). Other 0-match pages fail FAST —
+  the "0-match pages cheap" perf assumption does NOT hold for full-page
+  gray ink. Root cause untriaged.
 
 ## Open
 

@@ -71,6 +71,9 @@ const SETS = [
   ['censcbk1198', 'censcbk_1198.npz'],               // Century Schoolbook 1198 — brief body
   ['censcbkbd1198', 'censcbkbd_1198.npz'],
   ['censcbki1198', 'censcbki_1198.npz'],
+  ['censcbkg27_1198', 'censcbkg27_1198.npz'],        // gray srcover C=27 blockquotes (read at tol 2 — ±1 quirk)
+  ['censcbkig27_1198', 'censcbkig27_1198.npz'],      // gray italic companion (case names inside blockquotes)
+  ['nimbussansg118_1024', 'nimbussansg118_1024.npz'], // ECF banner gray 118 (tol 2)
   ['segoeui16', 'segoeui_16.npz'],
   ['segoeuib16', 'segoeuib_16.npz'],
   ['segoeuii16', 'segoeuii_16.npz'],

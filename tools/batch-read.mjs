@@ -58,7 +58,7 @@ const RUNGS = [
   // probeBaseline sweep — EFTA00009676 burned unbounded time here. Real
   // family docs probe in ~2 s.
   { name: 'nimbusrom', probeMs: 20000, args: ['--palette', '--glyphs',                                   // ocr/FINDINGS-nimbusrom.md
-    'nimbusromlin1024+nimbusrombdlin1024+nimbusromlin983+nimbusromilin1024+nimbusrombdlin1194+nimbussansbdlin1536+tnrlin1024'] },
+    'nimbusromlin1024+nimbusrombdlin1024+nimbusromlin983+nimbusromilin1024+nimbusrombdlin1194+nimbussansbdlin1536+tnrlin1024+timeslin16+timesilin16+timesbdlin16'] },
   { name: 'calibri', args: ['--tol', '2', '--glyphs',                                                    // ocr/FINDINGS-calibri.md
     'calibri102mid_1024+calibrib102mid_1024+calibri102g23_1024+bullet16+bullet16b+bulleto16,calibri102mid_938,calibrib102mid_1194,fedline_page,hdrles_page,ftrfouo_page'] },
   { name: 'jitter1', args: ['--tol', '1', '--glyphs', 'times16+timesbd16+timesi16,arial16'] },           // NEW/MANIFEST.md (mode-3 color times)

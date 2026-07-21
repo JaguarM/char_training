@@ -57,6 +57,13 @@ const CHARS = optS('chars', DEFAULT_CHARS);
 // → +1) and tag meta.pipeline 'linear-remap' so the engine's linear-set
 // machinery (glyph-bundle alphaOf, scanLine shift accounting) engages.
 const LINEAR = args.includes('--linear');
+// --ink C: gray srcover ink over white (b = 255 − round(cov·(255−C)/255))
+// instead of black FZ_BLEND — the court/ECF sub-family's gray blockquote
+// (C=27) and ECF-banner (C=118) text, FINDINGS-nimbusrom.md §sub-family 2.
+// Carries the family's known srcover ±1 quirk: read these sets at tol 2
+// (calibri g23 precedent). Mutually exclusive with --linear.
+const INK = optS('ink', null) !== null ? +optS('ink', null) : null;
+if (INK !== null && LINEAR) { console.error('--ink and --linear are mutually exclusive'); process.exit(1); }
 const OUT = resolve(REPO, optS('out', `assets/fonts/${FONT.replace(/^.*[\\/]/, '').replace(/\..*$/, '')}_${EM64}.npz`));
 const fontPath = resolve(REPO, FONT);
 
@@ -93,7 +100,14 @@ for (const c of CHARS) {
     const key = `${cp}_${Math.round(phx * 4)}_${Math.round(phy * 2)}`;
     const empty = { raster: Buffer.alloc(0), w: 0, h: 0, dx: 0, dy: 0 };
     if (!gid) { glyphs.set(key, empty); continue; }
-    const dst = clone.render(cp, EM64, EM64, PENX * 64 + Math.round(phx * 64), BASEY * 64 + Math.round(phy * 64), 1);
+    let dst;
+    if (INK !== null) {
+      const cov = clone.coverage(cp, EM64, EM64, PENX * 64 + Math.round(phx * 64), BASEY * 64 + Math.round(phy * 64));
+      if (cov) {
+        dst = new Uint8Array(W * H);
+        for (let i = 0; i < W * H; i++) dst[i] = 255 - Math.round(cov[i] * (255 - INK) / 255);
+      }
+    } else dst = clone.render(cp, EM64, EM64, PENX * 64 + Math.round(phx * 64), BASEY * 64 + Math.round(phy * 64), 1);
     if (!dst) { glyphs.set(key, empty); continue; }
     let x0 = W, y0 = H, x1 = -1, y1 = -1;
     for (let r = 0; r < H; r++) for (let col = 0; col < W; col++)
@@ -174,7 +188,7 @@ const meta = {
   fontfile: FONT.replace(/\\/g, '/'), size_px: SIZE_PX, chars: CHARS,
   phases_x: PHASES_X, phases_y: PHASES_Y,
   pipeline: `ftclone em64 ${EM64} unhinted-ft ftgrays single-draw (certified vs mupdf-wasm; ocr/FINDINGS.md)`
-    + (LINEAR ? ' linear-remap' : ''),
+    + (LINEAR ? ' linear-remap' : '') + (INK !== null ? ` srcover-ink-${INK}` : ''),
 };
 const advBuf = Buffer.alloc(advances.length * 8);
 advances.forEach((a, i) => advBuf.writeDoubleLE(a, i * 8));
