@@ -233,20 +233,34 @@ async function main() {
       entry.pages = numPages;
 
       // probe every rung on one page, then full-read the winner
+      const probeLadder = (pno, probes, tag = '') => {
+        let best = null;
+        for (const rung of RUNGS) {
+          const p = runRead(pdfPath, rung.args, ['--page', String(pno)], rung.probeMs ?? 60000);
+          if (!p || p === 'timeout') { probes[rung.name + tag] = p ? 'timeout' : 'error'; continue; }
+          probes[rung.name + tag] = `${p.lines}/${p.glyphs}/${p.unread}`;
+          if (!best || p.unread < best.p.unread ||
+              (p.unread === best.p.unread && p.glyphs > best.p.glyphs)) best = { rung, p };
+          // early accept (speed only — selection is min-□ regardless): a clean
+          // or overwhelmingly-clean probe on an earlier (= more likely) rung
+          // ends the ladder; families with constant graphic remainders (the
+          // nimbusrom red footer) never probe fully clean.
+          if (p.glyphs > 0 && (p.unread === 0 || p.glyphs >= 50 * p.unread)) break;
+        }
+        return best;
+      };
       const probePage = Math.min(o.probePage, numPages);
       entry.probes = {};
-      let best = null;
-      for (const rung of RUNGS) {
-        const p = runRead(pdfPath, rung.args, ['--page', String(probePage)], rung.probeMs ?? 60000);
-        if (!p || p === 'timeout') { entry.probes[rung.name] = p ? 'timeout' : 'error'; continue; }
-        entry.probes[rung.name] = `${p.lines}/${p.glyphs}/${p.unread}`;
-        if (!best || p.unread < best.p.unread ||
-            (p.unread === best.p.unread && p.glyphs > best.p.glyphs)) best = { rung, p };
-        // early accept (speed only — selection is min-□ regardless): a clean
-        // or overwhelmingly-clean probe on an earlier (= more likely) rung
-        // ends the ladder; families with constant graphic remainders (the
-        // nimbusrom red footer) never probe fully clean.
-        if (p.glyphs > 0 && (p.unread === 0 || p.glyphs >= 50 * p.unread)) break;
+      let best = probeLadder(probePage, entry.probes);
+      // Interior re-probe (FINDINGS-nimbusrom sub-family #3): the court
+      // family's P1 is an ornate cover NO rung reads — EFTA00316714 sat in
+      // the manifest as 'no-read' until hand-probed at p3. When every rung
+      // fails on page 1 of a multi-page doc, one interior page gets a second
+      // chance before the no-read verdict.
+      if ((!best || (best.p.glyphs === 0 && best.p.unread > 0)) &&
+          probePage === 1 && numPages >= 3) {
+        const retry = probeLadder(3, entry.probes, '@p3');
+        if (retry && retry.p.glyphs > 0) best = retry;
       }
       if (!best || (best.p.glyphs === 0 && best.p.unread > 0)) {
         entry.status = 'no-read';

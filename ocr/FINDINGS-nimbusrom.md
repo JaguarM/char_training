@@ -242,6 +242,38 @@ certification. Probe ground truth: 'd' p18 censcbk em64 1198 ink 27 round law
   the "0-match pages cheap" perf assumption does NOT hold for full-page
   gray ink. Root cause untriaged.
 
+## GPU classifier cross-checks (07-22, gpu-ocr/tools/classify.mjs)
+
+The gpu-ocr pixel classifier (interior-page sampling, mupdf-direct decode,
+per-page palette LUT, per-SET assembled-glyph tallies) validated **11/11**
+on this week's labeled docs — all three court docs, both BOP+linear docs,
+courier block, both calibri docs, and the resample/skew junk classes as
+clean `none` (281516: literally zero template hits on 19 sets).
+
+New structure it exposed in **EFTA00093044** (multi-label verdict
+censcbkCourt+nimbusromCourt): the doc is a COMPILATION —
+
+- p3 censcbk_1198: 945 glyphs (the known brief),
+- **p382 nimbusrom_1024 old-rev: 722 glyphs + bd 21 + i 7** — a sub-family
+  #3 section in the appendix nobody had probed; the nimbusromCourt pool
+  applies to part of this doc,
+- **p193 times_16 (corpus Chrome law!): 232 glyphs**, raw hits exactly 2×
+  (the TNR16 twin-y-phase signature) — a corpus-law TNR16 section inside a
+  palette container,
+- p98/p287 zero on all sets (transcript face pp47–171 + blurry appendix,
+  matching the 07-21 read notes).
+
+A future 93044 re-read should ladder censcbk trio + nimbusromCourt +
+corpus per page instead of one pool for the whole doc.
+
+**Census big-candidate sweep (07-22, classifier then batch)**: of the 10
+biggest untested candidates (1225932 540pp, 1260277 332pp, 1085356 324pp,
+1090080 308pp, 797069 186pp, 496507/496633 110pp twins, 1024729/839/953
+trio), **9 hit ZERO templates across all 19 sets** — pixel-level proof
+they are none of the known families (junk classes or genuinely new faces).
+Only **EFTA01024839 (108pp) fired corpusTimes: 705 glyphs** — real
+corpus-law TNR16 interior pages; routed to batch-read.
+
 ## Open
 
 - **Red footer legend** (every page, y≈982; P1 y≈941/948): red ink
