@@ -23,7 +23,7 @@ import { classifyDoc, ensureTemplates, scoreLabels, DATASET } from './classify.m
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-const o = { n: 1500, seed: 42, samples: 4, dir: DATASET, summarize: false };
+const o = { n: 1500, seed: 42, samples: 4, dir: DATASET, summarize: false, redoNone: false };
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i], next = () => process.argv[++i];
   if (a === '--n') o.n = +next();
@@ -31,6 +31,8 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === '--samples') o.samples = +next();
   else if (a === '--dir') o.dir = next();
   else if (a === '--summarize') o.summarize = true;
+  else if (a === '--redo-none') o.redoNone = true;   // after a new family axis:
+                                                     // re-classify stored 'none' docs
   else { console.error(`unknown arg ${a}`); process.exit(1); }
 }
 const OUT = join(ROOT, `sample-composition-${o.seed}.jsonl`);
@@ -58,7 +60,14 @@ function loadDone() {
 // stored entries carry the raw per-family tallies in `detail` — recompute
 // labels with the CURRENT rule so threshold tuning never forces a re-run
 function rescore(e) {
-  if (!e.detail || ['no-image', 'unreadable', 'error'].includes(e.verdict)) return e;
+  if (['no-image', 'unreadable', 'error'].includes(e.verdict)) return e;
+  // skip classes from stored meta (same law as classifyDoc): non-text pages
+  if (e.meta?.dims) {
+    const [dw, dh] = e.meta.dims.split('x').map(Number);
+    if (dw < 400 || dh < 400) return { ...e, labels: [], verdict: 'skip-thumbnail' };
+    if (dw > dh) return { ...e, labels: [], verdict: 'skip-landscape' };
+  }
+  if (!e.detail) return e;
   const best = {};
   for (const part of e.detail.split(' ')) {
     const m = /^(\w+):(\d+)$/.exec(part);
@@ -132,7 +141,8 @@ let processed = 0;
 const t0 = Date.now();
 for (const f of picks) {
   const id = f.replace(/\.pdf$/i, '');
-  if (done.has(id)) continue;
+  const prev = done.get(id);
+  if (prev && !(o.redoNone && prev.verdict === 'none')) continue;
   const t = Date.now();
   const res = await classifyDoc(join(o.dir, f), { samples: o.samples, cleanup: true });
   res.secs = +((Date.now() - t) / 1000).toFixed(1);

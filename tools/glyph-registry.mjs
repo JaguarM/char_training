@@ -26,6 +26,15 @@
 export const SETS = [
   ['arial16', 'arial_16.npz'],
   ['arialbd16', 'arialbd_16.npz'],
+  // sans-body email family (ocr/COMPOSITION.md hunt #1, solved 07-22 late):
+  // REAL Windows Arial at em64 1194 (= 14 pt at 96 dpi), ¼-px x pens,
+  // integer y, NO linear step, per-page /Indexed palette — the overlay's
+  // "Helvetica 14" was literal modulo the name. Probe: 'a' of "afternoon" +
+  // 'b' of "building" (EFTA00678329 p1) both bad=0 maxd=0 under
+  // nolin+palette at their own lattice pens.
+  ['arial1194', 'arial_1194.npz'],
+  ['arialbd1194', 'arialbd_1194.npz'],
+  ['ariali1194', 'ariali_1194.npz'],
   // NEW/calibri block (ocr/FINDINGS-calibri.md, 0 □ 2026-07-19): harvested
   // Calibri 1.02 mid-law sets + gray-23 body runs + partition-cut page-byte
   // sets for the Segoe letterhead lines and the Word/Courier bullets
@@ -128,6 +137,12 @@ export const POOLS = {
   // surfaced as 'no-read'); probe interior pages when hunting by hand.
   nimbusromCourt: { glyphs: 'nimbusrom1024+nimbusrombd1024+nimbusromi1024+nimbusromg35_1024',
     palette: true, tol: 2, probeMs: 20000 },
+  // sans-body email family (COMPOSITION.md hunt #1): Arial 1194 body under
+  // the no-linear palette law; the same producer's headers are corpus-law
+  // Times 16 (times16 fires at tol 0 on them), so both ride one rung —
+  // grouped separately (',') or the foreign face byte-matches fragments
+  arialEmail: { glyphs: 'arial1194+arialbd1194+ariali1194,times16+timesbd16+timesi16',
+    palette: true, tol: 0 },
   // NEW/calibri block (ocr/FINDINGS-calibri.md)
   calibri:   { glyphs: 'calibri102mid_1024+calibrib102mid_1024+calibri102g23_1024+bullet16+bullet16b+bulleto16,calibri102mid_938,calibrib102mid_1194,fedline_page,hdrles_page,ftrfouo_page',
     tol: 2 },
@@ -138,7 +153,7 @@ export const POOLS = {
 // batch-read probe ladder, in rung order: 'poolName' or { name, pool } when
 // the manifest label must differ (the 'nimbusrom' rung label predates the
 // wide pool — existing manifest.jsonl / census CSVs record it)
-export const BATCH_LADDER = ['corpus', 'nimbus791',
+export const BATCH_LADDER = ['corpus', 'arialEmail', 'nimbus791',
   { name: 'nimbusrom', pool: 'nimbusromWide' }, 'nimbusromCourt', 'calibri',
   'jitter1'];
 

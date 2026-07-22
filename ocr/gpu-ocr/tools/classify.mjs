@@ -40,6 +40,9 @@ export const FAMILIES = {
   nimbus791: ['nimbus_791'],
   nimbusromLin: ['nimbusromlin_1024', 'nimbusrombdlin_1024', 'nimbusromilin_1024', 'tnrlin_1024'],
   nimbusromCourt: ['nimbusrom_1024', 'nimbusrombd_1024', 'nimbusromi_1024'],
+  // sans-body email family (COMPOSITION.md hunt #1, solved 07-22 late):
+  // real Arial em64 1194, no-linear + per-page palette
+  arialEmail: ['arial_1194', 'arialbd_1194', 'ariali_1194'],
   censcbkCourt: ['censcbk_1198', 'censcbkbd_1198', 'censcbki_1198'],
   calibri: ['calibri102mid_1024', 'calibrib102mid_1024', 'calibri102g23_1024'],
 };
@@ -170,6 +173,17 @@ export async function classifyDoc(pdf, { samples = 5, cleanup = false } = {}) {
     meta.modes = [...meta.modes].sort();
     if (!dimCount.size) {
       return { id, verdict: 'no-image', labels: [], nPages, sampled: pages.length, detail: '', meta };
+    }
+    // skip classes (user rule 07-22): pages that are not text pages.
+    // Thumbnails (either side < 400 px) are photo attachments; landscape
+    // rasters (w > h) are image exhibits — both unreadable by nature, and
+    // the frontend should route them straight to "no text", not to a hunt.
+    const [dw, dh] = meta.dims.split('x').map(Number);
+    if (dw < 400 || dh < 400) {
+      return { id, verdict: 'skip-thumbnail', labels: [], nPages, sampled: pages.length, detail: '', meta };
+    }
+    if (dw > dh) {
+      return { id, verdict: 'skip-landscape', labels: [], nPages, sampled: pages.length, detail: '', meta };
     }
     const t0 = runExe(dir, 0), t2 = runExe(dir, 2);
     // best sampled page per family; labels from the per-family best page
