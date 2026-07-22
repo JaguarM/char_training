@@ -747,10 +747,16 @@
         if (hasM || hasE) {
           for (let x = xFrom; x < xTo; x++) {
             if ((hasM && mask[po + x]) || (hasE && explained[po + x])) {
-              const pv = g[po + x];
-              canvas[co + x] = pv;
+              // skip cells are don't-care and never count as unexplained. A
+              // foreign QUANT (a reconstructed palette whose LUT disagrees
+              // with an OBSERVED page byte — lut[pv] !== pv) used to count
+              // them here; nothing can ever explain such a cell, and the
+              // fail-absorb loop could not retire it either → the scan
+              // LIVELOCKED on its column (EFTA00093044 p332, 13 h CPU). On
+              // true-palette pages every observed byte is a fixpoint and
+              // this branch never counted anything — dropping it is a no-op.
+              canvas[co + x] = g[po + x];
               skip[co + x] = 1;
-              if (judged && QUANT && pv !== QUANT[pv]) unexpl[x - xFrom]++;
             } else if (judged && g[po + x] !== q255) unexpl[x - xFrom]++;
           }
         } else if (judged) {
@@ -988,7 +994,16 @@
             return false;
           });
           if (okDust) {
-            for (const [x, y] of px) setCan(x, y, pageAt(x, y));
+            for (const [x, y] of px) {
+              setCan(x, y, pageAt(x, y));
+              // same retire rule as the fail-absorb: a non-fixpoint dust
+              // byte would stay "unexplained" forever and livelock here
+              const pv = pageAt(x, y);
+              if (QUANT && pv !== QUANT[pv] && !skip[(y - y0) * bw + (x - xFrom)]) {
+                skip[(y - y0) * bw + (x - xFrom)] = 1;
+                if (y >= cTop && y < cBot) unexpl[x - xFrom]--;
+              }
+            }
             cursor = col;
             continue;
           }
@@ -1041,6 +1056,12 @@
           if (px <= col + 2) {
             setCan(px, py, pageAt(px, py));
             skip[(py - y0) * bw + (px - xFrom)] = 1;
+            // absorbed = retired, even when the byte is no fixpoint of a
+            // foreign QUANT (setCan's fixpoint rule then leaves it counted
+            // and the loop re-enters this column forever). Fixpoint bytes
+            // were already retired by setCan — this is a no-op for them.
+            if (py >= cTop && py < cBot && QUANT && pageAt(px, py) !== QUANT[pageAt(px, py)])
+              unexpl[px - xFrom]--;
           }
         }
         // fail/frag classification is DEFERRED to line end: at fail time the
