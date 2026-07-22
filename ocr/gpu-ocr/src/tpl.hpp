@@ -19,6 +19,8 @@
 struct Tpl {
     uint32_t cp = 0;             // Unicode codepoint
     double adv = 0;              // exact dyadic advance, px
+    uint16_t setId = 0;          // index of the --templates file this came
+                                 // from (stamped by main; --classify tallies)
     double spaceAdv = 0;         // the OWNING SET's space advance (filled by
                                  // main after load; lines vote per-line so
                                  // mixed-pitch docs get the right gaps)

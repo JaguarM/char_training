@@ -11,6 +11,7 @@ struct Line {
     double x0 = 0;               // pen x of the first glyph
     int nGlyphs = 0;
     std::string text;            // UTF-8
+    std::vector<uint16_t> glyphSets;  // accepted glyphs' Tpl::setId, in order
 };
 
 // spaceAdv: advance of one space in px (used to size gaps into space runs).

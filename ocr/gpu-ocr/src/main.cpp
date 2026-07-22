@@ -85,7 +85,7 @@ int main(int argc, char** argv) {
     std::vector<std::string> tplFiles;
     std::string pages = "data/pages/big", outDir;
     int page = 0, limit = 0, tol = 0, cropW = 0, cropH = 0, cropYOff = 0;
-    bool naive = false, cpu = false, print = false;
+    bool naive = false, cpu = false, print = false, classify = false;
     unsigned maxHits = 4u << 20;
 
     for (int i = 1; i < argc; i++) {
@@ -106,16 +106,22 @@ int main(int argc, char** argv) {
         else if (a == "--naive") naive = true;
         else if (a == "--cpu") cpu = true;
         else if (a == "--print") print = true;
+        else if (a == "--classify") classify = true;
         else { fprintf(stderr, "unknown arg %s\n", a.c_str()); return 1; }
     }
     if (tplFiles.empty()) tplFiles.push_back("data/templates/times_16.tpl");
 
     // ---- templates ----
     std::vector<Tpl> tpls;
+    std::vector<std::string> setNames;      // per --templates file, for --classify
     double sizePx = 0, spaceAdv = 0;
     int dups = 0;
     for (const auto& f : tplFiles) {
+        std::string stem = fs::path(f).stem().string();
+        uint16_t setId = (uint16_t)setNames.size();
+        setNames.push_back(stem);
         TplSet s = loadTemplates(f, cropW, cropH, cropYOff);
+        for (auto& t : s.tpls) t.setId = setId;
         if (sizePx == 0) { sizePx = s.sizePx; spaceAdv = s.spaceAdv; }
         else if (s.sizePx != sizePx)
             fprintf(stderr, "note: %s sizePx %.3f != %.3f (mixed-size union)\n", f.c_str(), s.sizePx, sizePx);
@@ -201,6 +207,24 @@ int main(int argc, char** argv) {
         auto t2 = Clock::now();
         std::vector<Line> lines = assemble(hits, tpls, spaceAdv);
         auto t3 = Clock::now();
+
+        // --classify: per-SET raw hit + assembled-glyph tallies, one JSON
+        // line per page on stdout. Raw hits say "these exact pixels exist";
+        // assembled glyphs say "and they won their pen position". JS scores.
+        if (classify) {
+            std::vector<long long> hitsBySet(setNames.size(), 0), glyphsBySet(setNames.size(), 0);
+            for (const Hit& h : hits) hitsBySet[tpls[h.t].setId]++;
+            for (const Line& L : lines)
+                for (uint16_t s : L.glyphSets) glyphsBySet[s]++;
+            std::string js = "CLASSIFY {\"page\":" + std::to_string(pageNo(f)) + ",\"sets\":{";
+            for (size_t s = 0; s < setNames.size(); s++) {
+                if (s) js += ",";
+                js += "\"" + setNames[s] + "\":[" + std::to_string(glyphsBySet[s]) + "," +
+                      std::to_string(hitsBySet[s]) + "]";
+            }
+            js += "}}";
+            printf("%s\n", js.c_str());
+        }
 
         std::string text;
         int glyphs = 0;

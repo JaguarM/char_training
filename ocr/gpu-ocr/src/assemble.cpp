@@ -21,6 +21,7 @@ namespace {
 struct G {
     double pen, adv, sp;
     uint32_t cp, ink;
+    uint16_t set;
 };
 }
 
@@ -31,7 +32,7 @@ std::vector<Line> assemble(const std::vector<Hit>& hits,
         const Tpl& t = tpls[h.t];
         int baseline = (int)h.y - t.dy;
         double pen = (double)h.x - t.dx + t.phx4 / 4.0;
-        byBase[baseline].push_back({pen, t.adv, t.spaceAdv, t.cp, (uint32_t)t.inkPos.size()});
+        byBase[baseline].push_back({pen, t.adv, t.spaceAdv, t.cp, (uint32_t)t.inkPos.size(), t.setId});
     }
 
     // Adjacent-baseline merge: TNR16's two y-phase records often carry the
@@ -97,6 +98,7 @@ std::vector<Line> assemble(const std::vector<Hit>& hits,
             }
             utf8Append(line.text, g.cp);
             line.nGlyphs++;
+            line.glyphSets.push_back(g.set);
             prevEnd = g.pen + g.adv;
 
             // everything starting inside the accepted glyph's advance is spent

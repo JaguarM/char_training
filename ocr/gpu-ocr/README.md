@@ -70,6 +70,26 @@ build/gpu-ocr.exe  (C++20 + CUDA)  <-----------------------------------+
         -> out/big/page-NNNN.txt + all.txt
 ```
 
+## Classifier (the F:\ role, live since 2026-07-22)
+
+`node tools/classify.mjs <pdf>...` answers "which renderer family is this
+doc" from PIXELS: samples interior pages (never P1/P2 — the court family's
+cover pages miss), decodes them mupdf-direct with per-page palette LUTs, runs
+ONE launch with every registered family's sets, and thresholds the per-SET
+assembled-glyph tallies the exe emits under `--classify`. Verdicts are
+MULTI-LABEL because eDiscovery compilations really mix families per section.
+Two passes: tol 0 for exact families, tol 2 only for calibri's tally (its ±1
+harvest wobble is part of the family proof; tol 2 for lin/no-lin twins would
+destroy discrimination).
+
+`node tools/classify.mjs --labeled` = the validation run, 2026-07-22,
+**11/11 correct** on this week's labeled docs: 3× nimbusromCourt, censcbk
+(93044, multi-label), 2× nimbusromLin, nimbus791, 2× calibri, and the two
+junk classes (281516 resample → literally zero hits, 240536 skew → 9) as
+`none`. Bonus: the 93044 run found an old-rev-NimbusRoman section (p382,
+722 glyphs) and a corpus-TNR16 section (p193) inside the "censcbk" doc —
+compilation structure the single-doc hunts had not mapped.
+
 ## Commands
 
 ```powershell
