@@ -1998,3 +1998,784 @@
 {"id":"EFTA01040474","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":2,"sampled":2,"detail":"corpusTimes:396","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
 {"id":"EFTA00829759","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":1,"sampled":1,"detail":"corpusTimes:562","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
 {"id":"EFTA00580466","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":1,"sampled":1,"detail":"corpusTimes:844","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00238352","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1073"},"secs":0.7}
+{"id":"EFTA00490646","verdict":"none","labels":[],"nPages":4,"sampled":2,"detail":"corpusTimes:52 nimbusromCourt:9 nimbusromLin:1","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00236311","verdict":"none","labels":[],"nPages":4,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1073"},"secs":0.7}
+{"id":"EFTA00768385","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:122 courier13:23","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.4}
+{"id":"EFTA00390734","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:155 corpusTimes:74","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00400758","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:117 courier13:80","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01098184","verdict":"none","labels":[],"nPages":8,"sampled":4,"detail":"","meta":{"modes":[3],"lutPages":8,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01168608","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":3,"sampled":1,"detail":"corpusTimes:109","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.5}
+{"id":"EFTA00099686","verdict":"none","labels":[],"nPages":16,"sampled":4,"detail":"nimbusromCourt:10 nimbusromLin:8","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1059"},"secs":0.8}
+{"id":"EFTA00770199","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01132747","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:157 arial:109","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.5}
+{"id":"EFTA01177570","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"800x1067"},"secs":0.6}
+{"id":"EFTA01182621","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1425x1900"},"secs":0.8}
+{"id":"EFTA00300885","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01139757","verdict":"none","labels":[],"nPages":23,"sampled":4,"detail":"","meta":{"modes":[2],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":1}
+{"id":"EFTA00415426","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:199 corpusTimes:84","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00553301","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:73","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00418434","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:79","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00804023","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00381163","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:107 courier13:74","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01062208","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:71","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00797875","verdict":"none","labels":[],"nPages":27,"sampled":4,"detail":"","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00306806","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00680880","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:59","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00331950","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:77 courier13:47","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00327373","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:156 corpusTimes:129","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00217590","verdict":"none","labels":[],"nPages":5,"sampled":3,"detail":"nimbusromCourt:26 nimbusromLin:16","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00727468","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01143796","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00353047","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:151 corpusTimes:89","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00270893","verdict":"none","labels":[],"nPages":103,"sampled":4,"detail":"nimbusromCourt:5 nimbusromLin:2","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":1}
+{"id":"EFTA00593008","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00323494","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:292 corpusTimes:151","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00576899","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:123 corpusTimes:58","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00271958","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00214179","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"calibri:86 corpusTimes:59","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00303683","verdict":"none","labels":[],"nPages":4,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00266542","verdict":"none","labels":[],"nPages":8,"sampled":4,"detail":"","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"794x1122"},"secs":0.9}
+{"id":"EFTA00757810","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:91 corpusTimes:80","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00551490","verdict":"none","labels":[],"nPages":6,"sampled":4,"detail":"","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":1}
+{"id":"EFTA00576045","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:72","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00382020","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:90 corpusTimes:76","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00355041","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:167 corpusTimes:54","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01192759","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":0,"emptyPages":0,"dims":"1267x1900"},"secs":0.8}
+{"id":"EFTA00395361","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:160 arial:37","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00301591","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[2],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01136215","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"corpusTimes:295 arial:41 nimbusromLin:1","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00441679","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:83 courier13:72","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00409343","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:91 corpusTimes:73","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00146834","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00583805","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00504955","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:75","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00395895","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"corpusTimes:64","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00333830","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00736764","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:64 courier13:55","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00608580","verdict":"none","labels":[],"nPages":11,"sampled":4,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA01230758","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":0,"emptyPages":0,"dims":"1428x1904"},"secs":2.1}
+{"id":"EFTA00235825","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"793x1116"},"secs":0.6}
+{"id":"EFTA00364766","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:170 corpusTimes:72","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00158794","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"nimbusromCourt:12","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00412524","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:114 corpusTimes:88","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00307137","verdict":"none","labels":[],"nPages":5,"sampled":3,"detail":"","meta":{"modes":[3],"lutPages":3,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00702858","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:208 arial:31 nimbusromCourt:10 nimbusromLin:7","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00303984","verdict":"none","labels":[],"nPages":4,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA01131713","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00295614","verdict":"none","labels":[],"nPages":52,"sampled":4,"detail":"","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.9}
+{"id":"EFTA00155150","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01145936","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"449x672"},"secs":0.7}
+{"id":"EFTA00310034","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00716759","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"arial:35","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00430984","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:135 corpusTimes:97","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00577032","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:64","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00290420","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01230455","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1428x1904"},"secs":0.9}
+{"id":"EFTA00432514","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:176 corpusTimes:67","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00269535","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00664411","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01154915","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":0,"emptyPages":0,"dims":"1428x1904"},"secs":0.9}
+{"id":"EFTA00077998","verdict":"none","labels":[],"nPages":4,"sampled":2,"detail":"corpusTimes:14","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00614772","verdict":"none","labels":[],"nPages":5,"sampled":3,"detail":"","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00287856","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00390055","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:152 corpusTimes:91","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00214489","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:67","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00311246","verdict":"none","labels":[],"nPages":5,"sampled":3,"detail":"","meta":{"modes":[3],"lutPages":3,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00494446","verdict":"none","labels":[],"nPages":6,"sampled":4,"detail":"","meta":{"modes":[1,3],"lutPages":3,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00240954","verdict":"none","labels":[],"nPages":26,"sampled":4,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":1}
+{"id":"EFTA00376350","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:171 corpusTimes:114","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01050857","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00347178","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:67 courier13:67","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00773175","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:70 courier13:49","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00362763","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:53","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01205874","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1428x1904"},"secs":0.9}
+{"id":"EFTA00295976","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"nimbusromLin:1","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01230464","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1428x1904"},"secs":0.9}
+{"id":"EFTA00356053","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:92 corpusTimes:76","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01240726","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1425x1908"},"secs":1.4}
+{"id":"EFTA00272783","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00585894","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00574549","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"corpusTimes:72","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00407233","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:136 arial:24","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00313746","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"793x1123"},"secs":0.7}
+{"id":"EFTA00749090","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:168 corpusTimes:85","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01147812","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"793x1033"},"secs":0.6}
+{"id":"EFTA00653327","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"corpusTimes:208 arial:59","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00616741","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00455792","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:75","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00533847","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00419196","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:280 corpusTimes:57","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00479063","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:76 corpusTimes:66","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00104610","verdict":"none","labels":[],"nPages":4,"sampled":2,"detail":"corpusTimes:44","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00213038","verdict":"none","labels":[],"nPages":10,"sampled":4,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00218228","verdict":"none","labels":[],"nPages":7,"sampled":4,"detail":"nimbusromLin:26 nimbusromCourt:19","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00520957","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"nimbusromCourt:7 nimbusromLin:1","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00308816","verdict":"none","labels":[],"nPages":5,"sampled":3,"detail":"","meta":{"modes":[3],"lutPages":3,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00763652","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:85 courier13:59","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00752647","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:82 courier13:44","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00323054","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00364528","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:154 corpusTimes:60","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00129198","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00058660","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00553120","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":0,"emptyPages":0,"dims":"800x1067"},"secs":0.7}
+{"id":"EFTA01231060","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":0,"emptyPages":0,"dims":"1223x1223"},"secs":1.2}
+{"id":"EFTA00547289","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"corpusTimes:76","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00661214","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":1.1}
+{"id":"EFTA00272679","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00499742","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:79","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00078030","verdict":"none","labels":[],"nPages":10,"sampled":4,"detail":"corpusTimes:64","meta":{"modes":[1,3],"lutPages":3,"emptyPages":0,"dims":"816x1056"},"secs":0.9}
+{"id":"EFTA00578277","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00627068","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00904108","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00807349","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00324654","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:108 corpusTimes:91","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00692551","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"corpusTimes:61","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00187024","verdict":"none","labels":[],"nPages":10,"sampled":4,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"817x1056"},"secs":0.8}
+{"id":"EFTA01017475","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00472236","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:60 corpusTimes:59","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00635015","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"arial:31","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00282897","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:29","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00141104","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00587573","verdict":"none","labels":[],"nPages":4,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00505442","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:62","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00953826","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:57","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00833716","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00298416","verdict":"none","labels":[],"nPages":7,"sampled":4,"detail":"","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":0.9}
+{"id":"EFTA00292262","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"nimbusromLin:10 nimbusromCourt:6","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00298000","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00800210","verdict":"none","labels":[],"nPages":8,"sampled":4,"detail":"","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00368780","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00622171","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00435798","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:117 corpusTimes:77","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00533655","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:210 arial:39 nimbusromLin:12 nimbusromCourt:5","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00139715","verdict":"none","labels":[],"nPages":4,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1073"},"secs":0.7}
+{"id":"EFTA00735027","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:206 corpusTimes:82","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00460566","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:231 corpusTimes:94","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01230931","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1428x1904"},"secs":1.1}
+{"id":"EFTA00334228","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:95 courier13:62","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00272147","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01259698","verdict":"none","labels":[],"nPages":12,"sampled":4,"detail":"nimbusromCourt:4 nimbusromLin:2","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":1}
+{"id":"EFTA00400900","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:226 arial:27","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00346306","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:106 courier13:105","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01255454","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1073"},"secs":0.7}
+{"id":"EFTA00476416","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"corpusTimes:76","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00121428","verdict":"none","labels":[],"nPages":4,"sampled":2,"detail":"nimbusromLin:2","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00321284","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:199 courier13:181","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00500158","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:73","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00850537","verdict":"none","labels":[],"nPages":4,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00534802","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"corpusTimes:154 calibri:129","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00291504","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00727623","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"corpusTimes:3","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01014908","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"corpusTimes:277 arial:50","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00067077","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00474723","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"corpusTimes:63","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00725190","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00457590","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:77","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00352270","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00525501","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"1053x1365"},"secs":0.6}
+{"id":"EFTA00416679","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:165 corpusTimes:83","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01074451","verdict":"none","labels":[],"nPages":16,"sampled":4,"detail":"","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00435573","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:215 corpusTimes:71","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00271898","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01191643","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1428x1904"},"secs":0.8}
+{"id":"EFTA00609436","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00545658","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:215 calibri:73","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01237953","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"793x1122"},"secs":0.6}
+{"id":"EFTA00124182","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"817x1056"},"secs":0.6}
+{"id":"EFTA00618009","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00579459","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:52","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00398807","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:176 corpusTimes:71","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00346210","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:268 corpusTimes:56","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01187839","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1280x1707"},"secs":0.8}
+{"id":"EFTA00326363","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:150 corpusTimes:91","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01223204","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"nimbusromCourt:6","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00605459","verdict":"none","labels":[],"nPages":4,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00770522","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:78","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00602771","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00467102","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:160 corpusTimes:72","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00110512","verdict":"none","labels":[],"nPages":4,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01191042","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1428x1904"},"secs":0.8}
+{"id":"EFTA01139736","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[2],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00578765","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:79","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00554850","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"calibri:7","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00290747","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01139933","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1429x1906"},"secs":1}
+{"id":"EFTA00424929","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:86 corpusTimes:68","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01091925","verdict":"none","labels":[],"nPages":8,"sampled":4,"detail":"nimbusromLin:1","meta":{"modes":[1,3],"lutPages":3,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00702008","verdict":"none","labels":[],"nPages":20,"sampled":4,"detail":"corpusTimes:2","meta":{"modes":[1,3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.9}
+{"id":"EFTA00334283","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:117 corpusTimes:96","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00258707","verdict":"none","labels":[],"nPages":100,"sampled":4,"detail":"","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"753x951"},"secs":1.2}
+{"id":"EFTA01241496","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1425x1908"},"secs":1.1}
+{"id":"EFTA01200504","verdict":"none","labels":[],"nPages":13,"sampled":4,"detail":"","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00793717","verdict":"none","labels":[],"nPages":13,"sampled":4,"detail":"nimbusromCourt:2","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00163786","verdict":"none","labels":[],"nPages":16,"sampled":4,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":4.7}
+{"id":"EFTA00489510","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:118 courier13:109","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00583598","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00753969","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:86 courier13:37","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00652481","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00552439","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:68","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00457797","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:72 courier13:52","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00467436","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00390243","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:95 courier13:88","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00533354","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00691387","verdict":"none","labels":[],"nPages":4,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00397573","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:174 corpusTimes:75","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00356236","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:213 corpusTimes:84","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00077369","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:74","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01115271","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00313713","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"794x1121"},"secs":0.7}
+{"id":"EFTA00748781","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:147 corpusTimes:78","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01229979","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":0,"emptyPages":0,"dims":"629x692"},"secs":0.6}
+{"id":"EFTA00502182","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:78","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01069618","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"793x1121"},"secs":0.7}
+{"id":"EFTA00655878","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:63","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00442702","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:227 corpusTimes:73","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00954412","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:165 arial:59","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00480786","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:257 corpusTimes:57","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00492489","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:78","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01142094","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00435391","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:87 courier13:40","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00159169","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"nimbusromCourt:12","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00918718","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01098365","verdict":"none","labels":[],"nPages":9,"sampled":4,"detail":"corpusTimes:2","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA01107052","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"794x1123"},"secs":0.7}
+{"id":"EFTA00550126","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00305206","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00403801","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:95 corpusTimes:50","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00499171","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:64","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01088007","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1059"},"secs":0.6}
+{"id":"EFTA01036536","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"832x1056"},"secs":0.6}
+{"id":"EFTA00302812","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00284928","verdict":"none","labels":[],"nPages":7,"sampled":4,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00083810","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00301047","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00534085","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"900x1056"},"secs":0.7}
+{"id":"EFTA00068935","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00797429","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"nimbusromLin:2","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00587663","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00757944","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"corpusTimes:55","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00323003","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:224 corpusTimes:74","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00523142","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00620116","verdict":"none","labels":[],"nPages":4,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00302994","verdict":"none","labels":[],"nPages":4,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00220728","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"corpusTimes:64","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01228067","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":0,"emptyPages":0,"dims":"1428x1904"},"secs":1.5}
+{"id":"EFTA00358073","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:248 corpusTimes:219","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00412189","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"corpusTimes:10","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00553004","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"815x1055"},"secs":0.8}
+{"id":"EFTA00584504","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00504942","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:77","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00475319","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00956987","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01250489","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[2],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00449424","verdict":"none","labels":[],"nPages":4,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00350085","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00084272","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":1}
+{"id":"EFTA00816027","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"965x1056"},"secs":0.6}
+{"id":"EFTA00143413","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"878x1904"},"secs":0.7}
+{"id":"EFTA00800336","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00849949","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"corpusTimes:76 arial:76","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00523399","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"nimbusromLin:2","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00219005","verdict":"none","labels":[],"nPages":6,"sampled":4,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01231860","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":0,"emptyPages":0,"dims":"456x461"},"secs":0.7}
+{"id":"EFTA00320712","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"nimbusromLin:2 nimbusromCourt:1","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00528578","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"corpusTimes:88 arial:13","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01033880","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00302902","verdict":"none","labels":[],"nPages":4,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01142640","verdict":"none","labels":[],"nPages":6,"sampled":4,"detail":"","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":1.1}
+{"id":"EFTA00605221","verdict":"none","labels":[],"nPages":11,"sampled":4,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"817x1056"},"secs":0.9}
+{"id":"EFTA00216973","verdict":"none","labels":[],"nPages":8,"sampled":4,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00727668","verdict":"none","labels":[],"nPages":15,"sampled":4,"detail":"nimbusromCourt:47 nimbusromLin:46","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"1272x1908"},"secs":0.8}
+{"id":"EFTA00388096","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:185 corpusTimes:57","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01242420","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1425x1908"},"secs":1.1}
+{"id":"EFTA01156741","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00578565","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:44 courier13:37","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00430097","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:202 corpusTimes:73","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00448675","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:110 corpusTimes:65","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00527469","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01256580","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1272x1905"},"secs":0.7}
+{"id":"EFTA00363544","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:109 corpusTimes:96","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01187549","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"788x835"},"secs":0.7}
+{"id":"EFTA00930623","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"corpusTimes:41","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00520716","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"arial:13 nimbusromCourt:4 nimbusromLin:3","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01098747","verdict":"none","labels":[],"nPages":4,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"793x1123"},"secs":0.9}
+{"id":"EFTA00911241","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA01137038","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"nimbusromLin:6","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"633x949"},"secs":1}
+{"id":"EFTA00555965","verdict":"none","labels":[],"nPages":4,"sampled":2,"detail":"arial:6 corpusTimes:2","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00383801","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:155 corpusTimes:74","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00483537","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:186 corpusTimes:77","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.5}
+{"id":"EFTA00405829","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:241 corpusTimes:67","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00616398","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"779x1024"},"secs":0.7}
+{"id":"EFTA00579437","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:212 corpusTimes:116","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00652368","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00735645","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:70 courier13:27","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01017467","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:103 arial:45 nimbusromCourt:7 nimbusromLin:5","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01126542","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00523369","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00592785","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01110212","verdict":"none","labels":[],"nPages":4,"sampled":2,"detail":"nimbusromLin:9 nimbusromCourt:5","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"800x1033"},"secs":0.7}
+{"id":"EFTA01186835","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1428x1904"},"secs":0.8}
+{"id":"EFTA01116342","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"nimbusromLin:2","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1123"},"secs":0.7}
+{"id":"EFTA00650967","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:152 arial:52","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00934954","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"corpusTimes:76","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00319385","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:146 corpusTimes:67","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01186337","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":1}
+{"id":"EFTA00446302","verdict":"none","labels":[],"nPages":4,"sampled":2,"detail":"nimbusromCourt:7 nimbusromLin:1","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00410842","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:90 corpusTimes:79","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01153005","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"640x853"},"secs":0.6}
+{"id":"EFTA00521910","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00344666","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:274 corpusTimes:160","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00757885","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:86 courier13:62","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00556899","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00534705","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00378290","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:139 corpusTimes:81","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00746956","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:74 courier13:40","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00997783","verdict":"none","labels":[],"nPages":7,"sampled":4,"detail":"","meta":{"modes":[1,3],"lutPages":3,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00405530","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:294 corpusTimes:112","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00742300","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:71 courier13:34","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01144796","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00736225","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:62","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00431051","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:104 corpusTimes:59","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00598000","verdict":"none","labels":[],"nPages":8,"sampled":4,"detail":"","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":0.9}
+{"id":"EFTA00523549","verdict":"none","labels":[],"nPages":4,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00381836","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"corpusTimes:169 arial:55 nimbusromCourt:5","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00577185","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:17","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00523113","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"1056x1632"},"secs":0.6}
+{"id":"EFTA00941076","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:68","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00724344","verdict":"none","labels":[],"nPages":11,"sampled":4,"detail":"","meta":{"modes":[1,2],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00396910","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:247 corpusTimes:56","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00214141","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00532836","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00335303","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:167 corpusTimes:73","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01230323","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1428x1904"},"secs":0.9}
+{"id":"EFTA00290669","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00619885","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00122694","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00748501","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:132 corpusTimes:82","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00579404","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:77 courier13:65","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00686903","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00324476","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:146 corpusTimes:109","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00173872","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00263992","verdict":"none","labels":[],"nPages":27,"sampled":4,"detail":"","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"794x1122"},"secs":1}
+{"id":"EFTA00724790","verdict":"none","labels":[],"nPages":4,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00346033","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:117 corpusTimes:59","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00767403","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"794x1123"},"secs":0.7}
+{"id":"EFTA00394991","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:101 courier13:43","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00245011","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":0,"emptyPages":0,"dims":"410x546"},"secs":0.7}
+{"id":"EFTA00158636","verdict":"none","labels":[],"nPages":6,"sampled":4,"detail":"nimbusromCourt:14 nimbusromLin:2","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":1}
+{"id":"EFTA00293886","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00122520","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00393280","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:235 corpusTimes:60","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00335870","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:95 corpusTimes:50","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01041378","verdict":"none","labels":[],"nPages":4,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA01144501","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1316x1904"},"secs":1.5}
+{"id":"EFTA01083258","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00435039","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:77 courier13:76","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.5}
+{"id":"EFTA01187981","verdict":"none","labels":[],"nPages":12,"sampled":4,"detail":"","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA01174733","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00313693","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"793x1100"},"secs":0.7}
+{"id":"EFTA00502086","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:88 courier13:37","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00419521","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:103 corpusTimes:81","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00316369","verdict":"none","labels":[],"nPages":5,"sampled":3,"detail":"","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00404797","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:247 corpusTimes:78","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00549581","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"corpusTimes:61","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01222719","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00312256","verdict":"none","labels":[],"nPages":3,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00432058","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:95 courier13:67","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01246450","verdict":"none","labels":[],"nPages":14,"sampled":4,"detail":"","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"820x1060"},"secs":0.8}
+{"id":"EFTA00500871","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:52","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00599568","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00979453","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"calibri:37","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00756404","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:60 courier13:50","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00644344","verdict":"none","labels":[],"nPages":5,"sampled":3,"detail":"","meta":{"modes":[3],"lutPages":3,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00238352","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1073"},"secs":0.7}
+{"id":"EFTA00490646","verdict":"none","labels":[],"nPages":4,"sampled":3,"detail":"corpusTimes:52 nimbusromCourt:6 nimbusromLin:4","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00236311","verdict":"none","labels":[],"nPages":4,"sampled":3,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1073"},"secs":0.7}
+{"id":"EFTA00768385","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:122 courier13:23","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00390734","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:155 corpusTimes:74","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00400758","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:117 courier13:80","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01098184","verdict":"none","labels":[],"nPages":8,"sampled":4,"detail":"","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00099686","verdict":"none","labels":[],"nPages":16,"sampled":4,"detail":"nimbusromCourt:12 nimbusromLin:6","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1059"},"secs":0.8}
+{"id":"EFTA00770199","verdict":"none","labels":[],"nPages":3,"sampled":2,"detail":"corpusTimes:79","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01132747","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:157 arial:109","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01177570","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"800x1067"},"secs":0.6}
+{"id":"EFTA01182621","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1425x1900"},"secs":0.8}
+{"id":"EFTA00300885","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01139757","verdict":"none","labels":[],"nPages":23,"sampled":4,"detail":"","meta":{"modes":[2,3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":0.9}
+{"id":"EFTA00415426","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:199 corpusTimes:84","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00553301","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:73","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00418434","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:79","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00804023","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00381163","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:107 courier13:74","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01062208","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:71","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00797875","verdict":"none","labels":[],"nPages":27,"sampled":4,"detail":"","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":0.9}
+{"id":"EFTA00306806","verdict":"none","labels":[],"nPages":3,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00680880","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:59","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00331950","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:77 courier13:47","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00327373","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:156 corpusTimes:129","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00217590","verdict":"none","labels":[],"nPages":5,"sampled":4,"detail":"nimbusromCourt:23 nimbusromLin:19","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00727468","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01143796","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":3,"sampled":2,"detail":"corpusTimes:90","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00353047","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:151 corpusTimes:89","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00270893","verdict":"none","labels":[],"nPages":103,"sampled":4,"detail":"","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":1}
+{"id":"EFTA00593008","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00323494","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:292 corpusTimes:151","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00576899","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:123 corpusTimes:58","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00271958","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00214179","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"calibri:86 corpusTimes:59","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00303683","verdict":"none","labels":[],"nPages":4,"sampled":3,"detail":"arialEmail:35","meta":{"modes":[3],"lutPages":3,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00266542","verdict":"none","labels":[],"nPages":8,"sampled":4,"detail":"","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"794x1122"},"secs":0.9}
+{"id":"EFTA00757810","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:91 corpusTimes:80","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00551490","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":6,"sampled":4,"detail":"corpusTimes:208","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":0.9}
+{"id":"EFTA00576045","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:72","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00382020","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:90 corpusTimes:76","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00355041","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:167 corpusTimes:54","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01192759","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":0,"emptyPages":0,"dims":"1267x1900"},"secs":0.8}
+{"id":"EFTA00395361","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:160 arial:37","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00301591","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[2],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01136215","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"corpusTimes:296 arial:41","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00441679","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:83 courier13:72","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00409343","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:91 corpusTimes:73","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00146834","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00583805","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00504955","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:75","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00395895","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"corpusTimes:64","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00333830","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":3,"sampled":2,"detail":"corpusTimes:137","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00736764","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:64 courier13:55","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00608580","verdict":"none","labels":[],"nPages":11,"sampled":4,"detail":"","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01230758","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":0,"emptyPages":0,"dims":"1428x1904"},"secs":2.1}
+{"id":"EFTA00235825","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"793x1116"},"secs":0.6}
+{"id":"EFTA00364766","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:170 corpusTimes:72","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00158794","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"nimbusromCourt:12","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00412524","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:114 corpusTimes:88","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00307137","verdict":"none","labels":[],"nPages":5,"sampled":4,"detail":"","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00702858","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:208 arial:31 nimbusromLin:9 nimbusromCourt:8","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00303984","verdict":"none","labels":[],"nPages":4,"sampled":3,"detail":"arialEmail:21","meta":{"modes":[3],"lutPages":3,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01131713","verdict":"none","labels":[],"nPages":3,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00295614","verdict":"none","labels":[],"nPages":52,"sampled":4,"detail":"arial:2","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00155150","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01145936","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"449x672"},"secs":0.7}
+{"id":"EFTA00310034","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00716759","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"arial:35","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00430984","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:135 corpusTimes:97","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00577032","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:64","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00290420","verdict":"none","labels":[],"nPages":3,"sampled":2,"detail":"nimbusromLin:1","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01230455","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1428x1904"},"secs":0.9}
+{"id":"EFTA00432514","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:176 corpusTimes:67","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00269535","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00664411","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01154915","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":0,"emptyPages":0,"dims":"1428x1904"},"secs":0.8}
+{"id":"EFTA00077998","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":4,"sampled":3,"detail":"corpusTimes:454","meta":{"modes":[3],"lutPages":3,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00614772","verdict":"none","labels":[],"nPages":5,"sampled":4,"detail":"","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":1}
+{"id":"EFTA00287856","verdict":"none","labels":[],"nPages":3,"sampled":2,"detail":"arial:1","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00390055","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:152 corpusTimes:91","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00214489","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:67","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00311246","verdict":"none","labels":[],"nPages":5,"sampled":4,"detail":"arialEmail:21","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00494446","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":6,"sampled":4,"detail":"corpusTimes:147","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00240954","verdict":"none","labels":[],"nPages":26,"sampled":4,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":1}
+{"id":"EFTA00376350","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:171 corpusTimes:114","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01050857","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00347178","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:67 courier13:67","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00773175","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:70 courier13:49","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00362763","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:53","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01205874","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1428x1904"},"secs":0.8}
+{"id":"EFTA00295976","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"nimbusromLin:1","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01230464","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1428x1904"},"secs":0.8}
+{"id":"EFTA00356053","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:92 corpusTimes:76","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01240726","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1425x1908"},"secs":1.3}
+{"id":"EFTA00272783","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00585894","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00574549","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"corpusTimes:72","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00407233","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:136 arial:24","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00313746","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"793x1123"},"secs":0.6}
+{"id":"EFTA00749090","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:168 corpusTimes:85","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01147812","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"793x1033"},"secs":0.6}
+{"id":"EFTA00653327","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"corpusTimes:208 arial:59","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00616741","verdict":"none","labels":[],"nPages":3,"sampled":2,"detail":"nimbusromLin:1","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00455792","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:75","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00533847","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00419196","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:280 corpusTimes:57","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00479063","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:76 corpusTimes:66","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00104610","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":4,"sampled":3,"detail":"corpusTimes:143","meta":{"modes":[3],"lutPages":3,"emptyPages":0,"dims":"816x1056"},"secs":0.9}
+{"id":"EFTA00213038","verdict":"none","labels":[],"nPages":10,"sampled":4,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00218228","verdict":"none","labels":[],"nPages":7,"sampled":4,"detail":"nimbusromLin:28 nimbusromCourt:17","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00520957","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"nimbusromCourt:7 nimbusromLin:1","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00308816","verdict":"none","labels":[],"nPages":5,"sampled":4,"detail":"arialEmail:21","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00763652","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:85 courier13:59","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00752647","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:82 courier13:44","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00323054","verdict":"none","labels":[],"nPages":3,"sampled":2,"detail":"arial:117 corpusTimes:98","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00364528","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:154 corpusTimes:60","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00129198","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00058660","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00553120","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":0,"emptyPages":0,"dims":"800x1067"},"secs":0.7}
+{"id":"EFTA01231060","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":0,"emptyPages":0,"dims":"1223x1223"},"secs":1.2}
+{"id":"EFTA00547289","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"corpusTimes:76","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00661214","verdict":"none","labels":[],"nPages":3,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":1.8}
+{"id":"EFTA00272679","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00499742","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:79","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00078030","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":10,"sampled":4,"detail":"corpusTimes:330","meta":{"modes":[1,3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.9}
+{"id":"EFTA00578277","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00627068","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":3,"sampled":2,"detail":"corpusTimes:111","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00904108","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00807349","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00324654","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:108 corpusTimes:91","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00692551","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":3,"sampled":2,"detail":"corpusTimes:1195","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00187024","verdict":"none","labels":[],"nPages":10,"sampled":4,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"817x1056"},"secs":0.7}
+{"id":"EFTA01017475","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":3,"sampled":2,"detail":"corpusTimes:109","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00472236","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:60 corpusTimes:59","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00635015","verdict":"none","labels":[],"nPages":3,"sampled":2,"detail":"arial:178 corpusTimes:124","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00282897","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:29","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00141104","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00587573","verdict":"none","labels":[],"nPages":4,"sampled":3,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00505442","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:62","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00953826","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:57","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00833716","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00298416","verdict":"none","labels":[],"nPages":7,"sampled":4,"detail":"","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00292262","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"nimbusromLin:9 nimbusromCourt:7","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00298000","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00800210","verdict":"none","labels":[],"nPages":8,"sampled":4,"detail":"","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00368780","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":3,"sampled":2,"detail":"corpusTimes:389 nimbusromLin:1","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00622171","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00435798","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:117 corpusTimes:77","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.5}
+{"id":"EFTA00533655","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:210 arial:39 nimbusromLin:9 nimbusromCourt:8","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00139715","verdict":"none","labels":[],"nPages":4,"sampled":3,"detail":"","meta":{"modes":[3],"lutPages":3,"emptyPages":0,"dims":"816x1073"},"secs":0.8}
+{"id":"EFTA00735027","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:206 corpusTimes:82","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00460566","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:231 corpusTimes:94","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01230931","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1428x1904"},"secs":1.1}
+{"id":"EFTA00334228","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:95 courier13:62","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00272147","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01259698","verdict":"none","labels":[],"nPages":12,"sampled":4,"detail":"","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":0.9}
+{"id":"EFTA00400900","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:226 arial:27","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00346306","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:106 courier13:105","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01255454","verdict":"none","labels":[],"nPages":3,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1073"},"secs":0.7}
+{"id":"EFTA00476416","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":3,"sampled":2,"detail":"corpusTimes:562","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00121428","verdict":"none","labels":[],"nPages":4,"sampled":3,"detail":"nimbusromLin:2","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.9}
+{"id":"EFTA00321284","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:199 courier13:181","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00500158","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:73","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00850537","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":4,"sampled":3,"detail":"corpusTimes:306","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00534802","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"corpusTimes:154 calibri:129","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00291504","verdict":"none","labels":[],"nPages":3,"sampled":2,"detail":"","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00727623","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"corpusTimes:3","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01014908","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"corpusTimes:277 arial:50","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00067077","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00474723","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":3,"sampled":2,"detail":"corpusTimes:993","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00725190","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00457590","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:77","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00352270","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00525501","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"1053x1365"},"secs":0.6}
+{"id":"EFTA00416679","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:165 corpusTimes:83","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01074451","verdict":"none","labels":[],"nPages":16,"sampled":4,"detail":"","meta":{"modes":[1,3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00435573","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:215 corpusTimes:71","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00271898","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01191643","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1428x1904"},"secs":0.9}
+{"id":"EFTA00609436","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00545658","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:215 calibri:73","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01237953","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"793x1122"},"secs":0.6}
+{"id":"EFTA00124182","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"817x1056"},"secs":0.6}
+{"id":"EFTA00618009","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00579459","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:52","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00398807","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:176 corpusTimes:71","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00346210","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:268 corpusTimes:56","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01187839","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1280x1707"},"secs":0.8}
+{"id":"EFTA00326363","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:150 corpusTimes:91","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01223204","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"nimbusromCourt:6","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00605459","verdict":"none","labels":[],"nPages":4,"sampled":3,"detail":"arialEmail:21","meta":{"modes":[3],"lutPages":3,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00770522","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:78","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00602771","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00467102","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:160 corpusTimes:72","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00110512","verdict":"none","labels":[],"nPages":4,"sampled":3,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01191042","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1428x1904"},"secs":0.8}
+{"id":"EFTA01139736","verdict":"none","labels":[],"nPages":3,"sampled":2,"detail":"","meta":{"modes":[2,3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00578765","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:79","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00554850","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"calibri:7","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00290747","verdict":"none","labels":[],"nPages":3,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA01139933","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1429x1906"},"secs":1}
+{"id":"EFTA00424929","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:86 corpusTimes:68","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01091925","verdict":"arial","labels":["arial"],"nPages":8,"sampled":4,"detail":"arial:979 nimbusromLin:1","meta":{"modes":[1,3],"lutPages":3,"emptyPages":0,"dims":"816x1056"},"secs":0.9}
+{"id":"EFTA00702008","verdict":"none","labels":[],"nPages":20,"sampled":4,"detail":"corpusTimes:68 arial:2","meta":{"modes":[1,3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.9}
+{"id":"EFTA00334283","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:117 corpusTimes:96","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00258707","verdict":"none","labels":[],"nPages":100,"sampled":4,"detail":"","meta":{"modes":[2,3],"lutPages":4,"emptyPages":0,"dims":"816x1074"},"secs":1.9}
+{"id":"EFTA01241496","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1425x1908"},"secs":1.1}
+{"id":"EFTA01200504","verdict":"none","labels":[],"nPages":13,"sampled":4,"detail":"","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00793717","verdict":"none","labels":[],"nPages":13,"sampled":4,"detail":"nimbusromCourt:1","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00163786","verdict":"none","labels":[],"nPages":16,"sampled":4,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":4.7}
+{"id":"EFTA00489510","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:118 courier13:109","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00583598","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00753969","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:86 courier13:37","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.5}
+{"id":"EFTA00652481","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00552439","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:68","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00457797","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:72 courier13:52","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00467436","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":3,"sampled":2,"detail":"corpusTimes:97","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00390243","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:95 courier13:88","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00533354","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00691387","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":4,"sampled":3,"detail":"corpusTimes:111","meta":{"modes":[3],"lutPages":3,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00397573","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:174 corpusTimes:75","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00356236","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:213 corpusTimes:84","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00077369","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:74","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01115271","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00313713","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"794x1121"},"secs":0.7}
+{"id":"EFTA00748781","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:147 corpusTimes:78","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01229979","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":0,"emptyPages":0,"dims":"629x692"},"secs":0.6}
+{"id":"EFTA00502182","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:78","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01069618","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"793x1121"},"secs":0.7}
+{"id":"EFTA00655878","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:63","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00442702","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:227 corpusTimes:73","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00954412","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:165 arial:59","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00480786","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:257 corpusTimes:57","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00492489","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:78","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01142094","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":3,"sampled":2,"detail":"corpusTimes:158","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00435391","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:87 courier13:40","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00159169","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"nimbusromCourt:12","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00918718","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01098365","verdict":"none","labels":[],"nPages":9,"sampled":4,"detail":"corpusTimes:2","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA01107052","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"794x1123"},"secs":0.7}
+{"id":"EFTA00550126","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00305206","verdict":"none","labels":[],"nPages":3,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00403801","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:95 corpusTimes:50","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00499171","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:64","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01088007","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1059"},"secs":0.6}
+{"id":"EFTA01036536","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"832x1056"},"secs":0.7}
+{"id":"EFTA00302812","verdict":"none","labels":[],"nPages":3,"sampled":2,"detail":"arialEmail:22","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00284928","verdict":"none","labels":[],"nPages":7,"sampled":4,"detail":"","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.9}
+{"id":"EFTA00083810","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00301047","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00534085","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"900x1056"},"secs":0.6}
+{"id":"EFTA00068935","verdict":"none","labels":[],"nPages":3,"sampled":2,"detail":"","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":1.1}
+{"id":"EFTA00797429","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"nimbusromLin:2","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00587663","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00757944","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":3,"sampled":2,"detail":"corpusTimes:106","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00323003","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:224 corpusTimes:74","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00523142","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00620116","verdict":"none","labels":[],"nPages":4,"sampled":3,"detail":"","meta":{"modes":[3],"lutPages":3,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00302994","verdict":"none","labels":[],"nPages":4,"sampled":3,"detail":"arialEmail:21","meta":{"modes":[3],"lutPages":3,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00220728","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"corpusTimes:64","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA01228067","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":0,"emptyPages":0,"dims":"1428x1904"},"secs":1.5}
+{"id":"EFTA00358073","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:248 corpusTimes:219","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00412189","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":3,"sampled":2,"detail":"corpusTimes:282","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00553004","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"815x1055"},"secs":0.8}
+{"id":"EFTA00584504","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00504942","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:77","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00475319","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":3,"sampled":2,"detail":"corpusTimes:735 arial:38","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00956987","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01250489","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[2],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00449424","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":4,"sampled":3,"detail":"corpusTimes:113","meta":{"modes":[3],"lutPages":3,"emptyPages":0,"dims":"816x1056"},"secs":0.9}
+{"id":"EFTA00350085","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":3,"sampled":2,"detail":"corpusTimes:341 arial:38 nimbusromCourt:7 nimbusromLin:5","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00084272","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":3,"sampled":2,"detail":"corpusTimes:133 nimbusromLin:11 nimbusromCourt:6","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":1.2}
+{"id":"EFTA00816027","verdict":"none","labels":[],"nPages":3,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"965x1056"},"secs":0.7}
+{"id":"EFTA00143413","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"878x1904"},"secs":0.7}
+{"id":"EFTA00800336","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00849949","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":3,"sampled":2,"detail":"corpusTimes:943 arial:76","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00523399","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"nimbusromLin:2","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00219005","verdict":"none","labels":[],"nPages":6,"sampled":4,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA01231860","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":0,"emptyPages":0,"dims":"456x461"},"secs":0.6}
+{"id":"EFTA00320712","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"nimbusromCourt:2 nimbusromLin:1","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00528578","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"corpusTimes:88 arial:13","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01033880","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":3,"sampled":2,"detail":"corpusTimes:136","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00302902","verdict":"none","labels":[],"nPages":4,"sampled":3,"detail":"arialEmail:31","meta":{"modes":[3],"lutPages":3,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA01142640","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":6,"sampled":4,"detail":"corpusTimes:426","meta":{"modes":[1,3],"lutPages":3,"emptyPages":0,"dims":"816x1056"},"secs":1.2}
+{"id":"EFTA00605221","verdict":"none","labels":[],"nPages":11,"sampled":4,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"817x1056"},"secs":0.8}
+{"id":"EFTA00216973","verdict":"none","labels":[],"nPages":8,"sampled":4,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00727668","verdict":"none","labels":[],"nPages":15,"sampled":4,"detail":"nimbusromCourt:49 nimbusromLin:44","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"1272x1908"},"secs":0.8}
+{"id":"EFTA00388096","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:185 corpusTimes:57","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01242420","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1425x1908"},"secs":1}
+{"id":"EFTA01156741","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00578565","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:44 courier13:37","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00430097","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:202 corpusTimes:73","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00448675","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:110 corpusTimes:65","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00527469","verdict":"none","labels":[],"nPages":3,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01256580","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1272x1905"},"secs":0.8}
+{"id":"EFTA00363544","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:109 corpusTimes:96","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01187549","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"788x835"},"secs":0.7}
+{"id":"EFTA00930623","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":3,"sampled":2,"detail":"corpusTimes:325 nimbusromLin:1","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00520716","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"arial:13 nimbusromLin:5 nimbusromCourt:2","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01098747","verdict":"none","labels":[],"nPages":4,"sampled":3,"detail":"","meta":{"modes":[3],"lutPages":3,"emptyPages":0,"dims":"793x1123"},"secs":0.8}
+{"id":"EFTA00911241","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01137038","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"nimbusromLin:6","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"633x949"},"secs":1}
+{"id":"EFTA00555965","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":4,"sampled":3,"detail":"corpusTimes:412 arial:31","meta":{"modes":[3],"lutPages":3,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00383801","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:155 corpusTimes:74","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00483537","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:186 corpusTimes:77","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00405829","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:241 corpusTimes:67","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00616398","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"779x1024"},"secs":0.6}
+{"id":"EFTA00579437","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:212 corpusTimes:116","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00652368","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00735645","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:70 courier13:27","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01017467","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:103 arial:45 nimbusromLin:9 nimbusromCourt:3","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01126542","verdict":"none","labels":[],"nPages":3,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00523369","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00592785","verdict":"none","labels":[],"nPages":3,"sampled":2,"detail":"arialEmail:21","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01110212","verdict":"none","labels":[],"nPages":4,"sampled":3,"detail":"nimbusromCourt:10 nimbusromLin:4","meta":{"modes":[3],"lutPages":3,"emptyPages":0,"dims":"800x1033"},"secs":0.8}
+{"id":"EFTA01186835","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1428x1904"},"secs":0.8}
+{"id":"EFTA01116342","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"nimbusromLin:2","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1123"},"secs":0.7}
+{"id":"EFTA00650967","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:152 arial:52","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00934954","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"corpusTimes:76","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00319385","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:146 corpusTimes:67","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01186337","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":3,"sampled":2,"detail":"corpusTimes:116","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":1.1}
+{"id":"EFTA00446302","verdict":"none","labels":[],"nPages":4,"sampled":3,"detail":"nimbusromLin:4 nimbusromCourt:4","meta":{"modes":[3],"lutPages":3,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00410842","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:90 corpusTimes:79","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01153005","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"640x853"},"secs":0.6}
+{"id":"EFTA00521910","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00344666","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:274 corpusTimes:160","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00757885","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:86 courier13:62","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00556899","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00534705","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00378290","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:139 corpusTimes:81","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00746956","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:74 courier13:40","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00997783","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":7,"sampled":4,"detail":"corpusTimes:437","meta":{"modes":[1,3],"lutPages":3,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00405530","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:294 corpusTimes:112","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00742300","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:71 courier13:34","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01144796","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00736225","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:62","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00431051","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:104 corpusTimes:59","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00598000","verdict":"none","labels":[],"nPages":8,"sampled":4,"detail":"","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":0.9}
+{"id":"EFTA00523549","verdict":"none","labels":[],"nPages":4,"sampled":3,"detail":"arialEmail:35","meta":{"modes":[3],"lutPages":3,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00381836","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"corpusTimes:169 arial:55 nimbusromCourt:3 nimbusromLin:2","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00577185","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:17","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00523113","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"1056x1632"},"secs":0.6}
+{"id":"EFTA00941076","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:68","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00724344","verdict":"none","labels":[],"nPages":11,"sampled":4,"detail":"","meta":{"modes":[1,2,3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00396910","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:247 corpusTimes:56","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00214141","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00532836","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00335303","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:167 corpusTimes:73","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01230323","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1428x1904"},"secs":0.9}
+{"id":"EFTA00290669","verdict":"none","labels":[],"nPages":3,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00619885","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00122694","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00748501","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:132 corpusTimes:82","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00579404","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:77 courier13:65","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00686903","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00324476","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:146 corpusTimes:109","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00173872","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00263992","verdict":"none","labels":[],"nPages":27,"sampled":4,"detail":"nimbusromLin:1 nimbusromCourt:1","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"794x1122"},"secs":1}
+{"id":"EFTA00724790","verdict":"none","labels":[],"nPages":4,"sampled":3,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00346033","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:117 corpusTimes:59","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00767403","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"794x1123"},"secs":0.7}
+{"id":"EFTA00394991","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:101 courier13:43","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00245011","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":0,"emptyPages":0,"dims":"410x546"},"secs":0.7}
+{"id":"EFTA00158636","verdict":"none","labels":[],"nPages":6,"sampled":4,"detail":"nimbusromCourt:15 nimbusromLin:1","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":0.9}
+{"id":"EFTA00293886","verdict":"none","labels":[],"nPages":3,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00122520","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00393280","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:235 corpusTimes:60","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00335870","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:95 corpusTimes:50","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01041378","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":4,"sampled":3,"detail":"corpusTimes:90","meta":{"modes":[3],"lutPages":3,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01144501","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"1316x1904"},"secs":1.5}
+{"id":"EFTA01083258","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00435039","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:77 courier13:76","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01187981","verdict":"none","labels":[],"nPages":12,"sampled":4,"detail":"","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA01174733","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":3,"sampled":2,"detail":"corpusTimes:119","meta":{"modes":[1,3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00313693","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"793x1100"},"secs":0.7}
+{"id":"EFTA00502086","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:88 courier13:37","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00419521","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:103 corpusTimes:81","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00316369","verdict":"none","labels":[],"nPages":5,"sampled":4,"detail":"","meta":{"modes":[1,3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00404797","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"courier13:247 corpusTimes:78","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00549581","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":3,"sampled":2,"detail":"corpusTimes:702","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA01222719","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00312256","verdict":"none","labels":[],"nPages":3,"sampled":2,"detail":"","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.8}
+{"id":"EFTA00432058","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:95 courier13:67","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA01246450","verdict":"none","labels":[],"nPages":14,"sampled":4,"detail":"","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"821x1060"},"secs":0.9}
+{"id":"EFTA00500871","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:52","meta":{"modes":[3],"lutPages":1,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00599568","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00979453","verdict":"none","labels":[],"nPages":2,"sampled":2,"detail":"calibri:37","meta":{"modes":[3],"lutPages":2,"emptyPages":0,"dims":"816x1056"},"secs":0.7}
+{"id":"EFTA00756404","verdict":"none","labels":[],"nPages":1,"sampled":1,"detail":"corpusTimes:60 courier13:50","meta":{"modes":[1],"lutPages":0,"emptyPages":0,"dims":"816x1056"},"secs":0.6}
+{"id":"EFTA00644344","verdict":"corpusTimes","labels":["corpusTimes"],"nPages":5,"sampled":4,"detail":"corpusTimes:126","meta":{"modes":[3],"lutPages":4,"emptyPages":0,"dims":"816x1056"},"secs":0.7}

@@ -86,7 +86,13 @@ export function scoreLabels(best) {
   const labels = [];
   for (const [f, g] of ranked) {
     const other = Math.max(0, ...ranked.filter(([f2]) => f2 !== f).map(([, g2]) => g2));
-    if (g >= MIN_GLYPHS || (g >= MIN_SMALL && g >= 10 * other)) labels.push(f);
+    // dominance is only demanded against sub-floor families: cross-fire
+    // (false matches inside another face's ink) tops out at ~60 glyphs and
+    // always sits beside a dominant real family — but a short EMAIL is two
+    // REAL faces on one page (Arial body 190 + Times header 141), and
+    // requiring 10× there labeled genuinely-known docs 'none'.
+    if (g >= MIN_GLYPHS || (g >= MIN_SMALL && (other >= MIN_SMALL || g >= 10 * other)))
+      labels.push(f);
   }
   return labels;
 }
@@ -101,12 +107,17 @@ export function ensureTemplates() {
   }
 }
 
-// interior sample: never p1/p2 (cover/banner pages miss the family), spread
-// over the doc so one bad region (exhibit scans) cannot dominate
+// sample = page 1 + an interior spread. P1 always rides along: scoring takes
+// the MAX over sampled pages, so an ornate court cover contributes zeros
+// (harmless) while the email corpus — where P1 IS the payload and interior
+// pages are attachments — detects. (The original never-P1 rule guarded a
+// pick-one-page probe; for max-scoring it only masked email bodies:
+// EFTA01136215 read arialEmail in batch but classified 'none' off pages 3+.)
+// The interior spread still keeps one bad region from dominating.
 export function samplePages(n, want) {
   if (n <= 2) return [1, 2].slice(0, n);
-  const w = Math.min(want, n - 2);
-  const picks = new Set();
+  const picks = new Set([1]);
+  const w = Math.min(want - 1, n - 2);
   for (let k = 0; k < w; k++)
     picks.add(Math.min(n, 3 + Math.round((n - 3) * (k / Math.max(1, w - 1)))));
   return [...picks].sort((a, b) => a - b);
