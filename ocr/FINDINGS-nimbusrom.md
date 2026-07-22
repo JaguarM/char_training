@@ -146,11 +146,13 @@ drawings), and probe-times on an unread 'h' pinned face+em+law in 3 runs.
 
 Full-doc numbers (07-21 late, `tools/per-page-read.ps1`, 45 s/page guard):
 **262/347 pages read = 3,743 L / 229,422 g / 4,923 □** (worst page 65 □ —
-mostly ¶-number junction residue); **85 pages TIMED OUT** — exhibit scans
-with color/jitter ink (p19 first). ~25 % grinder pages is why the naked
-`blind-read --all` run went >20 min before being killed; ALWAYS use the
-per-page driver (or batch-read) on unknown big compilations. Grinder root
-cause = the §93044 full-page-gray problem, still untriaged.
+mostly ¶-number junction residue); **85 pages TIMED OUT** — diagnosed then
+as exhibit scans with color/jitter ink. **CORRECTED 07-22**: they were
+normal body pages stuck in the palette-LUT LIVELOCK (§93044 read notes,
+commit 53a6705); after the fix all 85 read in <1 s each — **2,124 L /
+130,200 g / 926 □, 0 failures → doc COMPLETE, 347/347 pp: 5,867 L /
+359,622 g / 5,849 □**. The per-page-driver rule still stands for unknown
+big compilations (honest budgets beat open-ended runs).
 
 ## Census-candidate triage 07-21 PM (top 8 of scan10k-50k, all probed from pixels)
 
@@ -240,7 +242,16 @@ certification. Probe ground truth: 'd' p18 censcbk em64 1198 ink 27 round law
   The engine grinds effectively forever there (last session's job burned
   13 h CPU on p332; a rerun sat >15 min). Other 0-match pages fail FAST —
   the "0-match pages cheap" perf assumption does NOT hold for full-page
-  gray ink. Root cause untriaged.
+  gray ink. ~~Root cause untriaged.~~ **SOLVED 07-22: engine LIVELOCK,
+  commit 53a6705** — p332's reconstructed palette LUT leaves 1 of 119
+  observed page bytes a non-fixpoint (lut[pv]≠pv); such pixels are
+  unexplainable by construction, the fail-absorb could not retire them,
+  and scanLine spun on one column forever. Fixed with retire rules that
+  are no-ops on fixpoint pages (gate 7/7 byte-identical). p332 now reads
+  in **0.4 s** (29 honest □ — the gray text needs g-sets regardless).
+  Same root cause: 316714's 85 "exhibit-scan" page timeouts (all read
+  after the fix — they were normal body pages), EFTA00009676's endless
+  probeBaseline, the alien-/Indexed 20 s probe timeouts.
 
 ## GPU classifier cross-checks (07-22, gpu-ocr/tools/classify.mjs)
 
