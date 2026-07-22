@@ -18,6 +18,12 @@ glyph pipeline, all post-laws, pen lattices, family configs, and a
 fast-diagnosis cheat-sheet). Most "new" documents are a known family at an
 unknown size, or a known family behind a palette/jitter page law.
 
+Sibling experiment: [gpu-ocr/](gpu-ocr/README.md) — deliberately naive
+CUDA template matching (~5 ms/page, 97–98% chars, no certification).
+`node gpu-ocr/tools/bench.mjs` is its gate; its future is pixel-level
+family CLASSIFICATION for the F:\ dataset, feeding hunts here and reads to
+the main engine. Templates come from the registry npz sets only.
+
 ## The pipeline — a new mystery document is 3 commands
 
 ```

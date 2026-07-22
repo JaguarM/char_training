@@ -1,0 +1,52 @@
+{
+ "big-tnr": {
+  "pages": 340,
+  "lines": 18307,
+  "glyphs": 1318685,
+  "hits": 2691628,
+  "exact": 6193,
+  "ourChars": 1318685,
+  "refLines": 18307,
+  "refChars": 1338832
+ },
+ "big": {
+  "pages": 340,
+  "lines": 18307,
+  "glyphs": 1318558,
+  "hits": 2695710,
+  "exact": 6130,
+  "ourChars": 1318558,
+  "refLines": 18307,
+  "refChars": 1338832
+ },
+ "v3": {
+  "pages": 34,
+  "lines": 1785,
+  "glyphs": 120910,
+  "hits": 258672,
+  "exact": 514,
+  "ourChars": 120910,
+  "refLines": 1785,
+  "refChars": 122883
+ },
+ "courier_1": {
+  "pages": 25,
+  "lines": 1552,
+  "glyphs": 111881,
+  "hits": 223866,
+  "exact": 612,
+  "ourChars": 111881,
+  "refLines": 1552,
+  "refChars": 114817
+ },
+ "courier_2": {
+  "pages": 76,
+  "lines": 4899,
+  "glyphs": 364070,
+  "hits": 728176,
+  "exact": 1787,
+  "ourChars": 364070,
+  "refLines": 4899,
+  "refChars": 374462
+ }
+}
