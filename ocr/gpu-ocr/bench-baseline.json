@@ -48,5 +48,25 @@
   "ourChars": 364070,
   "refLines": 4899,
   "refChars": 374462
+ },
+ "email": {
+  "pages": 36,
+  "lines": 1907,
+  "glyphs": 110796,
+  "hits": 226014,
+  "exact": 860,
+  "ourChars": 110796,
+  "refLines": 1908,
+  "refChars": 113599
+ },
+ "nimbusrom": {
+  "pages": 12,
+  "lines": 248,
+  "glyphs": 13043,
+  "hits": 13536,
+  "exact": 204,
+  "ourChars": 13043,
+  "refLines": 223,
+  "refChars": 13034
  }
 }

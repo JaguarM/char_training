@@ -31,8 +31,9 @@ const EXE = join(ROOT, 'build', 'gpu-ocr.exe');
 // per-band groups. crop = [w, h, yoff] (see README; [3,11,-3] is the swept
 // optimum for TNR16). 'big-tnr' pins the README/BENCHMARK single-set numbers
 // so the documented sweep stays reproducible forever.
-// email (needs the --quant law) and nimbusrom (needs --palette) are NOT
-// benchable until the matcher learns those page laws — listed in README.
+// pageFlags go to export-pages: page-law docs carry their law as per-page
+// .lut sidecars (--palette straight from the PDF, --quant from page bytes),
+// and --mupdf decodes embedded page images directly — no Chrome cache.
 const ROSTER = [
   { doc: 'big-tnr', pdf: 'corpus/big.pdf', pages: 'big', ref: 'tools/gate-ref/big.txt',
     sets: ['times_16'], crop: [3, 11, -3] },
@@ -48,6 +49,19 @@ const ROSTER = [
     sets: ['times_16', 'timesbd_16', 'timesi_16', 'cour_13'], crop: null },
   { doc: 'courier_2', pdf: 'corpus/courier_2.pdf', pages: 'courier_2', ref: 'tools/gate-ref/courier_2.txt',
     sets: ['times_16', 'timesbd_16', 'timesi_16', 'cour_13'], crop: null },
+  // email.pdf: the engine's --quant law as per-page LUT sidecars (histogram
+  // quant from page bytes; 24 of 36 pages are palettized, the rest identity)
+  { doc: 'email', pdf: 'corpus/email.pdf', pages: 'email', ref: 'tools/gate-ref/email.txt',
+    sets: ['times_16', 'timesbd_16', 'timesi_16', 'cour_13', 'arial_16'], crop: [3, 11, -3],
+    pageFlags: ['--quant'] },
+  // eDiscovery Nimbus palette family: pages decoded straight from the PDF's
+  // embedded /Indexed images (mupdf-direct ≡ Chrome cache, 12/12 byte-equal),
+  // per-page palette LUTs from the PDF. The registry nimbusrom pool,
+  // flattened. 91%+ exact lines — the palette family is gpu-ocr's best doc.
+  { doc: 'nimbusrom', pdf: 'corpus/nimbusrom.pdf', pages: 'nimbusrom', ref: 'tools/gate-ref/nimbusrom.txt',
+    sets: ['nimbusromlin_1024', 'nimbusrombdlin_1024', 'nimbusromlin_983', 'nimbusromilin_1024',
+      'nimbusrombdlin_1194', 'nimbussansbdlin_1536', 'tnrlin_1024'], crop: [3, 11, -3],
+    pageFlags: ['--mupdf', '--palette'] },
 ];
 
 const BASELINE = join(ROOT, 'bench-baseline.json');
@@ -85,7 +99,7 @@ function ensurePages(entry) {
   if (existsSync(join(dir, 'pages.json'))) return dir;
   console.log(`  exporting pages ${entry.pages} (from ${entry.pdf})`);
   execFileSync(node, [join(ROOT, 'tools', 'export-pages.mjs'),
-    '--pdf', join(CT, entry.pdf), '--out', dir],
+    '--pdf', join(CT, entry.pdf), '--out', dir, ...(entry.pageFlags ?? [])],
     { cwd: ROOT, stdio: ['ignore', 'ignore', 'inherit'] });
   return dir;
 }

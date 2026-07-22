@@ -26,9 +26,12 @@ class GpuMatcher {
 public:
     void init(const std::vector<Tpl>& tpls, unsigned maxHits);
     // naive = brute-force position kernel (cross-check / benchmark);
-    // default is the dark-pixel-anchored kernel.
+    // default is the dark-pixel-anchored kernel. lut (nullable) is the
+    // per-page 256-byte page law (palette/quant): template bytes are read
+    // through it, the page stays in original space — the exact engine's rule.
     std::vector<Hit> match(const uint8_t* gray, int w, int h, int tol,
-                           bool naive, MatchStats& st);
+                           bool naive, MatchStats& st,
+                           const uint8_t* lut = nullptr);
     ~GpuMatcher();
 
 private:
@@ -43,5 +46,7 @@ private:
     unsigned maxHits_ = 0;
     int nTpl_ = 0;
     uint8_t darkThresh_ = 0;     // max template anchor value + tol headroom
+    std::vector<uint8_t> anchorVals_;  // host copy: per-template anchor byte
+    bool lutIsIdentity_ = true;  // current content of the device LUT symbol
     cudaEvent_t ev_[4] = {};
 };

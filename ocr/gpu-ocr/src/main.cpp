@@ -29,12 +29,15 @@ static float ms(Clock::time_point a, Clock::time_point b) {
 }
 
 // CPU reference matcher — identical semantics to the GPU kernels (anchor
-// check at the darkest ink pixel, then darkest-first early-exit walk).
-static std::vector<Hit> cpuMatch(const std::vector<Tpl>& tpls, const Image& img, int tol) {
+// check at the darkest ink pixel, then darkest-first early-exit walk;
+// template bytes read through the page-law LUT when one exists).
+static std::vector<Hit> cpuMatch(const std::vector<Tpl>& tpls, const Image& img, int tol,
+                                 const uint8_t* lut) {
     std::vector<Hit> out;
+    auto q = [&](uint8_t v) { return lut ? (int)lut[v] : (int)v; };
     for (size_t ti = 0; ti < tpls.size(); ti++) {
         const Tpl& t = tpls[ti];
-        int r0 = t.inkPos[0] >> 8, c0 = t.inkPos[0] & 255, v0 = t.inkVal[0];
+        int r0 = t.inkPos[0] >> 8, c0 = t.inkPos[0] & 255, v0 = q(t.inkVal[0]);
         for (int y = 0; y + t.h <= img.h; y++)
             for (int x = 0; x + t.w <= img.w; x++) {
                 int d0 = (int)img.gray[(size_t)(y + r0) * img.w + x + c0] - v0;
@@ -43,13 +46,26 @@ static std::vector<Hit> cpuMatch(const std::vector<Tpl>& tpls, const Image& img,
                 for (size_t k = 1; k < t.inkPos.size() && ok; k++) {
                     int p = t.inkPos[k];
                     int d = (int)img.gray[(size_t)(y + (p >> 8)) * img.w + (x + (p & 255))]
-                          - (int)t.inkVal[k];
+                          - q(t.inkVal[k]);
                     if (d > tol || d < -tol) ok = false;
                 }
                 if (ok) out.push_back({(uint16_t)ti, (uint16_t)x, (uint16_t)y});
             }
     }
     return out;
+}
+
+// page-law sidecar (export-pages --palette/--quant): page-NNNN.lut, raw 256
+// bytes, applied to TEMPLATE bytes only. Absent file = no law (identity).
+static bool loadLut(const fs::path& pgm, uint8_t lut[256]) {
+    fs::path p = pgm;
+    p.replace_extension(".lut");
+    FILE* f = fopen(p.string().c_str(), "rb");
+    if (!f) return false;
+    bool ok = fread(lut, 1, 256, f) == 256;
+    fclose(f);
+    if (!ok) fprintf(stderr, "%s: short lut, ignored\n", p.string().c_str());
+    return ok;
 }
 
 static bool sameHits(std::vector<Hit> a, std::vector<Hit> b) {
@@ -160,19 +176,24 @@ int main(int argc, char** argv) {
     long long totHits = 0, totGlyphs = 0, totLines = 0;
     auto wall0 = Clock::now();
 
+    long long lutPages = 0;
     for (const auto& f : files) {
         auto t0 = Clock::now();
         Image img = loadPgm(f.string());
+        uint8_t lutBuf[256];
+        bool hasLut = loadLut(f, lutBuf);
+        if (hasLut) lutPages++;
         auto t1 = Clock::now();
 
         MatchStats st;
-        std::vector<Hit> hits = matcher.match(img.gray.data(), img.w, img.h, tol, naive, st);
+        std::vector<Hit> hits = matcher.match(img.gray.data(), img.w, img.h, tol, naive, st,
+                                              hasLut ? lutBuf : nullptr);
         if (st.overflow)
             fprintf(stderr, "%s: hit buffer overflow (%u), results truncated — raise --max-hits\n",
                     f.filename().string().c_str(), maxHits);
 
         if (cpu) {
-            std::vector<Hit> ref = cpuMatch(tpls, img, tol);
+            std::vector<Hit> ref = cpuMatch(tpls, img, tol, hasLut ? lutBuf : nullptr);
             printf("  cpu check: %zu cpu vs %zu gpu — %s\n", ref.size(), hits.size(),
                    sameHits(ref, hits) ? "IDENTICAL" : "MISMATCH");
         }
@@ -207,6 +228,8 @@ int main(int argc, char** argv) {
     if (all) fclose(all);
 
     float wall = ms(wall0, Clock::now());
+    if (lutPages)
+        printf("(page-law LUT applied on %lld of %zu pages)\n", lutPages, files.size());
     printf("\n%zu pages: %lld lines, %lld glyphs, %lld hits — %.2f s wall (%.1f ms/page)\n",
            files.size(), totLines, totGlyphs, totHits, wall / 1000.0, wall / files.size());
     printf("  io %.0f  h2d %.0f  darklist %.0f  match %.0f  d2h %.0f  assemble %.0f ms\n",

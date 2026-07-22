@@ -39,6 +39,11 @@ struct TplMeta {                 // per-template GPU metadata (global memory —
 // grid.y/z carries the template index — the only remaining roster ceiling
 constexpr int MAX_TPL = 65535;
 
+// Per-page page-law LUT (palette/quant): template bytes are read through it,
+// the page stays in original space. Identity when the page has no law. 256
+// bytes in __constant__ — broadcast-cached, free.
+__constant__ uint8_t cLut[256];
+
 __global__ void darkListKernel(const uint8_t* __restrict__ page, int n,
                                uint8_t thresh, uint32_t* __restrict__ list,
                                unsigned* count) {
@@ -67,7 +72,7 @@ __global__ void matchDarkKernel(const uint8_t* __restrict__ page, int W, int H,
 
     for (uint32_t k = 0; k < m.inkCnt; k++) {
         int p = pos[k];
-        int d = (int)page[(y + (p >> 8)) * W + (x + (p & 255))] - (int)val[k];
+        int d = (int)page[(y + (p >> 8)) * W + (x + (p & 255))] - (int)cLut[val[k]];
         if (d > tol || d < -tol) return;
     }
     unsigned i = atomicAdd(hitCount, 1u);
@@ -88,7 +93,7 @@ __global__ void matchAllKernel(const uint8_t* __restrict__ page, int W, int H,
     const uint8_t* val = inkVal + m.inkOff;
     for (uint32_t k = 0; k < m.inkCnt; k++) {
         int p = pos[k];
-        int d = (int)page[(y + (p >> 8)) * W + (x + (p & 255))] - (int)val[k];
+        int d = (int)page[(y + (p >> 8)) * W + (x + (p & 255))] - (int)cLut[val[k]];
         if (d > tol || d < -tol) return;
     }
     unsigned i = atomicAdd(hitCount, 1u);
@@ -104,14 +109,21 @@ void GpuMatcher::init(const std::vector<Tpl>& tpls, unsigned maxHits) {
     std::vector<uint16_t> inkPos;
     std::vector<uint8_t> inkVal;
     int maxAnchor = 0;
+    anchorVals_.resize(nTpl_);
     for (int i = 0; i < nTpl_; i++) {
         const Tpl& t = tpls[i];
         meta[i] = {t.w, t.h, (uint32_t)inkPos.size(), (uint32_t)t.inkPos.size()};
         inkPos.insert(inkPos.end(), t.inkPos.begin(), t.inkPos.end());
         inkVal.insert(inkVal.end(), t.inkVal.begin(), t.inkVal.end());
+        anchorVals_[i] = t.inkVal[0];
         if (t.inkVal[0] > maxAnchor) maxAnchor = t.inkVal[0];
     }
     darkThresh_ = (uint8_t)std::min(255, maxAnchor + 1);  // +tol added at match time
+
+    uint8_t ident[256];
+    for (int v = 0; v < 256; v++) ident[v] = (uint8_t)v;
+    CUDA_CHECK(cudaMemcpyToSymbol(cLut, ident, 256));
+    lutIsIdentity_ = true;
 
     CUDA_CHECK(cudaMalloc(&dMeta_, meta.size() * sizeof(TplMeta)));
     CUDA_CHECK(cudaMemcpy(dMeta_, meta.data(), meta.size() * sizeof(TplMeta), cudaMemcpyHostToDevice));
@@ -133,9 +145,26 @@ void GpuMatcher::ensurePage(size_t n) {
 }
 
 std::vector<Hit> GpuMatcher::match(const uint8_t* gray, int w, int h, int tol,
-                                   bool naive, MatchStats& st) {
+                                   bool naive, MatchStats& st,
+                                   const uint8_t* lut) {
     size_t n = (size_t)w * h;
     ensurePage(n);
+
+    // page-law LUT: upload this page's map (or restore identity). The dark
+    // threshold must follow the mapped anchors — a palette can lift them.
+    if (lut) {
+        CUDA_CHECK(cudaMemcpyToSymbol(cLut, lut, 256));
+        lutIsIdentity_ = false;
+    } else if (!lutIsIdentity_) {
+        uint8_t ident[256];
+        for (int v = 0; v < 256; v++) ident[v] = (uint8_t)v;
+        CUDA_CHECK(cudaMemcpyToSymbol(cLut, ident, 256));
+        lutIsIdentity_ = true;
+    }
+    int maxAnchor = -1;
+    if (lut) {
+        for (uint8_t a : anchorVals_) maxAnchor = std::max(maxAnchor, (int)lut[a]);
+    }
 
     CUDA_CHECK(cudaEventRecord(ev_[0]));
     CUDA_CHECK(cudaMemcpy(dPage_, gray, n, cudaMemcpyHostToDevice));
@@ -152,7 +181,7 @@ std::vector<Hit> GpuMatcher::match(const uint8_t* gray, int w, int h, int tol,
                                         dHits_, dCounts_ + 1, maxHits_);
         CUDA_CHECK(cudaEventRecord(ev_[3]));
     } else {
-        int thresh = std::min(255, (int)darkThresh_ + tol);
+        int thresh = std::min(255, (lut ? maxAnchor + 1 : (int)darkThresh_) + tol);
         darkListKernel<<<(int)((n + 255) / 256), 256>>>(dPage_, (int)n, (uint8_t)thresh,
                                                         dDark_, dCounts_);
         CUDA_CHECK(cudaEventRecord(ev_[2]));
