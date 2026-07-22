@@ -19,7 +19,7 @@
 import { readdirSync, readFileSync, appendFileSync, existsSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { classifyDoc, ensureTemplates, DATASET } from './classify.mjs';
+import { classifyDoc, ensureTemplates, scoreLabels, DATASET } from './classify.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -50,9 +50,22 @@ function loadDone() {
   if (existsSync(OUT))
     for (const l of readFileSync(OUT, 'utf8').split('\n')) {
       if (!l.trim()) continue;
-      try { const e = JSON.parse(l); done.set(e.id, e); } catch {}
+      try { const e = JSON.parse(l); done.set(e.id, rescore(e)); } catch {}
     }
   return done;
+}
+
+// stored entries carry the raw per-family tallies in `detail` — recompute
+// labels with the CURRENT rule so threshold tuning never forces a re-run
+function rescore(e) {
+  if (!e.detail || ['no-image', 'unreadable', 'error'].includes(e.verdict)) return e;
+  const best = {};
+  for (const part of e.detail.split(' ')) {
+    const m = /^(\w+):(\d+)$/.exec(part);
+    if (m) best[m[1]] = +m[2];
+  }
+  const labels = scoreLabels(best);
+  return { ...e, labels, verdict: labels.length ? labels.join('+') : 'none' };
 }
 
 function summarize(done) {

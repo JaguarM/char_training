@@ -63,13 +63,30 @@ export const LABELED = [
   { id: 'EFTA00240536', expect: 'none' },   // skewed scan (rotation terms)
 ];
 
-// verdict threshold (tuned on the labeled run): a family is PRESENT if some
-// sampled page assembles this many of its glyphs. Verdicts are MULTI-LABEL —
-// eDiscovery compilations really do mix families per section (EFTA00093044:
-// censcbk brief p3 + old-rev NimbusRoman p382 in one doc); a dominance rule
-// would erase exactly that structure. Observed cross-fire tops out well
-// below the floor (≤232, and that one looks like REAL corpus-TNR16 pixels).
+// verdict thresholds (tuned on the labeled run + the composition sample):
+// a family is PRESENT if some sampled page assembles MIN_GLYPHS of its
+// glyphs, OR — the short-document rule — at least MIN_SMALL with 10×
+// dominance over every other family's best. The corpus median doc is a
+// 1–2 page email whose whole text is ~150–300 glyphs; the absolute floor
+// alone misses those entirely (the n=2000 sample put readable Times emails
+// in 'none'). Dominance keeps the cross-fire guard: observed FALSE
+// cross-fire tops out at ≤60 glyphs and always beside a dominant real
+// family; real multi-family compilations (EFTA00093044) clear MIN_GLYPHS
+// per family and are unaffected. Verdicts stay MULTI-LABEL.
 export const MIN_GLYPHS = 300;
+export const MIN_SMALL = 80;
+
+// best: {family: bestPageGlyphs} -> ordered label list (shared by the CLI,
+// the sampler, and any rescoring of stored tallies)
+export function scoreLabels(best) {
+  const ranked = Object.entries(best).sort((a, b) => b[1] - a[1]);
+  const labels = [];
+  for (const [f, g] of ranked) {
+    const other = Math.max(0, ...ranked.filter(([f2]) => f2 !== f).map(([, g2]) => g2));
+    if (g >= MIN_GLYPHS || (g >= MIN_SMALL && g >= 10 * other)) labels.push(f);
+  }
+  return labels;
+}
 
 const node = process.execPath;
 export function ensureTemplates() {
@@ -162,7 +179,7 @@ export async function classifyDoc(pdf, { samples = 5, cleanup = false } = {}) {
     for (const p of t2) for (const [f, g] of Object.entries(familyTally(p, true)))
       best[f] = Math.max(best[f], g);
     const ranked = Object.entries(best).sort((a, b) => b[1] - a[1]);
-    const labels = ranked.filter(([, g]) => g >= MIN_GLYPHS).map(([f]) => f);
+    const labels = scoreLabels(best);
     const verdict = labels.length ? labels.join('+') : 'none';
     const detail = ranked.filter(([, g]) => g > 0).slice(0, 4)
       .map(([f, g]) => `${f}:${g}`).join(' ');
